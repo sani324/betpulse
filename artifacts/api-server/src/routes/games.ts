@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, usersTable, transactionsTable, casinoBetsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
-import { gameOverrides, casinoOpenRounds, casinoLastSettled, getOrOpenRound } from "./admin";
+import { gameOverrides, casinoOpenRounds, casinoLastSettled, getOrOpenRound, autoSettleModeOn, autoSettleGame } from "./admin";
 void gameOverrides; // legacy override map kept for non-round games (none currently)
 
 const router: IRouter = Router();
@@ -68,6 +68,12 @@ async function queueRoundBet(
   });
 
   res.json({ status: "pending", roundId: round.id, selection, stake, newBalance });
+
+  // If auto-settle is enabled, settle this game's round immediately after the bet is queued.
+  // This gives players instant results without waiting for the timer interval.
+  if (autoSettleModeOn) {
+    autoSettleGame(game).catch(() => {});
+  }
 }
 
 // Generic poll endpoint used by all casino games.

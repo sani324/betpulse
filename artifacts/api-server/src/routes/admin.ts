@@ -824,9 +824,30 @@ router.post("/admin/casino-rounds/:game/settle", requireAdmin, async (req, res):
    and auto-settles every open round that has at least one bet.
    When OFF, only manual settlement works.
 ────────────────────────────────────────────────────────────── */
-let autoSettleModeOn = false;
+export let autoSettleModeOn = false;
 let autoSettleIntervalMs = 3_000; // 3 seconds default
 let autoSettleTimer: ReturnType<typeof setInterval> | null = null;
+
+// Exported so games.ts can call it immediately after a bet is placed
+export async function autoSettleGame(game: string): Promise<void> {
+  const round = casinoOpenRounds.get(game);
+  if (!round || round.bets.length === 0) return;
+  const validOptions = GAME_OPTIONS[game];
+  if (!validOptions) return;
+  const betCounts: Record<string, number> = {};
+  const betStaked: Record<string, number> = {};
+  for (const opt of validOptions) { betCounts[opt] = 0; betStaked[opt] = 0; }
+  for (const bet of round.bets) {
+    betCounts[bet.selection] = (betCounts[bet.selection] ?? 0) + 1;
+    betStaked[bet.selection] = (betStaked[bet.selection] ?? 0) + bet.stake;
+  }
+  const minCount = Math.min(...validOptions.map(o => betCounts[o]));
+  const candidates = validOptions.filter(o => betCounts[o] === minCount);
+  const minStaked = Math.min(...candidates.map(o => betStaked[o]));
+  const finalCandidates = candidates.filter(o => betStaked[o] === minStaked);
+  const result = finalCandidates[Math.floor(Math.random() * finalCandidates.length)];
+  try { await settleRoundWith(game, result); } catch (_) {}
+}
 
 async function runAutoSettleAll() {
   const games = Array.from(casinoOpenRounds.keys());
