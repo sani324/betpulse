@@ -2015,6 +2015,24 @@ export default function Admin() {
                 { key: "player", label: "👤 Player", color: "bg-green-600 hover:bg-green-700", text: "text-green-300" },
                 { key: "house",  label: "🏠 House",  color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
               ]},
+              { game: "teen-patti", title: "🃏 Teen Patti (3 Patti)", sides: [
+                { key: "player", label: "👤 Player",       color: "bg-blue-600 hover:bg-blue-700", text: "text-blue-300" },
+                { key: "banker", label: "🏦 Banker",       color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
+                { key: "pair",   label: "👯 Pair (11×)",   color: "bg-yellow-500 hover:bg-yellow-600", text: "text-yellow-300" },
+              ]},
+              { game: "lucky-7", title: "🎰 Lucky 7", sides: [
+                { key: "under7", label: "⬇ Under 7 (1.95×)", color: "bg-blue-600 hover:bg-blue-700", text: "text-blue-300" },
+                { key: "seven",  label: "7️⃣ Seven (5×)",      color: "bg-yellow-500 hover:bg-yellow-600", text: "text-yellow-300" },
+                { key: "over7",  label: "⬆ Over 7 (1.95×)",  color: "bg-pink-600 hover:bg-pink-700", text: "text-pink-300" },
+              ]},
+              { game: "jhandi-munda", title: "🎲 Jhandi Munda", sides: [
+                { key: "spade",   label: "♠ Spade",   color: "bg-slate-600 hover:bg-slate-700", text: "text-slate-300" },
+                { key: "heart",   label: "♥ Heart",   color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
+                { key: "diamond", label: "♦ Diamond", color: "bg-blue-600 hover:bg-blue-700", text: "text-blue-300" },
+                { key: "club",    label: "♣ Club",    color: "bg-green-600 hover:bg-green-700", text: "text-green-300" },
+                { key: "star",    label: "⭐ Star",   color: "bg-yellow-500 hover:bg-yellow-600", text: "text-yellow-300" },
+                { key: "moon",    label: "🌙 Moon",   color: "bg-purple-600 hover:bg-purple-700", text: "text-purple-300" },
+              ]},
             ];
             return (
               <Card className="border-emerald-500/40 bg-emerald-500/5">
@@ -2194,7 +2212,7 @@ export default function Admin() {
                             )}
 
                             {/* Bet grid */}
-                            <div className={`grid gap-2 ${cfg.sides.length > 6 ? "grid-cols-3 md:grid-cols-6" : cfg.sides.length === 2 ? "grid-cols-2" : "grid-cols-1 md:grid-cols-3"}`}>
+                            <div className={`grid gap-2 ${cfg.sides.length >= 6 ? "grid-cols-3" : cfg.sides.length === 2 ? "grid-cols-2" : "grid-cols-1 md:grid-cols-3"}`}>
                               {cfg.sides.map(s => {
                                 const count = aCounts[s.key];
                                 const sk = aStaked[s.key];
@@ -2248,7 +2266,7 @@ export default function Admin() {
                           /* ── MANUAL MODE: full settle buttons ── */
                           <div>
                             <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">✋ Click to settle manually:</div>
-                            <div className={`grid gap-2 ${cfg.sides.length > 6 ? "grid-cols-3 md:grid-cols-6" : cfg.sides.length === 2 ? "grid-cols-2" : "grid-cols-1 md:grid-cols-3"}`}>
+                            <div className={`grid gap-2 ${cfg.sides.length >= 6 ? "grid-cols-3" : cfg.sides.length === 2 ? "grid-cols-2" : "grid-cols-1 md:grid-cols-3"}`}>
                               {cfg.sides.map(s => {
                                 const data = sideMap[s.key];
                                 const count = data?.betCount ?? 0;
