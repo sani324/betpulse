@@ -99,7 +99,7 @@ export default function Lucky7Game() {
       setBalance(data.newBalance);
       setPhase("waiting");
       pollRound(data.roundId, selection);
-      toast({ title: `Bet placed on ${selection}!`, description: "Waiting for the dice roll..." });
+      toast({ title: `Bet placed on ${selection}!`, description: "⚡ Auto-Decider is running..." });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
@@ -154,7 +154,7 @@ export default function Lucky7Game() {
                 <DiceFace rolling />
               </div>
               <div className="flex items-center gap-2 text-white font-bold">
-                <RefreshCw size={16} className="animate-spin" style={{ color: "#f5c542" }} /> Dealer rolling...
+                <RefreshCw size={16} className="animate-spin" style={{ color: "#f5c542" }} /> Auto-Decider running...
               </div>
             </div>
           )}

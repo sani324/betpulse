@@ -106,10 +106,13 @@ export default function GenericCasinoGame({ config }: Props) {
         if (data.status === "settled") {
           clearInterval(interval);
           setResult(data);
-          setPhase("result");
-          if (data.result === sel) playWin(); else playLose();
-          queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-          queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
+          // Brief dramatic pause so the player sees the "deciding" animation
+          setTimeout(() => {
+            setPhase("result");
+            if (data.result === sel) playWin(); else playLose();
+            queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+            queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
+          }, 900);
         }
       } catch (_) {}
     }, 500);
@@ -211,7 +214,7 @@ export default function GenericCasinoGame({ config }: Props) {
             <div className="relative z-10 flex flex-col items-center justify-center h-full py-12 gap-5">
               <Spinner />
               <div className="text-center">
-                <div className="text-lg font-black text-white">Dealer is deciding{waitDots}</div>
+                <div className="text-lg font-black text-white">Auto-Decider Running{waitDots}</div>
                 <div className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>
                   Your bet on{" "}
                   <span className="font-black" style={{ color: selectedOpt?.color ?? "#f5c542" }}>
@@ -329,7 +332,7 @@ export default function GenericCasinoGame({ config }: Props) {
         ) : (
           /* WAITING - show minimal info */
           <div className="py-4 rounded-2xl text-center text-sm font-medium" style={{ background: "rgba(245,197,66,0.06)", border: "1px solid rgba(245,197,66,0.12)", color: "rgba(255,255,255,0.5)" }}>
-            ⏳ Waiting for the dealer to settle this round...
+            ⚡ Auto-Decider is running your result...
           </div>
         )}
 

@@ -129,7 +129,7 @@ export default function TeenPattiGame() {
       setBalance(data.newBalance);
       setRoundId(data.roundId);
       setPhase("waiting");
-      toast({ title: `Bet placed on ${selection}!`, description: "Waiting for admin to settle round..." });
+      toast({ title: `Bet placed on ${selection}!`, description: "⚡ Auto-Decider is running..." });
       pollRound(data.roundId, selection);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -193,7 +193,7 @@ export default function TeenPattiGame() {
                 <div className="text-center">
                   <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: "rgba(245,197,66,0.6)" }}>Round in progress</p>
                   <div className="flex items-center gap-2 text-white font-bold">
-                    <RefreshCw size={16} className="animate-spin" style={{ color: "#f5c542" }} /> Waiting for dealer...
+                    <RefreshCw size={16} className="animate-spin" style={{ color: "#f5c542" }} /> Auto-Decider running...
                   </div>
                 </div>
                 <div className="flex gap-4">

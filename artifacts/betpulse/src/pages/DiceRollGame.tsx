@@ -258,7 +258,7 @@ export default function DiceRollGame() {
       const myStake = stake, mySel = selection;
       queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
       queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
-      toast({ title: "Bet placed", description: "Waiting for the round to be settled..." });
+      toast({ title: "Bet placed", description: "⚡ Auto-Decider is running..." });
       const startedAt = Date.now();
       const pollId: ReturnType<typeof setInterval> = setInterval(async () => {
         if (Date.now() - startedAt > 10 * 60 * 1000) { clearInterval(pollId); if (rollInterval.current) clearInterval(rollInterval.current); return; }

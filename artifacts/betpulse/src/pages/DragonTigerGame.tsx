@@ -396,7 +396,7 @@ export default function DragonTigerGame() {
       // Stake was deducted server-side; refresh balance.
       queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
       queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
-      toast({ title: "Bet placed", description: "Waiting for the round to be settled by the dealer..." });
+      toast({ title: "Bet placed", description: "⚡ Auto-Decider is running..." });
 
       // Poll the round until it's settled by the admin.
       const roundId = placed.roundId as string;

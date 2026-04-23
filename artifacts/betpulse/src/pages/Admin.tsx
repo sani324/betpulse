@@ -2234,22 +2234,22 @@ export default function Admin() {
                           </div>
                         </div>
 
-                        {/* Last auto-settle result pill — green winner, red losers */}
+                        {/* Last result — large prominent win/loss display */}
                         {lastAuto && (
-                          <div className="mb-2 rounded-lg border border-border/30 text-[10px] overflow-hidden">
-                            <div className="px-2 py-1.5 bg-black/30 flex items-center gap-1.5 flex-wrap">
-                              <span className="text-muted-foreground font-bold">🤖 Last:</span>
+                          <div className="mb-3 rounded-xl overflow-hidden border border-border/40 shadow-lg">
+                            <div className="px-3 py-2 bg-black/40 flex items-center gap-1.5 flex-wrap">
+                              <span className="text-xs font-black text-white/50 mr-1">🎯 LAST RESULT:</span>
                               {cfg.sides.map(s => (
-                                <span key={s.key} className={`px-1.5 py-0.5 rounded font-black tracking-wide ${
+                                <span key={s.key} className={`px-2.5 py-1 rounded-lg text-xs font-black tracking-wide ${
                                   s.key === lastAuto.result
-                                    ? "bg-emerald-600 text-white shadow shadow-emerald-900/50"
-                                    : "bg-red-900/60 text-red-300 line-through opacity-60"
+                                    ? "bg-emerald-500 text-white shadow-md shadow-emerald-900/60 scale-110 ring-2 ring-emerald-400/50"
+                                    : "bg-red-900/70 text-red-300 line-through opacity-50"
                                 }`}>
-                                  {s.key === lastAuto.result ? "✅" : "❌"} {s.label}
+                                  {s.key === lastAuto.result ? "✅ WON" : "❌"} {s.label}
                                 </span>
                               ))}
                             </div>
-                            <div className="px-2 py-1 text-muted-foreground/60 italic bg-black/10">{lastAuto.reason}</div>
+                            <div className="px-3 py-1.5 text-[11px] text-muted-foreground/70 italic bg-black/20">{lastAuto.reason}</div>
                           </div>
                         )}
 

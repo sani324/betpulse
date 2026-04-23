@@ -216,7 +216,7 @@ export default function RangGame() {
       const myStake = stake, mySel = selection;
       qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
       qc.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
-      toast({ title: "Bet placed", description: "Waiting for the round to be settled..." });
+      toast({ title: "Bet placed", description: "⚡ Auto-Decider is running..." });
       const startedAt = Date.now();
       const pollId: ReturnType<typeof setInterval> = setInterval(async () => {
         if (Date.now() - startedAt > 10 * 60 * 1000) { clearInterval(pollId); return; }
