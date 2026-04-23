@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, pool, betsTable, eventsTable, usersTable, transactionsTable, casinoBetsTable, withdrawalRequestsTable, depositRequestsTable, paymentSettingsTable } from "@workspace/db";
-import { eq, sql, and } from "drizzle-orm";
+import { eq, sql, and, ne } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import {
   GetAdminBetsQueryParams,
@@ -705,84 +705,117 @@ router.get("/admin/casino-rounds", requireAdmin, (_req, res) => {
   res.json({ rounds: out });
 });
 
+// Payout multiplier used by manual settle (mirrors settleRoundWith logic)
+function manualPayoutMultiplier(g: string, sel: string, res2: string): number {
+  if (sel !== res2) return 0;
+  if (g === "dragon-tiger") return sel === "tie" ? 9 : 2;
+  if (g === "coin-flip") return 1.95;
+  if (g === "dice-roll") return sel === "seven" ? 5 : 1.9;
+  if (g === "rang" || g === "court-piece") return 1.95;
+  if (g === "teen-patti") return sel === "pair" ? 11 : 1.95;
+  if (g === "lucky-7")    return sel === "seven" ? 5 : 1.95;
+  if (g === "jhandi-munda") return 6;
+  if (g === "andar-bahar")  return 1.95;
+  if (g === "roulette")     return sel === "green" ? 14 : 1.95;
+  if (g === "bingo-777")    return sel === "triple7" ? 20 : sel === "bar" ? 5 : 2;
+  if (g === "fruit-line")   return sel === "jackpot" ? 10 : sel === "mix" ? 3 : 1.95;
+  if (g === "sweet-bonanza") return sel === "bonanza" ? 8 : sel === "scatter" ? 3 : 1.95;
+  if (g === "crash")        return sel === "x10" ? 10 : sel === "x5" ? 5 : 2;
+  if (g === "joker")        return sel === "joker" ? 9 : 1.95;
+  if (g === "ten-cards" || g === "muflis") return 1.95;
+  if (g === "blackjack")    return sel === "tie" ? 8 : 1.95;
+  if (g === "car-roulette") return sel === "car3" ? 5 : 1.95;
+  if (g === "god-of-fortune") return sel === "supreme" ? 10 : sel === "grand" ? 5 : 1.95;
+  if (g === "rummy")        return 1.95;
+  return 2;
+}
+
 // Settle the current open round of a game with a chosen result.
 // Pays out winners (stake * payout multiplier) by updating balances and
-// inserting bet_won transactions. Then opens a fresh round.
+// inserting bet_won transactions. Also recovers any orphaned pending DB bets
+// (e.g. placed before a server restart). Then opens a fresh round.
 router.post("/admin/casino-rounds/:game/settle", requireAdmin, async (req, res): Promise<void> => {
   const game = req.params.game;
   const { result } = req.body ?? {};
   if (!result || typeof result !== "string") { res.status(400).json({ error: "result is required" }); return; }
 
+  const settledAt = new Date();
+  const settledInMemoryIds: number[] = [];
+
+  // ── Step 1: settle in-memory bets (update DB record + credit winners) ──
   const round = casinoOpenRounds.get(game);
-  if (!round || round.bets.length === 0) {
-    // Nothing to settle — but we still record an empty settled round so admin sees feedback.
-    const empty: CasinoRound = {
-      id: round?.id ?? nextRoundId(game),
-      game,
-      openedAt: round?.openedAt ?? new Date().toISOString(),
-      status: "settled",
-      bets: round?.bets ?? [],
-      result,
-      settledAt: new Date().toISOString(),
-    };
-    casinoOpenRounds.delete(game);
-    casinoLastSettled.set(game, empty);
-    getOrOpenRound(game); // open a fresh round
-    res.json({ message: "Round settled (no bets)", round: empty });
-    return;
-  }
-
-  // Determine payout multiplier per game.
-  function payoutMultiplier(g: string, sel: string, res2: string): number {
-    if (sel !== res2) return 0;
-    if (g === "dragon-tiger") return sel === "tie" ? 9 : 2;
-    if (g === "coin-flip") return 1.95;
-    if (g === "dice-roll") return sel === "seven" ? 5 : 1.9;
-    if (g === "rang" || g === "court-piece") return 1.95;
-    if (g === "teen-patti") return sel === "pair" ? 11 : 1.95;
-    if (g === "lucky-7")    return sel === "seven" ? 5 : 1.95;
-    if (g === "jhandi-munda") return 6;
-    if (g === "andar-bahar")  return 1.95;
-    if (g === "roulette")     return sel === "green" ? 14 : 1.95;
-    if (g === "bingo-777")    return sel === "triple7" ? 20 : sel === "bar" ? 5 : 2;
-    if (g === "fruit-line")   return sel === "jackpot" ? 10 : sel === "mix" ? 3 : 1.95;
-    if (g === "sweet-bonanza") return sel === "bonanza" ? 8 : sel === "scatter" ? 3 : 1.95;
-    if (g === "crash")        return sel === "x10" ? 10 : sel === "x5" ? 5 : 2;
-    if (g === "joker")        return sel === "joker" ? 9 : 1.95;
-    if (g === "ten-cards" || g === "muflis") return 1.95;
-    if (g === "blackjack")    return sel === "tie" ? 8 : 1.95;
-    if (g === "car-roulette") return sel === "car3" ? 5 : 1.95;
-    if (g === "god-of-fortune") return sel === "supreme" ? 10 : sel === "grand" ? 5 : 1.95;
-    if (g === "rummy")        return 1.95;
-    return 2;
-  }
-
-  // Settle each bet: stake was already deducted at bet placement.
-  for (const bet of round.bets) {
-    const mult = payoutMultiplier(game, bet.selection, result);
+  for (const bet of (round?.bets ?? [])) {
+    const mult = manualPayoutMultiplier(game, bet.selection, result);
     const winAmount = mult > 0 ? Math.round(bet.stake * mult * 100) / 100 : 0;
-    if (winAmount <= 0) continue;
+    const isWon = winAmount > 0;
+    if (bet.casinoBetId) {
+      await db.update(casinoBetsTable).set({
+        status: isWon ? "won" : "lost",
+        result,
+        payout: String(isWon ? winAmount : 0),
+        settledAt,
+      }).where(eq(casinoBetsTable.id, bet.casinoBetId));
+      settledInMemoryIds.push(bet.casinoBetId);
+    }
+    if (!isWon) continue;
     const [u] = await db.select().from(usersTable).where(eq(usersTable.id, bet.userId));
     if (!u) continue;
     const newBal = Math.round((parseFloat(u.balance) + winAmount) * 100) / 100;
     await db.update(usersTable).set({ balance: String(newBal) }).where(eq(usersTable.id, bet.userId));
     await db.insert(transactionsTable).values({
-      userId: bet.userId,
-      type: "bet_won",
-      amount: String(winAmount),
-      balanceAfter: String(newBal),
-      description: `${prettyGame(game)} round settled — bet ${bet.selection}, result ${result}. Win ₹${winAmount}.`,
+      userId: bet.userId, type: "bet_won", amount: String(winAmount), balanceAfter: String(newBal),
+      description: `${prettyGame(game)} round settled — bet ${bet.selection}, result ${result}. Win ₨${winAmount}.`,
     });
   }
 
-  round.status = "settled";
-  round.result = result;
-  round.settledAt = new Date().toISOString();
-  round.details = generateRoundDetails(game, result);
-  casinoOpenRounds.delete(game);
-  casinoLastSettled.set(game, round);
-  getOrOpenRound(game); // open a fresh round immediately
-  res.json({ message: "Round settled", round });
+  // ── Step 2: recover & settle any orphaned pending DB bets for this game ──
+  // These exist when a server restart wiped the in-memory round but the DB
+  // records remained "pending". Always runs, even when round has no in-memory bets.
+  const orphaned = await db.select().from(casinoBetsTable).where(
+    and(eq(casinoBetsTable.game, game), eq(casinoBetsTable.status, "pending"))
+  );
+  let recoveredCount = 0;
+  for (const dbBet of orphaned) {
+    if (settledInMemoryIds.includes(dbBet.id)) continue;
+    const mult = manualPayoutMultiplier(game, dbBet.selection, result);
+    const winAmount = mult > 0 ? Math.round(parseFloat(dbBet.stake) * mult * 100) / 100 : 0;
+    const isWon = winAmount > 0;
+    await db.update(casinoBetsTable).set({
+      status: isWon ? "won" : "lost",
+      result,
+      payout: String(isWon ? winAmount : 0),
+      settledAt,
+    }).where(eq(casinoBetsTable.id, dbBet.id));
+    recoveredCount++;
+    if (!isWon) continue;
+    const [u] = await db.select().from(usersTable).where(eq(usersTable.id, dbBet.userId));
+    if (!u) continue;
+    const newBal = Math.round((parseFloat(u.balance) + winAmount) * 100) / 100;
+    await db.update(usersTable).set({ balance: String(newBal) }).where(eq(usersTable.id, dbBet.userId));
+    await db.insert(transactionsTable).values({
+      userId: dbBet.userId, type: "bet_won", amount: String(winAmount), balanceAfter: String(newBal),
+      description: `${prettyGame(game)} round settled — bet ${dbBet.selection}, result ${result}. Win ₨${winAmount}.`,
+    });
+  }
+
+  // ── Step 3: close the in-memory round and open a fresh one ──
+  const totalBets = (round?.bets.length ?? 0) + recoveredCount;
+  if (round) {
+    round.status = "settled";
+    round.result = result;
+    round.settledAt = settledAt.toISOString();
+    round.details = generateRoundDetails(game, result);
+    casinoOpenRounds.delete(game);
+    casinoLastSettled.set(game, round);
+  } else {
+    const empty: CasinoRound = {
+      id: nextRoundId(game), game, openedAt: settledAt.toISOString(),
+      status: "settled", bets: [], result, settledAt: settledAt.toISOString(),
+    };
+    casinoLastSettled.set(game, empty);
+  }
+  getOrOpenRound(game);
+  res.json({ message: `Round settled (${totalBets} bet${totalBets !== 1 ? "s" : ""})`, result, recoveredCount });
 });
 
 /* ──────────────────────────────────────────────────────────────
