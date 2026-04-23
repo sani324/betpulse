@@ -349,7 +349,10 @@ export default function AdminReports() {
             {loading ? (
               <div className="p-4 space-y-2">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
             ) : !data?.topWinners?.length ? (
-              <div className="text-center py-8 text-white/30 text-sm">No data for this period</div>
+              <div className="text-center py-10 text-white/30 text-sm">
+                <Trophy className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                No net winners this period — house took it all
+              </div>
             ) : (
               <Table>
                 <TableHeader>
@@ -397,7 +400,10 @@ export default function AdminReports() {
             {loading ? (
               <div className="p-4 space-y-2">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
             ) : !data?.topLosers?.length ? (
-              <div className="text-center py-8 text-white/30 text-sm">No data for this period</div>
+              <div className="text-center py-10 text-white/30 text-sm">
+                <ArrowDownRight className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                No net losers this period
+              </div>
             ) : (
               <Table>
                 <TableHeader>

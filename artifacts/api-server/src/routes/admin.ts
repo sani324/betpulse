@@ -1400,8 +1400,7 @@ router.get("/admin/reports", requireAdmin, async (req, res): Promise<void> => {
     ORDER BY "houseEarnings" DESC
   `);
 
-  // Top 10 winners — netProfit = all payouts received - all stakes paid
-  // (correct net figure regardless of mix of wins/losses)
+  // Top 10 winners — only players who ended up net positive (actual winners)
   const topWinnersRes = await pool.query(`
     SELECT
       u.username,
@@ -1416,11 +1415,13 @@ router.get("/admin/reports", requireAdmin, async (req, res): Promise<void> => {
     WHERE cb.status != 'pending'
       AND cb.created_at >= NOW() - INTERVAL '${interval}'
     GROUP BY u.id, u.username
+    HAVING (COALESCE(SUM(CASE WHEN cb.status='won' THEN cb.payout ELSE 0 END), 0)
+            - COALESCE(SUM(cb.stake), 0)) > 0
     ORDER BY "netProfit" DESC
     LIMIT 10
   `);
 
-  // Top 10 losers — netLoss = all stakes paid - all payouts received
+  // Top 10 losers — only players who ended up net negative (actual losers)
   const topLosersRes = await pool.query(`
     SELECT
       u.username,
@@ -1435,6 +1436,8 @@ router.get("/admin/reports", requireAdmin, async (req, res): Promise<void> => {
     WHERE cb.status != 'pending'
       AND cb.created_at >= NOW() - INTERVAL '${interval}'
     GROUP BY u.id, u.username
+    HAVING (COALESCE(SUM(cb.stake), 0)
+            - COALESCE(SUM(CASE WHEN cb.status='won' THEN cb.payout ELSE 0 END), 0)) > 0
     ORDER BY "netLoss" DESC
     LIMIT 10
   `);
