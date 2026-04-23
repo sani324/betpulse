@@ -769,7 +769,7 @@ export default function Admin() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-card/40 border-destructive/20 shadow-lg shadow-destructive/5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Gross Profit</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">House Earnings</CardTitle>
             <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
@@ -779,7 +779,7 @@ export default function Admin() {
                   {formatCurrency(dashboard!.grossProfit)}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Margin: {formatPercentage(dashboard!.profitMargin / 100)}
+                  {formatPercentage(dashboard!.profitMargin / 100)} kept from settled bets
                 </p>
               </>
             )}
@@ -788,7 +788,7 @@ export default function Admin() {
 
         <Card className="bg-card/40 border-border/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pending Liability</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Money at Risk</CardTitle>
             <Activity className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
@@ -797,7 +797,7 @@ export default function Admin() {
                 <div className="text-2xl font-bold text-orange-500">
                   {formatCurrency(dashboard!.pendingLiability)}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Total potential payout</p>
+                <p className="text-xs text-muted-foreground mt-1">Max payout if all open bets win</p>
               </>
             )}
           </CardContent>
@@ -805,14 +805,14 @@ export default function Admin() {
 
         <Card className="bg-card/40 border-border/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Staked</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Bets Placed</CardTitle>
             <Coins className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {isLoadingDashboard ? <Skeleton className="h-8 w-24" /> : (
               <>
                 <div className="text-2xl font-bold">{formatCurrency(dashboard!.totalStaked)}</div>
-                <p className="text-xs text-muted-foreground mt-1">Across {dashboard!.totalBets} bets</p>
+                <p className="text-xs text-muted-foreground mt-1">{dashboard!.totalBets} bets by all players</p>
               </>
             )}
           </CardContent>
@@ -820,12 +820,15 @@ export default function Admin() {
 
         <Card className="bg-card/40 border-border/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Registered Players</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {isLoadingDashboard ? <Skeleton className="h-8 w-24" /> : (
-              <div className="text-2xl font-bold">{dashboard!.totalUsers}</div>
+              <>
+                <div className="text-2xl font-bold">{dashboard!.totalUsers}</div>
+                <p className="text-xs text-muted-foreground mt-1">Accounts on the platform</p>
+              </>
             )}
           </CardContent>
         </Card>
