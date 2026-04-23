@@ -737,14 +737,7 @@ router.post("/admin/casino-rounds/:game/settle", requireAdmin, async (req, res):
     if (g === "dragon-tiger") return sel === "tie" ? 9 : 2;
     if (g === "coin-flip") return 1.95;
     if (g === "dice-roll") return sel === "seven" ? 5 : 1.9;
-    if (g === "andar-bahar") return 1.95;
     if (g === "rang" || g === "court-piece") return 1.95;
-    if (g === "code-piece") {
-      const digit = /^[0-9]$/.test(res2) ? parseInt(res2, 10) : -1;
-      if (sel === "small") return digit >= 0 && digit < 5 ? 1.95 : (res2 === "small" ? 1.95 : 0);
-      if (sel === "big")   return digit >= 5 ? 1.95 : (res2 === "big" ? 1.95 : 0);
-      return sel === res2 ? 9 : 0;
-    }
     if (g === "teen-patti") return sel === "pair" ? 11 : 1.95;
     if (g === "lucky-7")    return sel === "seven" ? 5 : 1.95;
     if (g === "jhandi-munda") return 6; // 1 symbol on 6-sided die
@@ -966,10 +959,8 @@ function prettyGame(key: string): string {
     "dragon-tiger":  "Dragon Tiger",
     "coin-flip":     "Coin Flip",
     "dice-roll":     "Dice Roll",
-    "andar-bahar":   "Andar Bahar",
     "rang":          "Rang",
     "court-piece":   "Court Piece",
-    "code-piece":    "Code Piece",
     "teen-patti":    "Teen Patti",
     "lucky-7":       "Lucky 7",
     "jhandi-munda":  "Jhandi Munda",
@@ -1020,7 +1011,7 @@ router.get("/admin/casino-stats", requireAdmin, async (req, res): Promise<void> 
     .where(
       and(
         sql`${transactionsTable.createdAt} >= ${since}`,
-        sql`${transactionsTable.description} ~ '^(Dragon Tiger|Coin Flip|Dice Roll|Andar Bahar|Rang|Court Piece|Code Piece) '`,
+        sql`${transactionsTable.description} ~ '^(Dragon Tiger|Coin Flip|Dice Roll|Rang|Court Piece|Teen Patti|Lucky 7|Jhandi Munda) '`,
       ),
     );
 
@@ -1032,17 +1023,15 @@ router.get("/admin/casino-stats", requireAdmin, async (req, res): Promise<void> 
     "Dragon Tiger": "dragon-tiger",
     "Coin Flip": "coin-flip",
     "Dice Roll": "dice-roll",
-    "Andar Bahar": "andar-bahar",
     "Rang": "rang",
     "Court Piece": "court-piece",
-    "Code Piece": "code-piece",
   };
 
   for (const r of rows) {
     // Description format: "<Game> — bet <selection>, ...". Estimate stake from
     // amount: bet_placed amount = stake; bet_won amount = net win, so stake is unknown
     // here — we still count the bet, and approximate stake as the amount for placed bets.
-    const m = r.description.match(/^(Dragon Tiger|Coin Flip|Dice Roll|Andar Bahar|Rang|Court Piece|Code Piece)\s+—\s+bet\s+([a-zA-Z0-9_-]+)(?:,\s+result\s+([a-zA-Z0-9_-]+))?/);
+    const m = r.description.match(/^(Dragon Tiger|Coin Flip|Dice Roll|Rang|Court Piece|Teen Patti|Lucky 7|Jhandi Munda)\s+—\s+bet\s+([a-zA-Z0-9_-]+)(?:,\s+result\s+([a-zA-Z0-9_-]+))?/);
     if (!m) continue;
     const gameName = m[1];
     const selection = m[2];

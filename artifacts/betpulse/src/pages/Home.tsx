@@ -9,14 +9,12 @@ import { CASINO_SPORTS } from "@/lib/casino-config";
 const CASINO_GAMES = [
   { slug: "teen-patti",  label: "Teen Patti",  emoji: "👑", desc: "Classic 3-card Indian poker",        tag: "HOTTEST",  tagColor: "#ef4444", players: "12.4K", featured: true  },
   { slug: "dragon-tiger",label: "Dragon Tiger",emoji: "🔥", desc: "Fast 2-card draw · Dragon vs Tiger",  tag: "TRENDING", tagColor: "#f97316", players: "8.2K"                 },
-  { slug: "andar-bahar", label: "Andar Bahar", emoji: "🃏", desc: "Classic prediction card game",                                          players: "6.5K"                 },
-  { slug: "lucky-7",     label: "Lucky 7",     emoji: "🎲", desc: "Sum the dice · Under / 7 / Over",     tag: "NEW",      tagColor: "#22c55e", players: "5.1K"                 },
-  { slug: "jhandi-munda",label: "Jhandi Munda",emoji: "🎴", desc: "6 dice · 6 symbols · Indian classic", tag: "NEW",      tagColor: "#22c55e", players: "4.3K"                 },
-  { slug: "coin-flip",   label: "Coin Flip",   emoji: "🪙", desc: "Heads or Tails · 1.95× payout",                                        players: "3.1K"                 },
-  { slug: "dice-roll",   label: "Dice Roll",   emoji: "🎲", desc: "High / Low / Lucky 7",                                                  players: "2.8K"                 },
-  { slug: "rang",        label: "Rang",        emoji: "♠️", desc: "Strategic trick-taking card game",                                      players: "1.9K"                 },
-  { slug: "court-piece", label: "Court Piece", emoji: "🂡", desc: "Partnership card battle",                                               players: "1.5K"                 },
-  { slug: "code-piece",  label: "Code Piece",  emoji: "🔢", desc: "Number sequence strategy · 9×",                                         players: "900+"                 },
+  { slug: "lucky-7",     label: "Lucky 7",     emoji: "🎲", desc: "Sum the dice · Under / 7 / Over",     tag: "NEW",      tagColor: "#22c55e", players: "5.1K" },
+  { slug: "jhandi-munda",label: "Jhandi Munda",emoji: "🎴", desc: "6 dice · 6 symbols · Indian classic", tag: "NEW",      tagColor: "#22c55e", players: "4.3K" },
+  { slug: "coin-flip",   label: "Coin Flip",   emoji: "🪙", desc: "Heads or Tails · 1.95× payout",                                        players: "3.1K" },
+  { slug: "dice-roll",   label: "Dice Roll",   emoji: "🎲", desc: "High / Low / Lucky 7",                                                  players: "2.8K" },
+  { slug: "rang",        label: "Rang",        emoji: "♠️", desc: "Strategic trick-taking card game",                                      players: "1.9K" },
+  { slug: "court-piece", label: "Court Piece", emoji: "🂡", desc: "Partnership card battle",                                               players: "1.5K" },
 ];
 
 export default function Home() {
@@ -72,7 +70,7 @@ export default function Home() {
             </span>
           </h1>
           <p className="text-sm mb-6 max-w-md" style={{ color: "rgba(255,255,255,0.6)" }}>
-            Teen Patti · Dragon Tiger · Andar Bahar · Lucky 7 · Jhandi Munda
+            Teen Patti · Dragon Tiger · Lucky 7 · Jhandi Munda · Rang
           </p>
 
           <div className="flex flex-wrap gap-5 mb-6">

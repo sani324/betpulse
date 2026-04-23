@@ -1042,17 +1042,14 @@ export default function Admin() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="Football">⚽ Football</SelectItem>
-                              <SelectItem value="Basketball">🏀 Basketball</SelectItem>
-                              <SelectItem value="Tennis">🎾 Tennis</SelectItem>
-                              <SelectItem value="Cricket">🏏 Cricket</SelectItem>
-                              <SelectItem value="Teen Patti">🃏 Teen Patti</SelectItem>
-                              <SelectItem value="Dragon Tiger">🐉 Dragon Tiger</SelectItem>
-                              <SelectItem value="Andar Bahar">🎴 Andar Bahar</SelectItem>
+                              <SelectItem value="Teen Patti">👑 Teen Patti</SelectItem>
+                              <SelectItem value="Dragon Tiger">🔥 Dragon Tiger</SelectItem>
+                              <SelectItem value="Lucky 7">🎲 Lucky 7</SelectItem>
+                              <SelectItem value="Jhandi Munda">🎴 Jhandi Munda</SelectItem>
+                              <SelectItem value="Coin Flip">🪙 Coin Flip</SelectItem>
+                              <SelectItem value="Dice Roll">🎲 Dice Roll</SelectItem>
                               <SelectItem value="Rang">♠️ Rang</SelectItem>
-                              <SelectItem value="Piec">🂡 Piec</SelectItem>
-                              <SelectItem value="Kabaddi">Kabaddi</SelectItem>
-                              <SelectItem value="Hockey">Hockey</SelectItem>
+                              <SelectItem value="Court Piece">🂡 Court Piece</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -1849,10 +1846,6 @@ export default function Admin() {
                 { key: "seven", label: "Seven (7) 5x", color: "bg-purple-600 hover:bg-purple-700", text: "text-purple-300" },
                 { key: "high",  label: "High (8-12)", color: "bg-pink-600 hover:bg-pink-700", text: "text-pink-300" },
               ]},
-              { game: "andar-bahar", title: "🃏 Andar Bahar", sides: [
-                { key: "andar", label: "Andar", color: "bg-rose-600 hover:bg-rose-700", text: "text-rose-300" },
-                { key: "bahar", label: "Bahar", color: "bg-cyan-600 hover:bg-cyan-700", text: "text-cyan-300" },
-              ]},
               { game: "rang", title: "♠ Rang", sides: [
                 { key: "player", label: "Player", color: "bg-emerald-600 hover:bg-emerald-700", text: "text-emerald-300" },
                 { key: "house",  label: "House",  color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
@@ -1860,11 +1853,6 @@ export default function Admin() {
               { game: "court-piece", title: "♣ Court Piece", sides: [
                 { key: "player", label: "Player", color: "bg-emerald-600 hover:bg-emerald-700", text: "text-emerald-300" },
                 { key: "house",  label: "House",  color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
-              ]},
-              { game: "code-piece", title: "🔢 Code Piece", sides: [
-                { key: "small", label: "Small (0-4)", color: "bg-blue-600 hover:bg-blue-700", text: "text-blue-300" },
-                { key: "big",   label: "Big (5-9)",   color: "bg-pink-600 hover:bg-pink-700", text: "text-pink-300" },
-                ...Array.from({ length: 10 }).map((_, i) => ({ key: String(i), label: String(i), color: "bg-amber-600 hover:bg-amber-700", text: "text-amber-300" })),
               ]},
             ];
             return (
@@ -2059,13 +2047,6 @@ export default function Admin() {
                       { value: "low",   label: "⬇ Low",  color: "bg-blue-600 hover:bg-blue-700 text-white" },
                       { value: "high",  label: "⬆ High", color: "bg-red-600 hover:bg-red-700 text-white" },
                       { value: "seven", label: "7️⃣ Seven", color: "bg-purple-600 hover:bg-purple-700 text-white" },
-                    ],
-                  },
-                  {
-                    game: "andar-bahar", label: "🃏 Andar Bahar",
-                    options: [
-                      { value: "andar", label: "⬅ Andar", color: "bg-green-600 hover:bg-green-700 text-white" },
-                      { value: "bahar", label: "➡ Bahar", color: "bg-red-600 hover:bg-red-700 text-white" },
                     ],
                   },
                   {

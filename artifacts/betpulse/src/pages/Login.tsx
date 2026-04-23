@@ -13,8 +13,8 @@ const loginSchema = z.object({
 });
 
 const HIGHLIGHTS = [
-  { icon: "🏏", title: "Live Cricket Betting", desc: "PSL, IPL, T20 World Cup & more" },
-  { icon: "🐉", title: "Dragon Tiger & Casino", desc: "Teen Patti, Andar Bahar, Rang" },
+  { icon: "👑", title: "Teen Patti & More", desc: "Classic Indian casino games, live" },
+  { icon: "🐉", title: "Dragon Tiger & Casino", desc: "Teen Patti, Lucky 7, Rang" },
   { icon: "💰", title: "Instant PKR Payouts", desc: "Win real money, withdraw anytime" },
 ];
 
