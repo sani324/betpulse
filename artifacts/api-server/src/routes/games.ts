@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, usersTable, transactionsTable } from "@workspace/db";
+import { db, usersTable, transactionsTable, casinoBetsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 import { gameOverrides, casinoOpenRounds, casinoLastSettled, getOrOpenRound } from "./admin";
@@ -45,12 +45,26 @@ async function queueRoundBet(
   });
 
   const round = getOrOpenRound(game);
+
+  // Record in casino_bets table so user can see it in My Bets
+  const gameName = game.split("-").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  const [casinoBetRow] = await db.insert(casinoBetsTable).values({
+    userId,
+    game,
+    gameName,
+    roundId: round.id,
+    selection,
+    stake: String(stake),
+    status: "pending",
+  }).returning();
+
   round.bets.push({
     userId,
     username: user.username,
     selection,
     stake,
     placedAt: new Date().toISOString(),
+    casinoBetId: casinoBetRow?.id,
   });
 
   res.json({ status: "pending", roundId: round.id, selection, stake, newBalance });

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, betsTable, eventsTable, usersTable, transactionsTable } from "@workspace/db";
+import { db, betsTable, eventsTable, usersTable, transactionsTable, casinoBetsTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import {
   GetBetsQueryParams,
@@ -138,6 +138,30 @@ router.post("/bets", requireAuth, async (req, res): Promise<void> => {
   });
 
   res.status(201).json(formatBet(bet, event));
+});
+
+router.get("/bets/casino", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.session.userId!;
+  const rows = await db
+    .select()
+    .from(casinoBetsTable)
+    .where(eq(casinoBetsTable.userId, userId))
+    .orderBy(sql`${casinoBetsTable.createdAt} desc`)
+    .limit(100);
+  res.json(rows.map(r => ({
+    id: r.id,
+    type: "casino",
+    game: r.game,
+    gameName: r.gameName,
+    roundId: r.roundId,
+    selection: r.selection,
+    stake: parseFloat(r.stake),
+    payout: r.payout ? parseFloat(r.payout) : null,
+    status: r.status,
+    result: r.result ?? null,
+    createdAt: r.createdAt.toISOString(),
+    settledAt: r.settledAt ? r.settledAt.toISOString() : null,
+  })));
 });
 
 router.get("/bets/:betId", requireAuth, async (req, res): Promise<void> => {

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, pool, betsTable, eventsTable, usersTable, transactionsTable, withdrawalRequestsTable, depositRequestsTable, paymentSettingsTable } from "@workspace/db";
+import { db, pool, betsTable, eventsTable, usersTable, transactionsTable, casinoBetsTable, withdrawalRequestsTable, depositRequestsTable, paymentSettingsTable } from "@workspace/db";
 import { eq, sql, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import {
@@ -652,6 +652,7 @@ export type CasinoBet = {
   selection: string;
   stake: number;
   placedAt: string;
+  casinoBetId?: number;
 };
 export type CasinoRound = {
   id: string;
@@ -911,10 +912,23 @@ async function settleRoundWith(game: string, result: string): Promise<{ message:
     return { message: "Round settled (no bets)", round: empty };
   }
 
+  const settledAt = new Date();
   for (const bet of round.bets) {
     const mult = payoutMultiplier(game, bet.selection, result);
     const winAmount = mult > 0 ? Math.round(bet.stake * mult * 100) / 100 : 0;
-    if (winAmount <= 0) continue;
+    const isWon = winAmount > 0;
+
+    // Update casino_bets record with final outcome
+    if (bet.casinoBetId) {
+      await db.update(casinoBetsTable).set({
+        status: isWon ? "won" : "lost",
+        result,
+        payout: String(isWon ? winAmount : 0),
+        settledAt,
+      }).where(eq(casinoBetsTable.id, bet.casinoBetId));
+    }
+
+    if (!isWon) continue;
     const [u] = await db.select().from(usersTable).where(eq(usersTable.id, bet.userId));
     if (!u) continue;
     const newBal = Math.round((parseFloat(u.balance) + winAmount) * 100) / 100;
@@ -930,7 +944,7 @@ async function settleRoundWith(game: string, result: string): Promise<{ message:
 
   round.status = "settled";
   round.result = result;
-  round.settledAt = new Date().toISOString();
+  round.settledAt = settledAt.toISOString();
   round.details = generateRoundDetails(game, result);
   casinoOpenRounds.delete(game);
   casinoLastSettled.set(game, round);

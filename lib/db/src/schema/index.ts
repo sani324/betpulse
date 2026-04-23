@@ -1,6 +1,7 @@
 export * from "./users";
 export * from "./events";
 export * from "./bets";
+export * from "./casino-bets";
 export * from "./transactions";
 export * from "./withdrawals";
 export * from "./deposits";
