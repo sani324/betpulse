@@ -642,6 +642,196 @@ router.delete("/admin/payment-settings/:method", requireAdmin, async (req, res):
   res.json({ message: "Payment method deleted" });
 });
 
+/* ──────────── CASINO ROUNDS (round-based games) ──────────── */
+// In-memory rounds. One open round per game key. Bets accumulate until admin
+// settles the round by picking a result, at which point all bets pay out
+// together and a fresh round opens.
+export type CasinoBet = {
+  userId: number;
+  username: string;
+  selection: string;
+  stake: number;
+  placedAt: string;
+};
+export type CasinoRound = {
+  id: string;
+  game: string;            // game key, e.g. "dragon-tiger"
+  openedAt: string;
+  status: "open" | "settled";
+  bets: CasinoBet[];
+  result?: string;
+  details?: Record<string, unknown>; // e.g. cards drawn
+  settledAt?: string;
+};
+
+export const casinoOpenRounds: Map<string, CasinoRound> = new Map();
+// Keep last settled round per game so user clients can fetch their result.
+export const casinoLastSettled: Map<string, CasinoRound> = new Map();
+
+let _roundSeq = 1;
+function nextRoundId(game: string) {
+  return `${game}-${Date.now()}-${_roundSeq++}`;
+}
+
+export function getOrOpenRound(game: string): CasinoRound {
+  let r = casinoOpenRounds.get(game);
+  if (!r) {
+    r = { id: nextRoundId(game), game, openedAt: new Date().toISOString(), status: "open", bets: [] };
+    casinoOpenRounds.set(game, r);
+  }
+  return r;
+}
+
+// List all open rounds with bets aggregated per side. Used by the admin UI.
+router.get("/admin/casino-rounds", requireAdmin, (_req, res) => {
+  const out = Array.from(casinoOpenRounds.values()).map((r) => {
+    const sides: Record<string, { selection: string; betCount: number; totalStaked: number; users: { username: string; stake: number }[] }> = {};
+    for (const b of r.bets) {
+      if (!sides[b.selection]) sides[b.selection] = { selection: b.selection, betCount: 0, totalStaked: 0, users: [] };
+      sides[b.selection].betCount += 1;
+      sides[b.selection].totalStaked += b.stake;
+      sides[b.selection].users.push({ username: b.username, stake: b.stake });
+    }
+    return {
+      id: r.id,
+      game: r.game,
+      openedAt: r.openedAt,
+      totalBets: r.bets.length,
+      totalStaked: r.bets.reduce((s, b) => s + b.stake, 0),
+      sides: Object.values(sides).sort((a, b) => b.totalStaked - a.totalStaked || b.betCount - a.betCount),
+    };
+  });
+  res.json({ rounds: out });
+});
+
+// Settle the current open round of a game with a chosen result.
+// Pays out winners (stake * payout multiplier) by updating balances and
+// inserting bet_won transactions. Then opens a fresh round.
+router.post("/admin/casino-rounds/:game/settle", requireAdmin, async (req, res): Promise<void> => {
+  const game = req.params.game;
+  const { result } = req.body ?? {};
+  if (!result || typeof result !== "string") { res.status(400).json({ error: "result is required" }); return; }
+
+  const round = casinoOpenRounds.get(game);
+  if (!round || round.bets.length === 0) {
+    // Nothing to settle — but we still record an empty settled round so admin sees feedback.
+    const empty: CasinoRound = {
+      id: round?.id ?? nextRoundId(game),
+      game,
+      openedAt: round?.openedAt ?? new Date().toISOString(),
+      status: "settled",
+      bets: round?.bets ?? [],
+      result,
+      settledAt: new Date().toISOString(),
+    };
+    casinoOpenRounds.delete(game);
+    casinoLastSettled.set(game, empty);
+    getOrOpenRound(game); // open a fresh round
+    res.json({ message: "Round settled (no bets)", round: empty });
+    return;
+  }
+
+  // Determine payout multiplier per game.
+  function payoutMultiplier(g: string, sel: string, res2: string): number {
+    if (sel !== res2) return 0;
+    if (g === "dragon-tiger") return sel === "tie" ? 9 : 2;
+    if (g === "coin-flip") return 1.95;
+    if (g === "dice-roll") return sel === "seven" ? 5 : 1.9;
+    if (g === "andar-bahar") return 1.95;
+    if (g === "rang" || g === "court-piece" || g === "code-piece") return 1.95;
+    return 2;
+  }
+
+  // Settle each bet: stake was already deducted at bet placement.
+  for (const bet of round.bets) {
+    const mult = payoutMultiplier(game, bet.selection, result);
+    const winAmount = mult > 0 ? Math.round(bet.stake * mult * 100) / 100 : 0;
+    if (winAmount <= 0) continue;
+    const [u] = await db.select().from(usersTable).where(eq(usersTable.id, bet.userId));
+    if (!u) continue;
+    const newBal = Math.round((parseFloat(u.balance) + winAmount) * 100) / 100;
+    await db.update(usersTable).set({ balance: String(newBal) }).where(eq(usersTable.id, bet.userId));
+    await db.insert(transactionsTable).values({
+      userId: bet.userId,
+      type: "bet_won",
+      amount: String(winAmount),
+      balanceAfter: String(newBal),
+      description: `${prettyGame(game)} round settled — bet ${bet.selection}, result ${result}. Win ₹${winAmount}.`,
+    });
+  }
+
+  round.status = "settled";
+  round.result = result;
+  round.settledAt = new Date().toISOString();
+  round.details = generateRoundDetails(game, result);
+  casinoOpenRounds.delete(game);
+  casinoLastSettled.set(game, round);
+  getOrOpenRound(game); // open a fresh round immediately
+  res.json({ message: "Round settled", round });
+});
+
+// Build game-specific presentation details (cards, dice, etc.) consistent with
+// the chosen result, so the user-facing UI can render a believable outcome.
+function generateRoundDetails(game: string, result: string): Record<string, unknown> {
+  const RANKS = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+  const RANK_VALUES: Record<string, number> = { A:1,"2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":10,J:11,Q:12,K:13 };
+  const SUITS = ["♠","♥","♦","♣"];
+  const card = (r: string, s: string) => ({ rank: r, suit: s, value: RANK_VALUES[r] });
+  const randCard = () => { const r = RANKS[Math.floor(Math.random()*RANKS.length)]; return card(r, SUITS[Math.floor(Math.random()*SUITS.length)]); };
+  const cardWithMin = (min: number) => { const elig = RANKS.filter(r => RANK_VALUES[r] >= min); const r = elig[Math.floor(Math.random()*elig.length)]; return card(r, SUITS[Math.floor(Math.random()*SUITS.length)]); };
+  const cardWithMax = (max: number) => { const elig = RANKS.filter(r => RANK_VALUES[r] <= max); const r = elig[Math.floor(Math.random()*elig.length)]; return card(r, SUITS[Math.floor(Math.random()*SUITS.length)]); };
+
+  if (game === "dragon-tiger") {
+    if (result === "dragon") {
+      const d = cardWithMin(8);
+      const t = cardWithMax(d.value - 1);
+      return { dragonCard: d, tigerCard: t };
+    }
+    if (result === "tiger") {
+      const t = cardWithMin(8);
+      const d = cardWithMax(t.value - 1);
+      return { dragonCard: d, tigerCard: t };
+    }
+    if (result === "tie") {
+      const r = RANKS[Math.floor(Math.random()*RANKS.length)];
+      const suits = [...SUITS].sort(() => Math.random() - 0.5);
+      return { dragonCard: card(r, suits[0]), tigerCard: card(r, suits[1]) };
+    }
+  }
+  if (game === "coin-flip") return { coin: result };
+  if (game === "dice-roll") {
+    if (result === "seven") {
+      const combos = [[1,6],[2,5],[3,4],[4,3],[5,2],[6,1]];
+      const [a,b] = combos[Math.floor(Math.random()*combos.length)];
+      return { dice1: a, dice2: b, sum: a+b };
+    }
+    if (result === "high") {
+      const c: [number,number][] = [];
+      for (let a=1;a<=6;a++) for (let b=1;b<=6;b++) if (a+b>7) c.push([a,b]);
+      const [a,b] = c[Math.floor(Math.random()*c.length)]; return { dice1:a, dice2:b, sum:a+b };
+    }
+    if (result === "low") {
+      const c: [number,number][] = [];
+      for (let a=1;a<=6;a++) for (let b=1;b<=6;b++) if (a+b<7) c.push([a,b]);
+      const [a,b] = c[Math.floor(Math.random()*c.length)]; return { dice1:a, dice2:b, sum:a+b };
+    }
+  }
+  if (game === "andar-bahar") return { joker: randCard(), winner: result };
+  return { result };
+}
+
+function prettyGame(key: string): string {
+  return ({
+    "dragon-tiger": "Dragon Tiger",
+    "coin-flip": "Coin Flip",
+    "dice-roll": "Dice Roll",
+    "andar-bahar": "Andar Bahar",
+    "rang": "Rang",
+    "court-piece": "Court Piece",
+    "code-piece": "Code Piece",
+  } as Record<string, string>)[key] ?? key;
+}
+
 /* ──────────── GAME OVERRIDE CONTROLS ──────────── */
 // In-memory store — shared via module singleton
 export const gameOverrides: Map<string, string> = new Map();

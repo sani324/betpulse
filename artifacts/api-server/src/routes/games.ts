@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, usersTable, transactionsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
-import { gameOverrides } from "./admin";
+import { gameOverrides, casinoOpenRounds, casinoLastSettled, getOrOpenRound } from "./admin";
 
 const router: IRouter = Router();
 
@@ -53,7 +53,14 @@ async function deductAndRecord(userId: number, stake: number, won: boolean, winA
   return { balance, newBalance, netChange, winAmount };
 }
 
-/* ──────────────── DRAGON TIGER ──────────────── */
+/* ──────────────── DRAGON TIGER (round-based) ──────────────── */
+// Round-based flow:
+// 1. POST /games/dragon-tiger queues the bet into the current open round.
+//    Stake is deducted immediately so users can't double-spend.
+// 2. Admin sees live bets per side in the admin panel and chooses the result
+//    via POST /admin/casino-rounds/dragon-tiger/settle.
+// 3. Client polls GET /games/dragon-tiger/round/:roundId for the result and
+//    shows cards/animation when the round becomes "settled".
 router.post("/games/dragon-tiger", requireAuth, async (req, res): Promise<void> => {
   const { stake, selection } = req.body;
   if (typeof stake !== "number" || stake <= 0) { res.status(400).json({ error: "Stake must be a positive number" }); return; }
@@ -65,53 +72,62 @@ router.post("/games/dragon-tiger", requireAuth, async (req, res): Promise<void> 
   const balance = parseFloat(user.balance);
   if (balance < stake) { res.status(400).json({ error: "Insufficient balance" }); return; }
 
-  // Check for admin override
-  const override = gameOverrides.get("dragon-tiger") as "dragon" | "tiger" | "tie" | undefined;
-
-  let dragonCard, tigerCard;
-  let result: "dragon" | "tiger" | "tie";
-
-  if (override === "dragon") {
-    // Dragon must have higher value than Tiger
-    dragonCard = dealCardWithMinValue(8);  // Dragon gets 8-K
-    tigerCard  = dealCardWithMaxValue(dragonCard.value - 1); // Tiger gets lower
-    result = "dragon";
-  } else if (override === "tiger") {
-    // Tiger must have higher value than Dragon
-    tigerCard  = dealCardWithMinValue(8);
-    dragonCard = dealCardWithMaxValue(tigerCard.value - 1);
-    result = "tiger";
-  } else if (override === "tie") {
-    // Both cards same value, different suits
-    const rank = RANKS[Math.floor(Math.random() * RANKS.length)];
-    const suits = [...SUITS].sort(() => Math.random() - 0.5);
-    dragonCard = { rank, suit: suits[0], value: RANK_VALUES[rank] };
-    tigerCard  = { rank, suit: suits[1], value: RANK_VALUES[rank] };
-    result = "tie";
-  } else {
-    dragonCard = dealCard();
-    tigerCard  = dealCard();
-    if (dragonCard.value > tigerCard.value) result = "dragon";
-    else if (tigerCard.value > dragonCard.value) result = "tiger";
-    else result = "tie";
-  }
-
-  let winAmount = 0;
-  if (result === selection) winAmount = selection === "tie" ? stake * 9 : stake * 2;
-  const netChange = winAmount - stake;
-  const newBalance = Math.round((balance + netChange) * 100) / 100;
-
+  // Deduct stake immediately and record bet_placed.
+  const newBalance = Math.round((balance - stake) * 100) / 100;
   await db.update(usersTable).set({
     balance: String(newBalance),
     totalWagered: String(Math.round((parseFloat(user.totalWagered) + stake) * 100) / 100),
   }).where(eq(usersTable.id, userId));
   await db.insert(transactionsTable).values({
-    userId, type: winAmount > 0 ? "bet_won" : "bet_placed",
-    amount: String(Math.abs(netChange)), balanceAfter: String(newBalance),
-    description: `Dragon Tiger — bet ${selection}, result ${result}${override ? " [admin]" : ""}. Dragon: ${dragonCard.rank}${dragonCard.suit} Tiger: ${tigerCard.rank}${tigerCard.suit}`,
+    userId,
+    type: "bet_placed",
+    amount: String(stake),
+    balanceAfter: String(newBalance),
+    description: `Dragon Tiger — bet ${selection} (round pending)`,
   });
 
-  res.json({ dragonCard, tigerCard, result, selection, stake, winAmount, netChange, newBalance, won: winAmount > 0 });
+  // Add to current open round.
+  const round = getOrOpenRound("dragon-tiger");
+  round.bets.push({
+    userId,
+    username: user.username,
+    selection,
+    stake,
+    placedAt: new Date().toISOString(),
+  });
+
+  res.json({
+    status: "pending",
+    roundId: round.id,
+    selection,
+    stake,
+    newBalance,
+    message: "Bet placed. Waiting for the round to be settled.",
+  });
+});
+
+// Polled by the user's game client to learn when a round has been settled and
+// what the result is. Returns either { status: "pending" } or
+// { status: "settled", result, dragonCard?, tigerCard? }.
+router.get("/games/dragon-tiger/round/:roundId", requireAuth, (req, res): void => {
+  const { roundId } = req.params;
+  const open = casinoOpenRounds.get("dragon-tiger");
+  if (open && open.id === roundId) {
+    res.json({ status: "pending", roundId });
+    return;
+  }
+  const last = casinoLastSettled.get("dragon-tiger");
+  if (last && last.id === roundId) {
+    res.json({
+      status: "settled",
+      roundId: last.id,
+      result: last.result,
+      details: last.details ?? null,
+      settledAt: last.settledAt,
+    });
+    return;
+  }
+  res.status(404).json({ error: "Round not found (server may have restarted)" });
 });
 
 /* ──────────────── COIN FLIP ──────────────── */

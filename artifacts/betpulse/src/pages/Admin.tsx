@@ -129,6 +129,11 @@ export default function Admin() {
   const [casinoStatsLoading, setCasinoStatsLoading] = useState(false);
   const [casinoStatsWindow, setCasinoStatsWindow] = useState(60);
 
+  type LiveRoundSide = { selection: string; betCount: number; totalStaked: number; users: { username: string; stake: number }[] };
+  type LiveRound = { id: string; game: string; openedAt: string; totalBets: number; totalStaked: number; sides: LiveRoundSide[] };
+  const [liveRounds, setLiveRounds] = useState<LiveRound[]>([]);
+  const [settling, setSettling] = useState<string | null>(null);
+
   type PaymentSetting = { method: string; label: string; accountName: string; accountNumber: string; instructions: string; isActive: boolean };
   const [paymentSettings, setPaymentSettings] = useState<PaymentSetting[]>([]);
   const [paymentLoading, setPaymentLoading] = useState(false);
@@ -339,6 +344,44 @@ export default function Admin() {
       toast({ title: "Failed to load exposure data", variant: "destructive" });
     } finally {
       setExposureLoading(false);
+    }
+  }
+
+  // Auto-refresh the live round every 2s while the Game Controls tab is active.
+  useEffect(() => {
+    const t = setInterval(() => {
+      // Cheap optimistic poll — silently ignored if not on the tab.
+      const isOnTab = document.querySelector('[data-state="active"][data-radix-collection-item]');
+      void isOnTab; // not strict; just always poll, it's lightweight
+      loadLiveRounds();
+    }, 2000);
+    return () => clearInterval(t);
+  }, []);
+
+  async function loadLiveRounds() {
+    try {
+      const resp = await fetch("/api/admin/casino-rounds", { credentials: "include" });
+      if (!resp.ok) throw new Error("failed");
+      const data = await resp.json();
+      setLiveRounds(data.rounds ?? []);
+    } catch {
+      setLiveRounds([]);
+    }
+  }
+
+  async function settleRound(game: string, result: string) {
+    setSettling(`${game}:${result}`);
+    try {
+      const resp = await fetch(`/api/admin/casino-rounds/${game}/settle`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        credentials: "include", body: JSON.stringify({ result }),
+      });
+      if (!resp.ok) throw new Error("settle failed");
+      await loadLiveRounds();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSettling(null);
     }
   }
 
@@ -708,7 +751,7 @@ export default function Admin() {
         if (v === "withdrawals") loadWithdrawals();
         if (v === "deposits") loadDeposits();
         if (v === "liability") loadExposure();
-        if (v === "gamecontrols") { loadGameOverrides(); loadCasinoStats(); }
+        if (v === "gamecontrols") { loadGameOverrides(); loadCasinoStats(); loadLiveRounds(); }
         if (v === "paymentsettings") loadPaymentSettings();
         if (v === "signupbonus" && !signupBonusLoaded) loadSignupBonus();
       }}>
@@ -1789,6 +1832,82 @@ export default function Admin() {
 
         {/* ─── GAME CONTROLS TAB ─── */}
         <TabsContent value="gamecontrols" className="space-y-4">
+          {/* LIVE ROUND CONTROL — Dragon Tiger is round-based: bets queue, you pick the result */}
+          <Card className="border-emerald-500/40 bg-emerald-500/5">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap">
+              <div>
+                <CardTitle className="text-emerald-300 flex items-center gap-2">
+                  🟢 Live Round — Dragon Tiger
+                </CardTitle>
+                <CardDescription>
+                  Bets are queued here while users wait. <strong>You</strong> decide the result by clicking Settle. All players' bets pay out together. A new round opens automatically.
+                </CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={loadLiveRounds}>Refresh</Button>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const dt = liveRounds.find(r => r.game === "dragon-tiger");
+                const sideMap: Record<string, LiveRoundSide> = {};
+                (dt?.sides ?? []).forEach(s => { sideMap[s.selection] = s; });
+                const sides = [
+                  { key: "dragon", label: "🐲 Dragon", color: "bg-red-600 hover:bg-red-700", ring: "ring-red-400/60", text: "text-red-300" },
+                  { key: "tiger",  label: "🐯 Tiger",  color: "bg-orange-500 hover:bg-orange-600", ring: "ring-orange-400/60", text: "text-orange-300" },
+                  { key: "tie",    label: "🤝 Tie",    color: "bg-yellow-600 hover:bg-yellow-700", ring: "ring-yellow-400/60", text: "text-yellow-300" },
+                ];
+                const totalBets = dt?.totalBets ?? 0;
+                return (
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-3">
+                      Round id: <span className="font-mono">{dt?.id ?? "—"}</span> · {totalBets} bet{totalBets === 1 ? "" : "s"} pending
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {sides.map(s => {
+                        const data = sideMap[s.key];
+                        const count = data?.betCount ?? 0;
+                        const staked = data?.totalStaked ?? 0;
+                        const pct = totalBets > 0 ? Math.round((count / totalBets) * 100) : 0;
+                        const isSettling = settling === `dragon-tiger:${s.key}`;
+                        return (
+                          <div key={s.key} className={`border rounded-xl p-4 bg-card/40 border-border/40`}>
+                            <div className="flex items-baseline justify-between mb-2">
+                              <div className={`font-bold text-lg ${s.text}`}>{s.label}</div>
+                              <div className="text-xs text-muted-foreground">{pct}%</div>
+                            </div>
+                            <div className="text-3xl font-black tabular-nums mb-1">{count}</div>
+                            <div className="text-xs text-muted-foreground mb-2">bets · ₹{staked.toFixed(2)} staked</div>
+                            {data?.users && data.users.length > 0 && (
+                              <div className="text-[11px] text-muted-foreground mb-3 max-h-16 overflow-y-auto">
+                                {data.users.map((u, i) => (
+                                  <div key={i} className="flex justify-between gap-2 truncate">
+                                    <span className="truncate">{u.username}</span>
+                                    <span className="tabular-nums">₹{u.stake}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <Button
+                              onClick={() => settleRound("dragon-tiger", s.key)}
+                              disabled={!!settling}
+                              className={`w-full text-white font-bold ${s.color}`}
+                            >
+                              {isSettling ? "Settling..." : `Settle as ${s.label}`}
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {totalBets === 0 && (
+                      <div className="text-xs text-muted-foreground mt-3 text-center">
+                        No bets placed yet. Have a user open Dragon Tiger and place a bet — it will appear here within ~2 seconds.
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+
           <Card className="border-cyan-500/30 bg-cyan-500/5">
             <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap">
               <div>

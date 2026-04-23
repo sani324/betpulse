@@ -366,19 +366,25 @@ export default function DragonTigerGame() {
   }, []);
   useEffect(() => { if (phase === "betting") startCountdown(); }, [phase]);
 
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const stopPolling = () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
+  useEffect(() => () => stopPolling(), []);
+
   const handleDeal = async () => {
     if (!selection || stake <= 0) { toast({ title: "Pick a side and enter a stake", variant: "destructive" }); return; }
     if (!isAuthenticated) { setLocation("/login"); return; }
     if (countdownRef.current) clearInterval(countdownRef.current);
-    clearTimers();
+    clearTimers(); stopPolling();
     setIsDealing(true); setPhase("dealing");
     setDragonFlipped(false); setTigerFlipped(false);
     setShowResult(false); setShowWinNum(false); setShowCoins(false);
     setDragonCard(null); setTigerCard(null); setResult(null);
+    const mySelection = selection;
+    const myStake = stake;
     try {
       const resp = await fetch("/api/games/dragon-tiger", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        credentials: "include", body: JSON.stringify({ stake, selection }),
+        credentials: "include", body: JSON.stringify({ stake: myStake, selection: mySelection }),
       });
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));
@@ -386,24 +392,48 @@ export default function DragonTigerGame() {
         toast({ title: resp.status === 401 ? "Session Expired" : "Bet Failed", description: err.error || "Try again.", variant: "destructive" });
         setPhase("betting"); setIsDealing(false); return;
       }
-      const data = await resp.json();
-      setDragonCard(data.dragonCard); setTigerCard(data.tigerCard);
-      setResult({ result: data.result, won: data.won, winAmount: data.winAmount, netChange: data.netChange, newBalance: data.newBalance });
-      addTimer(() => { setDragonFlipped(true); playCardFlip(); }, 700);
-      addTimer(() => { setTigerFlipped(true); playCardFlip(); }, 1600);
-      addTimer(() => {
-        setShowResult(true); setIsDealing(false);
-        setHistory(h => [...h, data.result]);
-        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-        queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
-        if (data.won) {
-          if (data.result === "dragon") playDragonRoar(); else if (data.result === "tiger") playTigerRoar();
-          playWin();
-          setTimeout(() => { setShowWinNum(true); setShowCoins(true); }, 200);
-          setTimeout(() => setShowCoins(false), 3500);
-        } else { playLose(); }
-        setPhase("result");
-      }, 2600);
+      const placed = await resp.json();
+      // Stake was deducted server-side; refresh balance.
+      queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
+      toast({ title: "Bet placed", description: "Waiting for the round to be settled by the dealer..." });
+
+      // Poll the round until it's settled by the admin.
+      const roundId = placed.roundId as string;
+      const startedAt = Date.now();
+      pollRef.current = setInterval(async () => {
+        if (Date.now() - startedAt > 10 * 60 * 1000) { stopPolling(); return; } // give up after 10min
+        try {
+          const r = await fetch(`/api/games/dragon-tiger/round/${encodeURIComponent(roundId)}`, { credentials: "include" });
+          if (!r.ok) return;
+          const data = await r.json();
+          if (data.status !== "settled") return;
+          stopPolling();
+          const settledResult: Selection = data.result;
+          const dCard = data.details?.dragonCard ?? null;
+          const tCard = data.details?.tigerCard ?? null;
+          const won = settledResult === mySelection;
+          const winAmount = won ? (mySelection === "tie" ? myStake * 9 : myStake * 2) : 0;
+          const netChange = winAmount - myStake;
+          setDragonCard(dCard); setTigerCard(tCard);
+          setResult({ result: settledResult, won, winAmount, netChange, newBalance: 0 });
+          addTimer(() => { setDragonFlipped(true); playCardFlip(); }, 200);
+          addTimer(() => { setTigerFlipped(true); playCardFlip(); }, 1100);
+          addTimer(() => {
+            setShowResult(true); setIsDealing(false);
+            setHistory(h => [...h, settledResult]);
+            queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+            queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
+            if (won) {
+              if (settledResult === "dragon") playDragonRoar(); else if (settledResult === "tiger") playTigerRoar();
+              playWin();
+              setTimeout(() => { setShowWinNum(true); setShowCoins(true); }, 200);
+              setTimeout(() => setShowCoins(false), 3500);
+            } else { playLose(); }
+            setPhase("result");
+          }, 2100);
+        } catch { /* keep polling */ }
+      }, 1500);
     } catch {
       toast({ title: "Network Error", variant: "destructive" });
       setPhase("betting"); setIsDealing(false);
