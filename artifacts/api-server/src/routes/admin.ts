@@ -824,7 +824,7 @@ router.post("/admin/casino-rounds/:game/settle", requireAdmin, async (req, res):
    and auto-settles every open round that has at least one bet.
    When OFF, only manual settlement works.
 ────────────────────────────────────────────────────────────── */
-export let autoSettleModeOn = false;
+export let autoSettleModeOn = true; // ON by default — admin must explicitly disable for manual control
 let autoSettleIntervalMs = 3_000; // 3 seconds default
 let autoSettleTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -880,6 +880,9 @@ function startAutoTimer() {
 function stopAutoTimer() {
   if (autoSettleTimer) { clearInterval(autoSettleTimer); autoSettleTimer = null; }
 }
+
+// Start the timer immediately on module load since auto mode is ON by default
+startAutoTimer();
 
 // GET current auto-settle mode status
 router.get("/admin/auto-settle-mode", requireAdmin, (_req, res) => {
