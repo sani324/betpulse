@@ -2164,29 +2164,25 @@ export default function Admin() {
                           <div>
                             {/* Prediction banner */}
                             {totalBets > 0 ? (
-                              <div className="mb-3 rounded-xl p-3 border border-purple-500/40 bg-purple-950/40">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-[10px] font-black uppercase tracking-widest text-purple-400">🤖 Auto will pick:</span>
-                                  <div className="flex gap-1 flex-wrap">
+                              <div className="mb-3 rounded-xl overflow-hidden border border-emerald-500/50 shadow-lg shadow-emerald-900/20">
+                                {/* Green header: this WINS */}
+                                <div className="bg-emerald-600/30 border-b border-emerald-500/30 px-3 py-2 flex items-center justify-between flex-wrap gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-300">🤖 AUTO PICK — WINS:</span>
                                     {aFinal.map(s => (
-                                      <span key={s.key} className={`px-2 py-0.5 rounded-full text-xs font-black ${s.color.split(" ")[0]} text-white`}>
-                                        {s.label}
+                                      <span key={s.key} className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500 text-white shadow">
+                                        ✅ {s.label}
                                       </span>
                                     ))}
-                                    {aFinal.length > 1 && <span className="text-[10px] text-purple-400/70 self-center">(random)</span>}
+                                    {aFinal.length > 1 && <span className="text-[10px] text-emerald-400/70">(one picked randomly)</span>}
                                   </div>
+                                  {aLostPool > 0 && (
+                                    <span className="text-[11px] font-black text-emerald-300 bg-emerald-900/50 px-2 py-0.5 rounded-full">
+                                      💰 Admin Profit: ₹{aLostPool.toFixed(0)}
+                                    </span>
+                                  )}
                                 </div>
-                                <div className="text-[11px] text-purple-300/70 leading-relaxed">{aReason}</div>
-                                {aMinCount === 0 && (
-                                  <div className="mt-1.5 text-[11px] font-bold text-emerald-400">
-                                    💰 Admin Profit: ₹{aLostPool.toFixed(0)} — nobody bet on {aWinLabels}, all bettors lose
-                                  </div>
-                                )}
-                                {aMinCount > 0 && aLostPool > 0 && (
-                                  <div className="mt-1.5 text-[11px] font-bold text-emerald-400">
-                                    💰 Admin Profit: ₹{aLostPool.toFixed(0)} from {aWillLose.length} losing side{aWillLose.length > 1 ? "s" : ""}
-                                  </div>
-                                )}
+                                <div className="px-3 py-1.5 bg-black/20 text-[11px] text-emerald-400/70 leading-relaxed">{aReason}</div>
                               </div>
                             ) : (
                               <div className="mb-3 rounded-lg px-3 py-2 border border-purple-500/20 text-[11px] text-purple-400/50 italic text-center">
@@ -2205,35 +2201,37 @@ export default function Admin() {
                                 const isLoser = !isWinner && totalBets > 0 && count > 0;
                                 return (
                                   <div key={s.key} className={`border rounded-lg p-2 transition-all ${
-                                    isWinner ? "border-purple-400/60 bg-purple-950/40 ring-1 ring-purple-500/30" :
-                                    isLoser  ? "border-red-500/20 bg-red-950/10 opacity-70" :
-                                    "border-border/20 bg-card/20"
+                                    isWinner
+                                      ? "border-emerald-400/70 bg-emerald-950/50 ring-2 ring-emerald-500/40 shadow-md shadow-emerald-900/30"
+                                      : isLoser
+                                        ? "border-red-500/50 bg-red-950/30 ring-1 ring-red-500/20"
+                                        : "border-border/20 bg-card/20"
                                   }`}>
                                     <div className="flex items-center justify-between mb-1">
-                                      <div className={`font-semibold text-sm ${s.text}`}>{s.label}</div>
+                                      <div className={`font-bold text-sm ${isWinner ? "text-emerald-300" : isLoser ? "text-red-300" : s.text}`}>{s.label}</div>
                                       <div className="flex items-center gap-1">
-                                        <span className="text-[11px] tabular-nums font-bold">{count}</span>
-                                        {isWinner && <span className="text-[9px] bg-purple-600 text-white px-1 rounded font-black">WIN</span>}
-                                        {isLoser  && <span className="text-[9px] bg-red-800/60 text-red-300 px-1 rounded font-black">LOSE</span>}
+                                        <span className={`text-[11px] tabular-nums font-bold ${isLoser ? "text-red-400/70" : ""}`}>{count}</span>
+                                        {isWinner && <span className="text-[9px] bg-emerald-500 text-white px-1.5 py-0.5 rounded font-black tracking-wide">✅ WINS</span>}
+                                        {isLoser  && <span className="text-[9px] bg-red-700 text-red-200 px-1.5 py-0.5 rounded font-black tracking-wide">❌ LOSES</span>}
                                       </div>
                                     </div>
                                     {count > 0 && (
                                       <>
-                                        <div className="text-[10px] text-muted-foreground mb-1">₹{sk.toFixed(0)} · {pct}%</div>
+                                        <div className={`text-[10px] mb-1 ${isLoser ? "text-red-400/60" : "text-muted-foreground"}`}>₹{sk.toFixed(0)} · {pct}%</div>
                                         <div className="h-1.5 rounded-full bg-border/40">
-                                          <div className={`h-full rounded-full ${isWinner ? "bg-purple-400" : "bg-red-400/50"}`} style={{ width: `${pct}%` }} />
+                                          <div className={`h-full rounded-full ${isWinner ? "bg-emerald-400" : "bg-red-500/60"}`} style={{ width: `${pct}%` }} />
                                         </div>
                                       </>
                                     )}
                                     {count === 0 && totalBets > 0 && isWinner && (
-                                      <div className="text-[10px] text-purple-300/70 mt-1">0 bets → will win</div>
+                                      <div className="text-[10px] text-emerald-400/80 mt-1 font-semibold">0 bets → auto picks this → WINS</div>
                                     )}
                                     {sideMap[s.key]?.users && sideMap[s.key]!.users.length > 0 && (
                                       <div className="text-[10px] text-muted-foreground mt-1 max-h-10 overflow-y-auto">
                                         {sideMap[s.key]!.users.map((u, i) => (
                                           <div key={i} className="flex justify-between gap-1 truncate">
-                                            <span className={`truncate ${isLoser ? "line-through opacity-50" : ""}`}>{u.username}</span>
-                                            <span className="tabular-nums">₹{u.stake}</span>
+                                            <span className={`truncate ${isLoser ? "line-through opacity-40 text-red-400/60" : ""}`}>{u.username}</span>
+                                            <span className={`tabular-nums ${isLoser ? "text-red-400/50" : ""}`}>₹{u.stake}</span>
                                           </div>
                                         ))}
                                       </div>
