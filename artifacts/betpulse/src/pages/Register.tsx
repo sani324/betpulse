@@ -75,6 +75,8 @@ export default function Register() {
     return Object.keys(errs).length === 0;
   }
 
+  const [devOtpHint, setDevOtpHint] = useState<string | null>(null);
+
   async function handleSendOtp() {
     if (!validateStep1()) return;
     setLoading(true);
@@ -90,6 +92,11 @@ export default function Register() {
         setErrors({ global: data.error ?? "Failed to send OTP" });
         setLoading(false);
         return;
+      }
+      // Dev mode: SMS service unavailable, OTP returned directly
+      if (data.devOtp) {
+        setDevOtpHint(data.devOtp);
+        setOtp(data.devOtp.split(""));
       }
       setStep("otp");
       startResendTimer();
@@ -384,6 +391,17 @@ export default function Register() {
                 <div style={{ flex: 1, height: 2, background: "#e2e8f0", maxWidth: 60 }} />
                 <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#e2e8f0", color: "#94a3b8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700 }}>✓</div>
               </div>
+
+              {devOtpHint && (
+                <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 18 }}>🔧</span>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e" }}>Demo Mode — No SMS service connected</div>
+                    <div style={{ fontSize: 13, color: "#78350f" }}>Your code is: <strong style={{ fontSize: 18, letterSpacing: 3 }}>{devOtpHint}</strong></div>
+                    <div style={{ fontSize: 11, color: "#a16207" }}>In production, this would be sent as a real SMS to your phone</div>
+                  </div>
+                </div>
+              )}
 
               {errors.otp && (
                 <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 14px", color: "#dc2626", fontSize: 13, marginBottom: 16 }}>

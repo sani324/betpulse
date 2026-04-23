@@ -33,21 +33,33 @@ async function isEmailDomainValid(email: string): Promise<boolean> {
 }
 
 async function sendOtpSms(phone: string, otp: string): Promise<void> {
+  const message = `Your BetPulse verification code is: ${otp}. Valid for 5 minutes. Do not share this code.`;
+
+  // Try Twilio first if credentials are set
   const sid = process.env.TWILIO_ACCOUNT_SID;
   const token = process.env.TWILIO_AUTH_TOKEN;
   const from = process.env.TWILIO_FROM_NUMBER;
-  if (!sid || !token || !from) {
-    // Twilio not configured — log OTP for testing
-    console.log(`[OTP] Phone: ${phone}  Code: ${otp}`);
+  if (sid && token && from) {
+    const twilio = (await import("twilio")).default;
+    const client = twilio(sid, token);
+    await client.messages.create({ body: message, from, to: phone });
     return;
   }
-  const twilio = (await import("twilio")).default;
-  const client = twilio(sid, token);
-  await client.messages.create({
-    body: `Your BetPulse verification code is: ${otp}. Valid for 5 minutes. Do not share this code with anyone.`,
-    from,
-    to: phone,
+
+  // Fallback: TextBelt SMS (free tier — no credentials needed)
+  const textbeltKey = process.env.TEXTBELT_KEY ?? "textbelt";
+  const resp = await fetch("https://textbelt.com/text", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone, message, key: textbeltKey }),
   });
+  const result = await resp.json() as { success: boolean; error?: string; quotaRemaining?: number };
+  if (!result.success) {
+    // If free quota is exhausted, still log the OTP so the flow isn't broken
+    console.warn(`[TextBelt] SMS failed: ${result.error}. OTP for ${phone}: ${otp}`);
+    throw new Error(result.error ?? "SMS delivery failed");
+  }
+  console.log(`[TextBelt] SMS sent to ${phone}. Quota remaining: ${result.quotaRemaining}`);
 }
 
 // ─── POST /auth/send-otp ───────────────────────────────────────────────────
@@ -93,7 +105,13 @@ router.post("/auth/send-otp", async (req, res): Promise<void> => {
     res.json({ message: "OTP sent to your phone number." });
   } catch (err: any) {
     console.error("SMS send failed:", err.message);
-    res.status(500).json({ error: "Failed to send OTP. Please check the phone number and try again." });
+    // In development or when no SMS service is available, return OTP in response
+    const isDev = process.env.NODE_ENV !== "production";
+    if (isDev) {
+      res.json({ message: "OTP sent (dev mode).", devOtp: otp });
+    } else {
+      res.status(500).json({ error: "Failed to send OTP. Please check the phone number and try again." });
+    }
   }
 });
 
