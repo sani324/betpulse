@@ -1433,13 +1433,13 @@ router.get("/admin/reports", requireAdmin, async (req, res): Promise<void> => {
     ORDER BY "houseEarnings" DESC
   `);
 
-  // Top 10 winners — players ranked by total profit earned from their winning bets
+  // Top 10 winners — players whose total payout exceeds total staked (net positive only)
+  // A player appears here OR in losers, never both.
   const topWinnersRes = await pool.query(`
     SELECT
       u.username,
       COUNT(cb.id)::int                                                                             AS "totalBets",
       COALESCE(SUM(cb.stake), 0)::numeric                                                           AS "totalStaked",
-      COALESCE(SUM(CASE WHEN cb.status='lost' THEN cb.stake          ELSE 0 END), 0)::numeric       AS "totalLost",
       COALESCE(SUM(CASE WHEN cb.status='won'  THEN cb.payout - cb.stake ELSE 0 END), 0)::numeric    AS "netWinnings",
       (COALESCE(SUM(CASE WHEN cb.status='won' THEN cb.payout ELSE 0 END), 0)
         - COALESCE(SUM(cb.stake), 0))::numeric                                                      AS "netProfit"
@@ -1448,18 +1448,19 @@ router.get("/admin/reports", requireAdmin, async (req, res): Promise<void> => {
     WHERE cb.status != 'pending'
       AND cb.created_at >= NOW() - INTERVAL '${interval}'
     GROUP BY u.id, u.username
-    HAVING COALESCE(SUM(CASE WHEN cb.status='won' THEN cb.payout - cb.stake ELSE 0 END), 0) > 0
-    ORDER BY "netWinnings" DESC
+    HAVING (COALESCE(SUM(CASE WHEN cb.status='won' THEN cb.payout ELSE 0 END), 0)
+            - COALESCE(SUM(cb.stake), 0)) > 0
+    ORDER BY "netProfit" DESC
     LIMIT 10
   `);
 
-  // Top 10 losers — players ranked by total stakes lost on losing bets
+  // Top 10 losers — players whose total staked exceeds total payout (net negative only)
+  // A player appears here OR in winners, never both.
   const topLosersRes = await pool.query(`
     SELECT
       u.username,
       COUNT(cb.id)::int                                                                             AS "totalBets",
       COALESCE(SUM(cb.stake), 0)::numeric                                                           AS "totalStaked",
-      COALESCE(SUM(CASE WHEN cb.status='lost' THEN cb.stake          ELSE 0 END), 0)::numeric       AS "totalLost",
       COALESCE(SUM(CASE WHEN cb.status='won'  THEN cb.payout - cb.stake ELSE 0 END), 0)::numeric    AS "netWinnings",
       (COALESCE(SUM(cb.stake), 0)
         - COALESCE(SUM(CASE WHEN cb.status='won' THEN cb.payout ELSE 0 END), 0))::numeric           AS "netLoss"
@@ -1468,8 +1469,9 @@ router.get("/admin/reports", requireAdmin, async (req, res): Promise<void> => {
     WHERE cb.status != 'pending'
       AND cb.created_at >= NOW() - INTERVAL '${interval}'
     GROUP BY u.id, u.username
-    HAVING COALESCE(SUM(CASE WHEN cb.status='lost' THEN cb.stake ELSE 0 END), 0) > 0
-    ORDER BY "totalLost" DESC
+    HAVING (COALESCE(SUM(cb.stake), 0)
+            - COALESCE(SUM(CASE WHEN cb.status='won' THEN cb.payout ELSE 0 END), 0)) > 0
+    ORDER BY "netLoss" DESC
     LIMIT 10
   `);
 

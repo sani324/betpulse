@@ -361,12 +361,12 @@ export default function AdminReports() {
                     <TableHead className="text-white/40 text-xs">Player</TableHead>
                     <TableHead className="text-white/40 text-xs text-right">Bets</TableHead>
                     <TableHead className="text-white/40 text-xs text-right">Wagered</TableHead>
-                    <TableHead className="text-white/40 text-xs text-right">Winnings</TableHead>
+                    <TableHead className="text-white/40 text-xs text-right">Net Profit</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data.topWinners.map((p, i) => {
-                    const winnings = parseFloat(p.netWinnings ?? "0");
+                    const profit = parseFloat(p.netProfit ?? "0");
                     return (
                       <TableRow key={i} className="border-[#1a3a22] hover:bg-white/5">
                         <TableCell className="text-white/30 text-xs py-2.5">{i + 1}</TableCell>
@@ -374,9 +374,7 @@ export default function AdminReports() {
                         <TableCell className="text-right text-white/50 text-xs">{p.totalBets}</TableCell>
                         <TableCell className="text-right text-white/50 text-xs">{fmt(p.totalStaked)}</TableCell>
                         <TableCell className="text-right">
-                          <span className="font-bold text-sm text-yellow-400">
-                            + {fmt(winnings)}
-                          </span>
+                          <span className="font-bold text-sm text-yellow-400">+ {fmt(profit)}</span>
                         </TableCell>
                       </TableRow>
                     );
@@ -412,12 +410,12 @@ export default function AdminReports() {
                     <TableHead className="text-white/40 text-xs">Player</TableHead>
                     <TableHead className="text-white/40 text-xs text-right">Bets</TableHead>
                     <TableHead className="text-white/40 text-xs text-right">Wagered</TableHead>
-                    <TableHead className="text-white/40 text-xs text-right">Amount Lost</TableHead>
+                    <TableHead className="text-white/40 text-xs text-right">Net Loss</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data.topLosers.map((p, i) => {
-                    const lost = parseFloat(p.totalLost ?? "0");
+                    const loss = parseFloat(p.netLoss ?? "0");
                     return (
                       <TableRow key={i} className="border-[#1a3a22] hover:bg-white/5">
                         <TableCell className="text-white/30 text-xs py-2.5">{i + 1}</TableCell>
@@ -425,7 +423,7 @@ export default function AdminReports() {
                         <TableCell className="text-right text-white/50 text-xs">{p.totalBets}</TableCell>
                         <TableCell className="text-right text-white/50 text-xs">{fmt(p.totalStaked)}</TableCell>
                         <TableCell className="text-right">
-                          <span className="font-bold text-sm text-red-400">− {fmt(lost)}</span>
+                          <span className="font-bold text-sm text-red-400">− {fmt(loss)}</span>
                         </TableCell>
                       </TableRow>
                     );
