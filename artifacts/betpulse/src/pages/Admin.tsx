@@ -123,6 +123,12 @@ export default function Admin() {
   const [gameOverrides, setGameOverrides] = useState<Record<string, string>>({});
   const [gameOverridesLoading, setGameOverridesLoading] = useState(false);
 
+  type CasinoSide = { selection: string; betCount: number; totalStaked: number; users: { username: string; stake: number; result: string; when: string }[] };
+  type CasinoGameStat = { game: string; key: string; sides: CasinoSide[]; totalBets: number; totalStaked: number; override: string | null };
+  const [casinoStats, setCasinoStats] = useState<CasinoGameStat[]>([]);
+  const [casinoStatsLoading, setCasinoStatsLoading] = useState(false);
+  const [casinoStatsWindow, setCasinoStatsWindow] = useState(60);
+
   type PaymentSetting = { method: string; label: string; accountName: string; accountNumber: string; instructions: string; isActive: boolean };
   const [paymentSettings, setPaymentSettings] = useState<PaymentSetting[]>([]);
   const [paymentLoading, setPaymentLoading] = useState(false);
@@ -333,6 +339,20 @@ export default function Admin() {
       toast({ title: "Failed to load exposure data", variant: "destructive" });
     } finally {
       setExposureLoading(false);
+    }
+  }
+
+  async function loadCasinoStats(minutes = casinoStatsWindow) {
+    setCasinoStatsLoading(true);
+    try {
+      const resp = await fetch(`/api/admin/casino-stats?minutes=${minutes}`, { credentials: "include" });
+      if (!resp.ok) throw new Error("failed");
+      const data = await resp.json();
+      setCasinoStats(data.games ?? []);
+    } catch {
+      setCasinoStats([]);
+    } finally {
+      setCasinoStatsLoading(false);
     }
   }
 
@@ -688,7 +708,7 @@ export default function Admin() {
         if (v === "withdrawals") loadWithdrawals();
         if (v === "deposits") loadDeposits();
         if (v === "liability") loadExposure();
-        if (v === "gamecontrols") loadGameOverrides();
+        if (v === "gamecontrols") { loadGameOverrides(); loadCasinoStats(); }
         if (v === "paymentsettings") loadPaymentSettings();
         if (v === "signupbonus" && !signupBonusLoaded) loadSignupBonus();
       }}>
@@ -1769,6 +1789,89 @@ export default function Admin() {
 
         {/* ─── GAME CONTROLS TAB ─── */}
         <TabsContent value="gamecontrols" className="space-y-4">
+          <Card className="border-cyan-500/30 bg-cyan-500/5">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap">
+              <div>
+                <CardTitle className="text-cyan-400 flex items-center gap-2">
+                  📊 Live Casino Bets — Per Side
+                </CardTitle>
+                <CardDescription>
+                  Counts of recent bets per side per game. Use this to decide which side to force in the override panel below (e.g. if 3 users bet on Tiger and you want them to lose, set Dragon Tiger override to <strong>Dragon</strong>).
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  value={casinoStatsWindow}
+                  onChange={(e) => { const m = Number(e.target.value); setCasinoStatsWindow(m); loadCasinoStats(m); }}
+                  className="bg-card/50 border border-border/50 rounded-md px-2 py-1 text-xs"
+                >
+                  <option value={5}>Last 5 min</option>
+                  <option value={15}>Last 15 min</option>
+                  <option value={60}>Last 1 hour</option>
+                  <option value={360}>Last 6 hours</option>
+                  <option value={1440}>Last 24 hours</option>
+                </select>
+                <Button variant="outline" size="sm" onClick={() => loadCasinoStats()} disabled={casinoStatsLoading}>
+                  {casinoStatsLoading ? "Loading..." : "Refresh"}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {casinoStats.length === 0 ? (
+                <div className="text-sm text-muted-foreground bg-card/30 rounded-lg p-4 border border-border/30 text-center">
+                  No casino bets in the selected window. Have a user place a bet on Dragon Tiger / Coin Flip / etc and refresh.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {casinoStats.map((g) => {
+                    const topSide = g.sides[0];
+                    return (
+                      <div key={g.key} className="border border-border/40 bg-card/30 rounded-xl p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-bold text-sm">{g.game}</div>
+                          <div className="text-xs text-muted-foreground">{g.totalBets} bets</div>
+                        </div>
+                        <div className="space-y-1.5">
+                          {g.sides.map((s) => {
+                            const isLeader = s.selection === topSide?.selection;
+                            const pct = g.totalBets > 0 ? Math.round((s.betCount / g.totalBets) * 100) : 0;
+                            return (
+                              <div key={s.selection} className="text-xs">
+                                <div className="flex items-center justify-between mb-0.5">
+                                  <span className={`font-semibold uppercase ${isLeader ? "text-cyan-300" : "text-muted-foreground"}`}>
+                                    {s.selection}
+                                  </span>
+                                  <span className="tabular-nums">
+                                    <span className="font-bold text-foreground">{s.betCount}</span>
+                                    <span className="text-muted-foreground"> bets · ₹{s.totalStaked.toFixed(2)} staked</span>
+                                  </span>
+                                </div>
+                                <div className="h-1.5 bg-card/60 rounded-full overflow-hidden">
+                                  <div className={`h-full ${isLeader ? "bg-cyan-400" : "bg-cyan-500/40"}`} style={{ width: `${pct}%` }} />
+                                </div>
+                                {s.users.length > 0 && (
+                                  <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                                    {s.users.slice(0, 5).map((u) => u.username).join(", ")}{s.users.length > 5 ? "…" : ""}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {g.override && (
+                          <div className="text-[11px] text-orange-400 mt-2">⚡ Override active: <strong>{g.override.toUpperCase()}</strong></div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="text-[11px] text-muted-foreground mt-3">
+                Note: Casino games settle instantly — these are recent bets, not pending. Stake totals are approximate (only losing bets contribute exact stake).
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="border-orange-500/30 bg-orange-500/5">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>

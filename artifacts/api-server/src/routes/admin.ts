@@ -662,6 +662,96 @@ router.delete("/admin/game-overrides/:game", requireAdmin, (req, res) => {
   res.json({ message: `Override cleared for ${req.params.game}`, overrides: Object.fromEntries(gameOverrides) });
 });
 
+/* ──────────── CASINO LIVE BET STATS ──────────── */
+// Aggregates recent casino game bets per game per side by parsing transactions.
+// Lets the admin see in real time how many users have wagered on each side
+// (e.g. Tiger vs Dragon) so they can decide whether to set a game override.
+router.get("/admin/casino-stats", requireAdmin, async (req, res): Promise<void> => {
+  const minutes = Math.max(1, Math.min(1440, parseInt(String(req.query.minutes ?? "60"), 10) || 60));
+  const since = new Date(Date.now() - minutes * 60 * 1000);
+
+  // Pull recent casino transactions (bet_placed / bet_won where description contains "—")
+  const rows = await db
+    .select({
+      id: transactionsTable.id,
+      userId: transactionsTable.userId,
+      username: usersTable.username,
+      type: transactionsTable.type,
+      amount: transactionsTable.amount,
+      description: transactionsTable.description,
+      createdAt: transactionsTable.createdAt,
+    })
+    .from(transactionsTable)
+    .leftJoin(usersTable, eq(transactionsTable.userId, usersTable.id))
+    .where(
+      and(
+        sql`${transactionsTable.createdAt} >= ${since}`,
+        sql`${transactionsTable.description} ~ '^(Dragon Tiger|Coin Flip|Dice Roll|Andar Bahar|Rang|Court Piece|Code Piece) '`,
+      ),
+    );
+
+  type Side = { selection: string; betCount: number; totalStaked: number; users: { username: string; stake: number; result: string; when: string }[] };
+  type Game = { game: string; key: string; sides: Record<string, Side>; totalBets: number; totalStaked: number; override: string | null };
+
+  const games: Record<string, Game> = {};
+  const KEY_BY_NAME: Record<string, string> = {
+    "Dragon Tiger": "dragon-tiger",
+    "Coin Flip": "coin-flip",
+    "Dice Roll": "dice-roll",
+    "Andar Bahar": "andar-bahar",
+    "Rang": "rang",
+    "Court Piece": "court-piece",
+    "Code Piece": "code-piece",
+  };
+
+  for (const r of rows) {
+    // Description format: "<Game> — bet <selection>, ...". Estimate stake from
+    // amount: bet_placed amount = stake; bet_won amount = net win, so stake is unknown
+    // here — we still count the bet, and approximate stake as the amount for placed bets.
+    const m = r.description.match(/^(Dragon Tiger|Coin Flip|Dice Roll|Andar Bahar|Rang|Court Piece|Code Piece)\s+—\s+bet\s+([a-zA-Z0-9_-]+)(?:,\s+result\s+([a-zA-Z0-9_-]+))?/);
+    if (!m) continue;
+    const gameName = m[1];
+    const selection = m[2];
+    const result = m[3] ?? "";
+    const key = KEY_BY_NAME[gameName];
+    if (!games[gameName]) {
+      games[gameName] = {
+        game: gameName,
+        key,
+        sides: {},
+        totalBets: 0,
+        totalStaked: 0,
+        override: gameOverrides.get(key) ?? null,
+      };
+    }
+    const g = games[gameName];
+    if (!g.sides[selection]) g.sides[selection] = { selection, betCount: 0, totalStaked: 0, users: [] };
+    const side = g.sides[selection];
+    const stake = r.type === "bet_placed" ? parseFloat(r.amount) : 0;
+    side.betCount += 1;
+    side.totalStaked += stake;
+    g.totalBets += 1;
+    g.totalStaked += stake;
+    if (side.users.length < 8) {
+      side.users.push({
+        username: r.username ?? `user#${r.userId}`,
+        stake,
+        result,
+        when: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt),
+      });
+    }
+  }
+
+  const out = Object.values(games)
+    .map((g) => ({
+      ...g,
+      sides: Object.values(g.sides).sort((a, b) => b.totalStaked - a.totalStaked || b.betCount - a.betCount),
+    }))
+    .sort((a, b) => b.totalStaked - a.totalStaked || b.totalBets - a.totalBets);
+
+  res.json({ minutes, since: since.toISOString(), games: out });
+});
+
 /* ──────────── PLATFORM SETTINGS ──────────── */
 
 // Get a platform setting by key (direct pg pool)
