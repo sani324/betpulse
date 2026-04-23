@@ -1,22 +1,33 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: BetPulse Sports Betting Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: events
+    description: Sports events management
+  - name: bets
+    description: Betting operations
+  - name: wallet
+    description: Wallet and transactions
+  - name: admin
+    description: Admin operations
+  - name: dashboard
+    description: Dashboard stats
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +35,786 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterBody"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /events:
+    get:
+      operationId: getEvents
+      tags: [events]
+      summary: List sports events
+      parameters:
+        - name: sport
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [upcoming, live, finished]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Event"
+    post:
+      operationId: createEvent
+      tags: [events]
+      summary: Create a new event (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventBody"
+      responses:
+        "201":
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+
+  /events/{eventId}:
+    get:
+      operationId: getEvent
+      tags: [events]
+      summary: Get event details with odds
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Event details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateEvent
+      tags: [events]
+      summary: Update event status or result (admin)
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEventBody"
+      responses:
+        "200":
+          description: Updated event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+
+  /events/{eventId}/delete:
+    delete:
+      operationId: deleteEvent
+      tags: [events]
+      summary: Delete an event (admin)
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /events/{eventId}/odds:
+    patch:
+      operationId: updateOdds
+      tags: [events]
+      summary: Update odds for an event (admin)
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOddsBody"
+      responses:
+        "200":
+          description: Odds updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+
+  /bets:
+    get:
+      operationId: getBets
+      tags: [bets]
+      summary: Get user bets
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, won, lost, cancelled]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: List of bets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Bet"
+    post:
+      operationId: placeBet
+      tags: [bets]
+      summary: Place a bet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaceBetBody"
+      responses:
+        "201":
+          description: Bet placed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bet"
+        "400":
+          description: Insufficient balance or invalid bet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /bets/{betId}:
+    get:
+      operationId: getBet
+      tags: [bets]
+      summary: Get bet details
+      parameters:
+        - name: betId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Bet detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bet"
+
+  /wallet/balance:
+    get:
+      operationId: getBalance
+      tags: [wallet]
+      summary: Get wallet balance
+      responses:
+        "200":
+          description: Balance info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalletBalance"
+
+  /wallet/deposit:
+    post:
+      operationId: deposit
+      tags: [wallet]
+      summary: Deposit funds
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DepositBody"
+      responses:
+        "200":
+          description: Deposit successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalletBalance"
+
+  /wallet/transactions:
+    get:
+      operationId: getTransactions
+      tags: [wallet]
+      summary: Get transaction history
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Transaction"
+
+  /admin/dashboard:
+    get:
+      operationId: getAdminDashboard
+      tags: [admin]
+      summary: Admin platform profit dashboard
+      responses:
+        "200":
+          description: Admin stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDashboard"
+
+  /admin/bets:
+    get:
+      operationId: getAdminBets
+      tags: [admin]
+      summary: All bets across platform (admin)
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: All bets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminBet"
+
+  /admin/settle/{eventId}:
+    post:
+      operationId: settleEvent
+      tags: [admin]
+      summary: Settle all bets for an event
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettleEventBody"
+      responses:
+        "200":
+          description: Settled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettleResult"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: User dashboard stats
+      responses:
+        "200":
+          description: User stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDashboardStats"
+
+  /dashboard/live-events:
+    get:
+      operationId: getLiveEvents
+      tags: [dashboard]
+      summary: Live events with liability info
+      responses:
+        "200":
+          description: Live events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LiveEvent"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    MessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+
+    RegisterBody:
+      type: object
+      required: [username, email, password]
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+
+    LoginBody:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    User:
+      type: object
+      required: [id, username, email, role, balance, createdAt]
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [user, admin]
+        balance:
+          type: number
+        createdAt:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+
+    Event:
+      type: object
+      required: [id, sport, homeTeam, awayTeam, startTime, status, oddsHome, oddsDraw, oddsAway, homeImplied, drawImplied, awayImplied, overround]
+      properties:
+        id:
+          type: integer
+        sport:
+          type: string
+        league:
+          type: string
+        homeTeam:
+          type: string
+        awayTeam:
+          type: string
+        startTime:
+          type: string
+        status:
+          type: string
+          enum: [upcoming, live, finished, cancelled]
+        oddsHome:
+          type: number
+        oddsDraw:
+          type: number
+        oddsAway:
+          type: number
+        homeImplied:
+          type: number
+        drawImplied:
+          type: number
+        awayImplied:
+          type: number
+        overround:
+          type: number
+        homeScore:
+          type: integer
+        awayScore:
+          type: integer
+        result:
+          type: string
+          enum: [home, draw, away]
+
+    EventDetail:
+      allOf:
+        - $ref: "#/components/schemas/Event"
+        - type: object
+          properties:
+            totalBetsHome:
+              type: number
+            totalBetsAway:
+              type: number
+            totalBetsDraw:
+              type: number
+            totalLiability:
+              type: number
+
+    CreateEventBody:
+      type: object
+      required: [sport, homeTeam, awayTeam, startTime, oddsHome, oddsDraw, oddsAway]
+      properties:
+        sport:
+          type: string
+        league:
+          type: string
+        homeTeam:
+          type: string
+        awayTeam:
+          type: string
+        startTime:
+          type: string
+        oddsHome:
+          type: number
+        oddsDraw:
+          type: number
+        oddsAway:
+          type: number
+
+    UpdateEventBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [upcoming, live, finished, cancelled]
+        homeScore:
+          type: integer
+        awayScore:
+          type: integer
+        result:
+          type: string
+          enum: [home, draw, away]
+
+    UpdateOddsBody:
+      type: object
+      required: [oddsHome, oddsDraw, oddsAway]
+      properties:
+        oddsHome:
+          type: number
+        oddsDraw:
+          type: number
+        oddsAway:
+          type: number
+
+    PlaceBetBody:
+      type: object
+      required: [eventId, selection, stake]
+      properties:
+        eventId:
+          type: integer
+        selection:
+          type: string
+          enum: [home, draw, away]
+        stake:
+          type: number
+
+    Bet:
+      type: object
+      required: [id, eventId, selection, stake, odds, potentialWin, status, createdAt]
+      properties:
+        id:
+          type: integer
+        eventId:
+          type: integer
+        homeTeam:
+          type: string
+        awayTeam:
+          type: string
+        sport:
+          type: string
+        selection:
+          type: string
+          enum: [home, draw, away]
+        stake:
+          type: number
+        odds:
+          type: number
+        potentialWin:
+          type: number
+        status:
+          type: string
+          enum: [pending, won, lost, cancelled]
+        createdAt:
+          type: string
+        settledAt:
+          type: string
+
+    AdminBet:
+      allOf:
+        - $ref: "#/components/schemas/Bet"
+        - type: object
+          properties:
+            username:
+              type: string
+            profit:
+              type: number
+
+    WalletBalance:
+      type: object
+      required: [balance, totalDeposited, totalWagered, totalWon]
+      properties:
+        balance:
+          type: number
+        totalDeposited:
+          type: number
+        totalWagered:
+          type: number
+        totalWon:
+          type: number
+
+    DepositBody:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: number
+
+    Transaction:
+      type: object
+      required: [id, type, amount, balanceAfter, description, createdAt]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [deposit, withdrawal, bet_placed, bet_won, bet_lost, bonus]
+        amount:
+          type: number
+        balanceAfter:
+          type: number
+        description:
+          type: string
+        createdAt:
+          type: string
+
+    AdminDashboard:
+      type: object
+      required: [totalUsers, totalBets, totalStaked, totalPaidOut, grossProfit, profitMargin, pendingLiability, todayProfit, weeklyProfit]
+      properties:
+        totalUsers:
+          type: integer
+        totalBets:
+          type: integer
+        totalStaked:
+          type: number
+        totalPaidOut:
+          type: number
+        grossProfit:
+          type: number
+        profitMargin:
+          type: number
+        pendingLiability:
+          type: number
+        todayProfit:
+          type: number
+        weeklyProfit:
+          type: number
+        topEvents:
+          type: array
+          items:
+            type: object
+            properties:
+              eventId:
+                type: integer
+              eventName:
+                type: string
+              totalStaked:
+                type: number
+
+    SettleEventBody:
+      type: object
+      required: [result]
+      properties:
+        result:
+          type: string
+          enum: [home, draw, away]
+
+    SettleResult:
+      type: object
+      required: [settledBets, totalPaidOut, platformProfit]
+      properties:
+        settledBets:
+          type: integer
+        totalPaidOut:
+          type: number
+        platformProfit:
+          type: number
+
+    UserDashboardStats:
+      type: object
+      required: [totalBets, pendingBets, wonBets, lostBets, totalStaked, totalWon, winRate, biggestWin]
+      properties:
+        totalBets:
+          type: integer
+        pendingBets:
+          type: integer
+        wonBets:
+          type: integer
+        lostBets:
+          type: integer
+        totalStaked:
+          type: number
+        totalWon:
+          type: number
+        winRate:
+          type: number
+        biggestWin:
+          type: number
+
+    LiveEvent:
+      allOf:
+        - $ref: "#/components/schemas/Event"
+        - type: object
+          properties:
+            betsCount:
+              type: integer
+            totalStaked:
+              type: number
