@@ -702,7 +702,14 @@ router.get("/admin/casino-rounds", requireAdmin, (_req, res) => {
       sides: Object.values(sides).sort((a, b) => b.totalStaked - a.totalStaked || b.betCount - a.betCount),
     };
   });
-  res.json({ rounds: out });
+  // Include last settled result per game so the admin panel can show win/loss colors
+  const lastSettled: Record<string, { result: string; settledAt: string; betCount: number }> = {};
+  for (const [game, r] of casinoLastSettled.entries()) {
+    if (r.result) {
+      lastSettled[game] = { result: r.result, settledAt: r.settledAt ?? "", betCount: r.bets.length };
+    }
+  }
+  res.json({ rounds: out, lastSettled });
 });
 
 // Payout multiplier used by manual settle (mirrors settleRoundWith logic)

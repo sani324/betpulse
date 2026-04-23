@@ -106,13 +106,13 @@ export default function GenericCasinoGame({ config }: Props) {
         if (data.status === "settled") {
           clearInterval(interval);
           setResult(data);
-          // Brief dramatic pause so the player sees the "deciding" animation
+          // Dramatic pause so the player sees the "Auto-Decider" animation clearly
           setTimeout(() => {
             setPhase("result");
             if (data.result === sel) playWin(); else playLose();
             queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
             queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
-          }, 900);
+          }, 2000);
         }
       } catch (_) {}
     }, 500);

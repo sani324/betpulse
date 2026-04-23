@@ -369,6 +369,21 @@ export default function Admin() {
       if (!resp.ok) throw new Error("failed");
       const data = await resp.json();
       setLiveRounds(data.rounds ?? []);
+      // Populate last result colors from server-side settled rounds
+      if (data.lastSettled) {
+        const updates: Record<string, { result: string; reason: string }> = {};
+        for (const [game, settled] of Object.entries(data.lastSettled as Record<string, { result: string; betCount: number; settledAt: string }>)) {
+          if (settled.result) {
+            updates[game] = {
+              result: settled.result,
+              reason: `${settled.betCount} bet(s) settled — ${settled.result} won`,
+            };
+          }
+        }
+        if (Object.keys(updates).length > 0) {
+          setLastAutoResult(prev => ({ ...prev, ...updates }));
+        }
+      }
     } catch {
       setLiveRounds([]);
     }
