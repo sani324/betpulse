@@ -890,7 +890,7 @@ router.get("/admin/auto-settle-mode", requireAdmin, (_req, res) => {
 router.post("/admin/auto-settle-mode", requireAdmin, (req, res) => {
   const { enabled, intervalSec } = req.body ?? {};
   if (typeof enabled !== "boolean") { res.status(400).json({ error: "enabled (boolean) is required" }); return; }
-  if (typeof intervalSec === "number" && intervalSec >= 5) {
+  if (typeof intervalSec === "number" && intervalSec >= 3) {
     autoSettleIntervalMs = intervalSec * 1000;
   }
   autoSettleModeOn = enabled;

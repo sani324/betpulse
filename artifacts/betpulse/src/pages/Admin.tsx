@@ -137,7 +137,7 @@ export default function Admin() {
   const [autoSettling, setAutoSettling] = useState<string | null>(null);
   const [lastAutoResult, setLastAutoResult] = useState<Record<string, { result: string; reason: string }>>({});
   const [autoMode, setAutoMode] = useState(false);
-  const [autoInterval, setAutoInterval] = useState(10);
+  const [autoInterval, setAutoInterval] = useState(3);
   const [autoModeLoading, setAutoModeLoading] = useState(false);
 
   type PaymentSetting = { method: string; label: string; accountName: string; accountNumber: string; instructions: string; isActive: boolean };
@@ -2139,7 +2139,7 @@ export default function Admin() {
                                 onChange={e => setAutoInterval(Number(e.target.value))}
                                 className="bg-card/60 border border-border/50 rounded-md px-2 py-1 text-xs text-white"
                               >
-                                {[10,15,20,30,45,60,90,120].map(s => (
+                                {[3,5,10,15,20,30,45,60,90,120].map(s => (
                                   <option key={s} value={s}>{s}s</option>
                                 ))}
                               </select>
@@ -2234,11 +2234,22 @@ export default function Admin() {
                           </div>
                         </div>
 
-                        {/* Last auto-settle result pill */}
+                        {/* Last auto-settle result pill — green winner, red losers */}
                         {lastAuto && (
-                          <div className="mb-2 px-2 py-1 rounded-md text-[10px] bg-purple-900/30 border border-purple-500/20 text-purple-300 flex items-center gap-1.5">
-                            <span>🤖</span>
-                            <span>Last: <strong className="text-purple-200">{lastAuto.result}</strong> — {lastAuto.reason}</span>
+                          <div className="mb-2 rounded-lg border border-border/30 text-[10px] overflow-hidden">
+                            <div className="px-2 py-1.5 bg-black/30 flex items-center gap-1.5 flex-wrap">
+                              <span className="text-muted-foreground font-bold">🤖 Last:</span>
+                              {cfg.sides.map(s => (
+                                <span key={s.key} className={`px-1.5 py-0.5 rounded font-black tracking-wide ${
+                                  s.key === lastAuto.result
+                                    ? "bg-emerald-600 text-white shadow shadow-emerald-900/50"
+                                    : "bg-red-900/60 text-red-300 line-through opacity-60"
+                                }`}>
+                                  {s.key === lastAuto.result ? "✅" : "❌"} {s.label}
+                                </span>
+                              ))}
+                            </div>
+                            <div className="px-2 py-1 text-muted-foreground/60 italic bg-black/10">{lastAuto.reason}</div>
                           </div>
                         )}
 
