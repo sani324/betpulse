@@ -2117,11 +2117,13 @@ export default function Admin() {
                     const aWinLabels = aFinal.map(s => s.label.replace(/[^\w\s]/g,'').trim()).join(" or ");
                     const aReason = totalBets === 0
                       ? "No bets yet — auto-settle will skip this round"
-                      : aMinCount === 0
-                        ? `${aWinLabels} has 0 bets → nobody wins → house keeps all ₹${aLostPool.toFixed(0)}`
-                        : aFinal.length > 1
-                          ? `All options tied at ${aMinCount} bet(s) — randomly picks one of: ${aWinLabels}`
-                          : `${aWinLabels} has fewest bets (${aMinCount}) → house keeps ₹${aLostPool.toFixed(0)} from ${aWillLose.length} losing side(s)`;
+                      : aMinCount === 0 && aFinal.length > 1
+                        ? `${aWinLabels} — BOTH have 0 bets. System randomly picks one. Either way nobody wins → all ${aWillLose.map(s=>s.label.replace(/[^\w\s]/g,'').trim()).join(" + ")} bettors LOSE → house keeps ₹${aLostPool.toFixed(0)}`
+                        : aMinCount === 0
+                          ? `${aWinLabels} has 0 bets → declared winner but nobody bet on it → all other bettors lose → house keeps ₹${aLostPool.toFixed(0)}`
+                          : aFinal.length > 1
+                            ? `All options tied at ${aMinCount} bet(s) — randomly picks one of: ${aWinLabels}`
+                            : `${aWinLabels} has fewest bets (${aMinCount}) → house keeps ₹${aLostPool.toFixed(0)} from ${aWillLose.length} losing side(s)`;
 
                     return (
                       <div key={cfg.game} className={`border rounded-xl p-3 transition-all duration-200 ${autoMode ? "border-purple-500/20 bg-purple-950/10" : "border-border/40 bg-card/20"}`}>
