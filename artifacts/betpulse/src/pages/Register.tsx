@@ -36,7 +36,6 @@ export default function Register() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Form state
   const [step, setStep] = useState<Step>("info");
   const [loading, setLoading] = useState(false);
 
@@ -44,12 +43,11 @@ export default function Register() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [phone, setPhone] = useState("+92");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Step 2 OTP
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const [verificationToken, setVerificationToken] = useState("");
+  const [devOtpHint, setDevOtpHint] = useState<string | null>(null);
   const [resendCountdown, setResendCountdown] = useState(0);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -69,31 +67,27 @@ export default function Register() {
     if (username.trim().length < 3) errs.username = "Username must be at least 3 characters";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = "Enter a valid email address";
     if (password.length < 6) errs.password = "Password must be at least 6 characters";
-    const digitsOnly = phone.replace(/\D/g, "");
-    if (digitsOnly.length < 10) errs.phone = "Enter a valid mobile number";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }
 
-  const [devOtpHint, setDevOtpHint] = useState<string | null>(null);
-
   async function handleSendOtp() {
     if (!validateStep1()) return;
     setLoading(true);
+    setErrors({});
     try {
       const r = await fetch(`${API}/auth/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, email }),
+        body: JSON.stringify({ email }),
         credentials: "include",
       });
       const data = await r.json();
       if (!r.ok) {
-        setErrors({ global: data.error ?? "Failed to send OTP" });
+        setErrors({ global: data.error ?? "Failed to send verification code" });
         setLoading(false);
         return;
       }
-      // Dev mode: SMS service unavailable, OTP returned directly
       if (data.devOtp) {
         setDevOtpHint(data.devOtp);
         setOtp(data.devOtp.split(""));
@@ -114,12 +108,17 @@ export default function Register() {
       const r = await fetch(`${API}/auth/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, email }),
+        body: JSON.stringify({ email }),
         credentials: "include",
       });
       const data = await r.json();
-      if (r.ok) { startResendTimer(); toast({ title: "OTP resent!", description: "Check your phone for the new code." }); }
-      else { setErrors({ otp: data.error ?? "Failed to resend OTP" }); }
+      if (r.ok) {
+        if (data.devOtp) { setDevOtpHint(data.devOtp); setOtp(data.devOtp.split("")); }
+        startResendTimer();
+        toast({ title: "Code resent!", description: "Check your email for the new code." });
+      } else {
+        setErrors({ otp: data.error ?? "Failed to resend" });
+      }
     } finally {
       setLoading(false);
     }
@@ -134,12 +133,11 @@ export default function Register() {
       const r = await fetch(`${API}/auth/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, otp: code }),
+        body: JSON.stringify({ email, otp: code }),
         credentials: "include",
       });
       const data = await r.json();
-      if (!r.ok) { setErrors({ otp: data.error ?? "Invalid OTP" }); setLoading(false); return; }
-      setVerificationToken(data.token);
+      if (!r.ok) { setErrors({ otp: data.error ?? "Invalid code" }); setLoading(false); return; }
       await handleRegister(data.token);
     } catch {
       setErrors({ otp: "Network error. Please try again." });
@@ -152,17 +150,14 @@ export default function Register() {
     const r = await fetch(`${API}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, email, password, phone, verificationToken: token }),
+      body: JSON.stringify({ username, email, password, verificationToken: token }),
       credentials: "include",
     });
     const data = await r.json();
-    if (!r.ok) {
-      setErrors({ otp: data.error ?? "Could not create account" });
-      return;
-    }
+    if (!r.ok) { setErrors({ otp: data.error ?? "Could not create account" }); return; }
     queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
     setStep("done");
-    setTimeout(() => setLocation("/"), 2000);
+    setTimeout(() => setLocation("/"), 2500);
     toast({ title: "Welcome to BetPulse! 🎉", description: "Your account has been created." });
   }
 
@@ -180,13 +175,21 @@ export default function Register() {
     if (digit && idx < 5) otpRefs.current[idx + 1]?.focus();
   }
 
+  const stepDot = (n: number, active: boolean, done: boolean) => (
+    <div style={{
+      width: 30, height: 30, borderRadius: "50%", display: "flex",
+      alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700,
+      background: done ? "#d1fae5" : active ? "#059669" : "#e2e8f0",
+      color: done ? "#059669" : active ? "white" : "#94a3b8",
+    }}>{done ? "✓" : n}</div>
+  );
+
   return (
     <div className="flex min-h-screen flex-col md:flex-row" style={{ fontFamily: "system-ui, sans-serif" }}>
 
-      {/* ── LEFT HERO PANEL ── */}
+      {/* ── LEFT HERO ── */}
       <div className="hidden md:flex md:flex-col md:justify-center" style={{
-        flex: "0 0 52%", position: "relative", overflow: "hidden",
-        padding: "40px 48px",
+        flex: "0 0 52%", position: "relative", overflow: "hidden", padding: "40px 48px",
         background: "linear-gradient(150deg, #1e1b4b 0%, #1a3a5c 35%, #065f46 75%, #064e3b 100%)",
       }}>
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
@@ -216,8 +219,7 @@ export default function Register() {
             <span style={{ fontSize: 26, fontWeight: 800, color: "white", letterSpacing: 1 }}>BetPulse</span>
           </div>
           <h1 style={{ fontSize: 38, fontWeight: 800, color: "white", lineHeight: 1.2, marginBottom: 14 }}>
-            Join 50,000+<br />
-            <span style={{ color: "#34d399" }}>Smart Bettors</span>
+            Join 50,000+<br /><span style={{ color: "#34d399" }}>Smart Bettors</span>
           </h1>
           <p style={{ fontSize: 16, color: "rgba(255,255,255,0.65)", marginBottom: 40, lineHeight: 1.6 }}>
             Create your free account and start winning today. PKR deposits, instant payouts, and the best odds in Pakistan.
@@ -263,16 +265,15 @@ export default function Register() {
               <div style={{ textAlign: "center", marginBottom: 28 }}>
                 <div style={{ fontSize: 36, marginBottom: 8 }}>🚀</div>
                 <h2 style={{ fontSize: 26, fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>Create Your Account</h2>
-                <p style={{ fontSize: 14, color: "#64748b" }}>We'll send a code to your phone to verify you're real</p>
+                <p style={{ fontSize: 14, color: "#64748b" }}>We'll email you a code to confirm it's really you</p>
               </div>
 
-              {/* Step indicator */}
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, justifyContent: "center" }}>
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#059669", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700 }}>1</div>
+                {stepDot(1, true, false)}
                 <div style={{ flex: 1, height: 2, background: "#e2e8f0", maxWidth: 60 }} />
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#e2e8f0", color: "#94a3b8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700 }}>2</div>
+                {stepDot(2, false, false)}
                 <div style={{ flex: 1, height: 2, background: "#e2e8f0", maxWidth: 60 }} />
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#e2e8f0", color: "#94a3b8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700 }}>✓</div>
+                {stepDot(3, false, false)}
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -293,7 +294,9 @@ export default function Register() {
                 </div>
 
                 <div>
-                  <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Email Address</label>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
+                    Email Address <span style={{ color: "#059669", fontWeight: 500, fontSize: 12 }}>— verification code sent here</span>
+                  </label>
                   <input
                     type="email" placeholder="you@gmail.com" autoComplete="email" data-testid="input-email"
                     value={email} onChange={e => setEmail(e.target.value)}
@@ -301,7 +304,7 @@ export default function Register() {
                   />
                   {errors.email
                     ? <ErrorMsg msg={errors.email} />
-                    : <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 3 }}>Must be a real email — fake domains are blocked</p>
+                    : <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 3 }}>Fake/invalid emails are automatically blocked</p>
                   }
                 </div>
 
@@ -313,27 +316,6 @@ export default function Register() {
                     style={inputStyle(!!errors.password)}
                   />
                   <ErrorMsg msg={errors.password} />
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
-                    Mobile Number <span style={{ color: "#059669", fontSize: 11 }}>— OTP will be sent here</span>
-                  </label>
-                  <div style={{ position: "relative" }}>
-                    <div style={{
-                      position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)",
-                      fontSize: 14, color: "#374151", fontWeight: 600, display: "flex", alignItems: "center", gap: 6,
-                      borderRight: "1.5px solid #e2e8f0", paddingRight: 10,
-                    }}>
-                      🇵🇰
-                    </div>
-                    <input
-                      type="tel" placeholder="+92 300 1234567" data-testid="input-phone"
-                      value={phone} onChange={e => setPhone(e.target.value)}
-                      style={{ ...inputStyle(!!errors.phone), paddingLeft: 68 }}
-                    />
-                  </div>
-                  <ErrorMsg msg={errors.phone} />
                 </div>
 
                 <p style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", lineHeight: 1.5 }}>
@@ -349,7 +331,7 @@ export default function Register() {
                     color: "white", fontWeight: 700, fontSize: 16,
                     cursor: loading ? "not-allowed" : "pointer",
                     boxShadow: loading ? "none" : "0 4px 15px rgba(5,150,105,0.35)",
-                    transition: "all 0.2s", letterSpacing: 0.5,
+                    transition: "all 0.2s",
                   }}
                 >
                   {loading ? "Checking..." : "Send Verification Code →"}
@@ -368,38 +350,44 @@ export default function Register() {
                   fontWeight: 600, fontSize: 15, cursor: "pointer",
                 }}>Log In Instead</button>
               </Link>
+
+              <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 24 }}>
+                {[{ icon: "🔒", text: "SSL Secured" }, { icon: "🏦", text: "PKR Supported" }, { icon: "⚡", text: "Instant Payouts" }].map(b => (
+                  <div key={b.text} style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 18 }}>{b.icon}</div>
+                    <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>{b.text}</div>
+                  </div>
+                ))}
+              </div>
             </>
           )}
 
-          {/* ── STEP 2: OTP Verification ── */}
+          {/* ── STEP 2: Email OTP ── */}
           {step === "otp" && (
             <>
               <div style={{ textAlign: "center", marginBottom: 28 }}>
-                <div style={{ fontSize: 36, marginBottom: 8 }}>📱</div>
-                <h2 style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginBottom: 8 }}>Enter Verification Code</h2>
-                <p style={{ fontSize: 14, color: "#64748b", lineHeight: 1.5 }}>
+                <div style={{ fontSize: 40, marginBottom: 10 }}>📧</div>
+                <h2 style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginBottom: 8 }}>Check Your Email</h2>
+                <p style={{ fontSize: 14, color: "#64748b", lineHeight: 1.6 }}>
                   We sent a 6-digit code to<br />
-                  <strong style={{ color: "#0f172a" }}>{phone}</strong>
+                  <strong style={{ color: "#059669", fontSize: 15 }}>{email}</strong>
                 </p>
               </div>
 
-              {/* Step indicator */}
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 28, justifyContent: "center" }}>
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#d1fae5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700 }}>✓</div>
+                {stepDot(1, false, true)}
                 <div style={{ flex: 1, height: 2, background: "#059669", maxWidth: 60 }} />
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#059669", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700 }}>2</div>
+                {stepDot(2, true, false)}
                 <div style={{ flex: 1, height: 2, background: "#e2e8f0", maxWidth: 60 }} />
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#e2e8f0", color: "#94a3b8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700 }}>✓</div>
+                {stepDot(3, false, false)}
               </div>
 
+              {/* Dev mode hint */}
               {devOtpHint && (
-                <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 18 }}>🔧</span>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e" }}>Demo Mode — No SMS service connected</div>
-                    <div style={{ fontSize: 13, color: "#78350f" }}>Your code is: <strong style={{ fontSize: 18, letterSpacing: 3 }}>{devOtpHint}</strong></div>
-                    <div style={{ fontSize: 11, color: "#a16207" }}>In production, this would be sent as a real SMS to your phone</div>
-                  </div>
+                <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 4 }}>🔧 Demo Mode — Email service not yet connected</div>
+                  <div style={{ fontSize: 14, color: "#78350f" }}>Your code: <strong style={{ fontSize: 22, letterSpacing: 4 }}>{devOtpHint}</strong></div>
+                  <div style={{ fontSize: 11, color: "#a16207", marginTop: 4 }}>In production this goes directly to your inbox</div>
                 </div>
               )}
 
@@ -409,7 +397,7 @@ export default function Register() {
                 </div>
               )}
 
-              {/* 6-digit OTP boxes */}
+              {/* 6-digit boxes */}
               <div style={{ display: "flex", gap: 10, justifyContent: "center", marginBottom: 20 }}>
                 {otp.map((digit, idx) => (
                   <input
@@ -431,14 +419,14 @@ export default function Register() {
               </div>
 
               <button
-                type="button" onClick={handleVerifyOtp} disabled={loading || otp.join("").length < 6}
+                type="button" onClick={handleVerifyOtp}
+                disabled={loading || otp.join("").length < 6}
                 style={{
                   width: "100%", padding: "14px", borderRadius: 12, border: "none",
                   background: (loading || otp.join("").length < 6) ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #065f46 100%)",
                   color: "white", fontWeight: 700, fontSize: 16,
                   cursor: (loading || otp.join("").length < 6) ? "not-allowed" : "pointer",
-                  boxShadow: "0 4px 15px rgba(5,150,105,0.35)",
-                  marginBottom: 16,
+                  boxShadow: "0 4px 15px rgba(5,150,105,0.35)", marginBottom: 16,
                 }}
               >
                 {loading ? "Verifying..." : "Verify & Create Account 🎉"}
@@ -446,19 +434,23 @@ export default function Register() {
 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <button
-                  type="button" onClick={() => { setStep("info"); setOtp(["","","","","",""]); setErrors({}); }}
+                  type="button"
+                  onClick={() => { setStep("info"); setOtp(["","","","","",""]); setDevOtpHint(null); setErrors({}); }}
                   style={{ background: "none", border: "none", color: "#64748b", fontSize: 13, cursor: "pointer", padding: 0 }}
                 >
-                  ← Change number
+                  ← Change email
                 </button>
                 <button
-                  type="button" onClick={handleResendOtp} disabled={resendCountdown > 0 || loading}
+                  type="button" onClick={handleResendOtp}
+                  disabled={resendCountdown > 0 || loading}
                   style={{
-                    background: "none", border: "none", fontSize: 13, cursor: resendCountdown > 0 ? "not-allowed" : "pointer",
-                    color: resendCountdown > 0 ? "#94a3b8" : "#059669", fontWeight: 600, padding: 0,
+                    background: "none", border: "none", fontSize: 13,
+                    cursor: resendCountdown > 0 ? "not-allowed" : "pointer",
+                    color: resendCountdown > 0 ? "#94a3b8" : "#059669",
+                    fontWeight: 600, padding: 0,
                   }}
                 >
-                  {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : "Resend OTP"}
+                  {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : "Resend code"}
                 </button>
               </div>
             </>
@@ -467,10 +459,10 @@ export default function Register() {
           {/* ── STEP 3: Done ── */}
           {step === "done" && (
             <div style={{ textAlign: "center", padding: "40px 0" }}>
-              <div style={{ fontSize: 64, marginBottom: 20, animation: "pulse 1s ease-in-out" }}>🎉</div>
+              <div style={{ fontSize: 64, marginBottom: 20 }}>🎉</div>
               <h2 style={{ fontSize: 28, fontWeight: 800, color: "#0f172a", marginBottom: 12 }}>You're In!</h2>
               <p style={{ fontSize: 16, color: "#64748b", marginBottom: 24 }}>
-                Account created and verified.<br />Taking you to the lobby now...
+                Email verified and account created.<br />Taking you to the lobby...
               </p>
               <div style={{
                 background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 14,
@@ -479,25 +471,9 @@ export default function Register() {
                 <span style={{ fontSize: 28 }}>🎁</span>
                 <div style={{ textAlign: "left" }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "#15803d" }}>Welcome Bonus Added!</div>
-                  <div style={{ fontSize: 12, color: "#166534" }}>PKR 50,000 has been added to your account</div>
+                  <div style={{ fontSize: 12, color: "#166534" }}>PKR 50,000 has been credited to your account</div>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Trust badges (always shown on step 1) */}
-          {step === "info" && (
-            <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 24 }}>
-              {[
-                { icon: "🔒", text: "SSL Secured" },
-                { icon: "🏦", text: "PKR Supported" },
-                { icon: "⚡", text: "Instant Payouts" },
-              ].map(b => (
-                <div key={b.text} style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: 18 }}>{b.icon}</div>
-                  <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>{b.text}</div>
-                </div>
-              ))}
             </div>
           )}
         </div>

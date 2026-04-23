@@ -3,8 +3,8 @@ import bcrypt from "bcryptjs";
 import { db, pool, usersTable, transactionsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { promises as dns } from "dns";
+import nodemailer from "nodemailer";
 import {
-  RegisterBody,
   LoginBody,
   GetMeResponse,
 } from "@workspace/api-zod";
@@ -12,10 +12,10 @@ import { z } from "zod";
 
 const router: IRouter = Router();
 
-// ── In-memory OTP store: phone → { otp, expires, email } ──
-const otpStore = new Map<string, { otp: string; expires: number; email: string }>();
-// ── Verified phone tokens: token → { phone, expires } ──
-const verifiedTokens = new Map<string, { phone: string; expires: number }>();
+// ── In-memory OTP store: email → { otp, expires } ──
+const otpStore = new Map<string, { otp: string; expires: number }>();
+// ── Verified email tokens issued after successful OTP ──
+const verifiedTokens = new Map<string, { email: string; expires: number }>();
 
 function generateOtp(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -32,41 +32,58 @@ async function isEmailDomainValid(email: string): Promise<boolean> {
   }
 }
 
-async function sendOtpSms(phone: string, otp: string): Promise<void> {
-  const message = `Your BetPulse verification code is: ${otp}. Valid for 5 minutes. Do not share this code.`;
+async function sendOtpEmail(email: string, otp: string): Promise<void> {
+  const htmlBody = `
+    <div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;background:#f8fafc;padding:32px;border-radius:16px">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-size:40px;margin-bottom:8px">🎯</div>
+        <h2 style="color:#0f172a;margin:0;font-size:22px">BetPulse Verification</h2>
+      </div>
+      <p style="color:#475569;font-size:15px;line-height:1.6;margin-bottom:24px">
+        Use the code below to verify your email and complete your registration.
+      </p>
+      <div style="background:#0a2414;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px">
+        <div style="color:#94a3b8;font-size:12px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Your Verification Code</div>
+        <div style="color:#f5c542;font-size:42px;font-weight:900;letter-spacing:8px">${otp}</div>
+        <div style="color:#64748b;font-size:12px;margin-top:8px">Valid for 5 minutes</div>
+      </div>
+      <p style="color:#94a3b8;font-size:12px;text-align:center;line-height:1.5">
+        If you did not request this, you can safely ignore this email.<br/>
+        Do not share this code with anyone.
+      </p>
+    </div>
+  `;
 
-  // Try Twilio first if credentials are set
-  const sid = process.env.TWILIO_ACCOUNT_SID;
-  const token = process.env.TWILIO_AUTH_TOKEN;
-  const from = process.env.TWILIO_FROM_NUMBER;
-  if (sid && token && from) {
-    const twilio = (await import("twilio")).default;
-    const client = twilio(sid, token);
-    await client.messages.create({ body: message, from, to: phone });
+  // Try configured SMTP first
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+  const smtpFrom = process.env.SMTP_FROM ?? smtpUser ?? "noreply@betpulse.com";
+
+  if (smtpHost && smtpUser && smtpPass) {
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: parseInt(process.env.SMTP_PORT ?? "587"),
+      secure: process.env.SMTP_SECURE === "true",
+      auth: { user: smtpUser, pass: smtpPass },
+    });
+    await transporter.sendMail({
+      from: `BetPulse <${smtpFrom}>`,
+      to: email,
+      subject: `${otp} is your BetPulse verification code`,
+      html: htmlBody,
+    });
     return;
   }
 
-  // Fallback: TextBelt SMS (free tier — no credentials needed)
-  const textbeltKey = process.env.TEXTBELT_KEY ?? "textbelt";
-  const resp = await fetch("https://textbelt.com/text", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ phone, message, key: textbeltKey }),
-  });
-  const result = await resp.json() as { success: boolean; error?: string; quotaRemaining?: number };
-  if (!result.success) {
-    // If free quota is exhausted, still log the OTP so the flow isn't broken
-    console.warn(`[TextBelt] SMS failed: ${result.error}. OTP for ${phone}: ${otp}`);
-    throw new Error(result.error ?? "SMS delivery failed");
-  }
-  console.log(`[TextBelt] SMS sent to ${phone}. Quota remaining: ${result.quotaRemaining}`);
+  // No SMTP configured — throw so caller can use dev fallback
+  throw new Error("No email service configured");
 }
 
 // ─── POST /auth/send-otp ───────────────────────────────────────────────────
 router.post("/auth/send-otp", async (req, res): Promise<void> => {
   const parsed = z.object({
-    phone: z.string().min(10, "Invalid phone number"),
-    email: z.string().email("Invalid email"),
+    email: z.string().email("Invalid email address"),
   }).safeParse(req.body);
 
   if (!parsed.success) {
@@ -74,7 +91,7 @@ router.post("/auth/send-otp", async (req, res): Promise<void> => {
     return;
   }
 
-  const { phone, email } = parsed.data;
+  const { email } = parsed.data;
 
   // Validate email domain via DNS MX lookup
   const domainOk = await isEmailDomainValid(email);
@@ -90,27 +107,26 @@ router.post("/auth/send-otp", async (req, res): Promise<void> => {
     return;
   }
 
-  // Rate limit: prevent spamming OTP to same phone
-  const prev = otpStore.get(phone);
+  // Rate limit: one OTP per 60 seconds per email
+  const prev = otpStore.get(email);
   if (prev && prev.expires > Date.now() + 4 * 60 * 1000) {
-    res.status(429).json({ error: "OTP already sent. Please wait before requesting a new one." });
+    res.status(429).json({ error: "OTP already sent. Please check your inbox or wait 60 seconds to request a new one." });
     return;
   }
 
   const otp = generateOtp();
-  otpStore.set(phone, { otp, expires: Date.now() + 5 * 60 * 1000, email });
+  otpStore.set(email, { otp, expires: Date.now() + 5 * 60 * 1000 });
 
   try {
-    await sendOtpSms(phone, otp);
-    res.json({ message: "OTP sent to your phone number." });
-  } catch (err: any) {
-    console.error("SMS send failed:", err.message);
-    // In development or when no SMS service is available, return OTP in response
+    await sendOtpEmail(email, otp);
+    res.json({ message: "Verification code sent to your email." });
+  } catch {
+    // Dev mode: no SMTP configured, return OTP directly
     const isDev = process.env.NODE_ENV !== "production";
     if (isDev) {
       res.json({ message: "OTP sent (dev mode).", devOtp: otp });
     } else {
-      res.status(500).json({ error: "Failed to send OTP. Please check the phone number and try again." });
+      res.status(500).json({ error: "Failed to send verification email. Please try again." });
     }
   }
 });
@@ -118,7 +134,7 @@ router.post("/auth/send-otp", async (req, res): Promise<void> => {
 // ─── POST /auth/verify-otp ────────────────────────────────────────────────
 router.post("/auth/verify-otp", async (req, res): Promise<void> => {
   const parsed = z.object({
-    phone: z.string().min(10),
+    email: z.string().email(),
     otp: z.string().length(6, "OTP must be 6 digits"),
   }).safeParse(req.body);
 
@@ -127,27 +143,27 @@ router.post("/auth/verify-otp", async (req, res): Promise<void> => {
     return;
   }
 
-  const { phone, otp } = parsed.data;
-  const stored = otpStore.get(phone);
+  const { email, otp } = parsed.data;
+  const stored = otpStore.get(email);
 
   if (!stored) {
-    res.status(400).json({ error: "No OTP found for this number. Please request a new one." });
+    res.status(400).json({ error: "No OTP found for this email. Please request a new one." });
     return;
   }
   if (Date.now() > stored.expires) {
-    otpStore.delete(phone);
+    otpStore.delete(email);
     res.status(400).json({ error: "OTP has expired. Please request a new code." });
     return;
   }
   if (stored.otp !== otp) {
-    res.status(400).json({ error: "Incorrect OTP code. Please check and try again." });
+    res.status(400).json({ error: "Incorrect code. Please check your email and try again." });
     return;
   }
 
   // OTP valid — issue a short-lived verification token
   const token = crypto.randomUUID();
-  verifiedTokens.set(token, { phone, expires: Date.now() + 10 * 60 * 1000 });
-  otpStore.delete(phone);
+  verifiedTokens.set(token, { email, expires: Date.now() + 10 * 60 * 1000 });
+  otpStore.delete(email);
 
   res.json({ verified: true, token });
 });
@@ -158,7 +174,6 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     username: z.string().min(3, "Username must be at least 3 characters"),
     email: z.string().email("Invalid email address"),
     password: z.string().min(6, "Password must be at least 6 characters"),
-    phone: z.string().optional(),
     verificationToken: z.string().optional(),
   });
 
@@ -168,21 +183,19 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     return;
   }
 
-  const { username, email, password, phone, verificationToken } = parsed.data;
+  const { username, email, password, verificationToken } = parsed.data;
 
-  // If a verification token is provided, validate it
-  let verifiedPhone: string | undefined;
+  // Validate verification token if provided
   if (verificationToken) {
     const vtData = verifiedTokens.get(verificationToken);
-    if (!vtData || Date.now() > vtData.expires) {
-      res.status(400).json({ error: "Phone verification expired. Please verify your phone again." });
+    if (!vtData || Date.now() > vtData.expires || vtData.email !== email) {
+      res.status(400).json({ error: "Email verification expired. Please verify your email again." });
       return;
     }
-    verifiedPhone = vtData.phone;
     verifiedTokens.delete(verificationToken);
   }
 
-  // Email domain check (even if no OTP, always validate the domain)
+  // Always validate email domain
   const domainOk = await isEmailDomainValid(email);
   if (!domainOk) {
     res.status(400).json({ error: "This email address does not look real. Please use a valid email." });
@@ -195,7 +208,6 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     return;
   }
 
-  // Read signup bonus from platform settings (default 50000 if not set)
   const bonusResult = await pool.query("SELECT value FROM platform_settings WHERE key = $1", ["signup_bonus"]);
   const signupBonus = Math.max(0, Math.round(parseFloat(bonusResult.rows[0]?.value ?? "50000")));
   const bonusStr = signupBonus.toFixed(2);
@@ -203,13 +215,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
   const passwordHash = await bcrypt.hash(password, 10);
   const [user] = await db
     .insert(usersTable)
-    .values({
-      username,
-      email,
-      passwordHash,
-      role: "user",
-      ...(verifiedPhone ? { phone: verifiedPhone, phoneVerified: true } : phone ? { phone } : {}),
-    })
+    .values({ username, email, passwordHash, role: "user" })
     .returning();
 
   if (signupBonus > 0) {
@@ -246,11 +252,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   }
 
   const { email, password } = parsed.data;
-
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.email, email));
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email));
 
   if (!user) {
     res.status(401).json({ error: "Invalid email or password" });
@@ -269,7 +271,6 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   }
 
   req.session.userId = user.id;
-
   res.json({
     user: {
       id: user.id,
@@ -294,10 +295,7 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     return;
   }
 
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.id, req.session.userId));
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId));
 
   if (!user) {
     res.status(401).json({ error: "User not found" });
