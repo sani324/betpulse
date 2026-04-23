@@ -2114,19 +2114,22 @@ export default function Admin() {
                     const aCandidates = cfg.sides.filter(s => aCounts[s.key] === aMinCount);
                     const aMinStaked = Math.min(...aCandidates.map(s => aStaked[s.key]));
                     const aFinal = aCandidates.filter(s => aStaked[s.key] === aMinStaked);
-                    const aWillWin = new Set(aFinal.map(s => s.key));
-                    const aWillLose = cfg.sides.filter(s => !aWillWin.has(s.key));
+                    // For display: show exactly ONE green winner (first in tied list)
+                    const aDisplayWinner = aFinal[0];
+                    const isTied = aFinal.length > 1;
+                    const aWillLose = cfg.sides.filter(s => s.key !== aDisplayWinner?.key);
                     const aLostPool = aWillLose.reduce((a, s) => a + aStaked[s.key], 0);
-                    const aWinLabels = aFinal.map(s => s.label.replace(/[^\w\s]/g,'').trim()).join(" or ");
+                    const aWinLabel = aDisplayWinner?.label.replace(/[^\w\s]/g,'').trim() ?? "";
+                    const aAllTiedLabels = aFinal.map(s => s.label.replace(/[^\w\s]/g,'').trim()).join(" or ");
                     const aReason = totalBets === 0
                       ? "No bets yet — auto-settle will skip this round"
-                      : aMinCount === 0 && aFinal.length > 1
-                        ? `${aWinLabels} — BOTH have 0 bets. System randomly picks one. Either way nobody wins → all ${aWillLose.map(s=>s.label.replace(/[^\w\s]/g,'').trim()).join(" + ")} bettors LOSE → Admin keeps ₹${aLostPool.toFixed(0)}`
+                      : isTied && aMinCount === 0
+                        ? `${aAllTiedLabels} are tied at 0 bets — system randomly picks one → all ${aWillLose.filter(s => aCounts[s.key] > 0).map(s=>s.label.replace(/[^\w\s]/g,'').trim()).join(" + ")} bettors LOSE → Admin keeps ₹${aLostPool.toFixed(0)}`
                         : aMinCount === 0
-                          ? `${aWinLabels} has 0 bets → declared winner but nobody bet on it → all other bettors lose → Admin keeps ₹${aLostPool.toFixed(0)}`
-                          : aFinal.length > 1
-                            ? `All options tied at ${aMinCount} bet(s) — randomly picks one of: ${aWinLabels}`
-                            : `${aWinLabels} has fewest bets (${aMinCount}) → Admin keeps ₹${aLostPool.toFixed(0)} from ${aWillLose.length} losing side(s)`;
+                          ? `${aWinLabel} has 0 bets → declared winner → all other bettors lose → Admin keeps ₹${aLostPool.toFixed(0)}`
+                          : isTied
+                            ? `All options tied at ${aMinCount} bet(s) — randomly picks one to win`
+                            : `${aWinLabel} has fewest bets (${aMinCount}) → Admin keeps ₹${aLostPool.toFixed(0)} from ${aWillLose.filter(s=>aCounts[s.key]>0).length} losing side(s)`;
 
                     return (
                       <div key={cfg.game} className={`border rounded-xl p-3 transition-all duration-200 ${autoMode ? "border-purple-500/20 bg-purple-950/10" : "border-border/40 bg-card/20"}`}>
@@ -2169,12 +2172,12 @@ export default function Admin() {
                                 <div className="bg-emerald-600/30 border-b border-emerald-500/30 px-3 py-2 flex items-center justify-between flex-wrap gap-2">
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-emerald-300">🤖 AUTO PICK — WINS:</span>
-                                    {aFinal.map(s => (
-                                      <span key={s.key} className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500 text-white shadow">
-                                        ✅ {s.label}
+                                    {aDisplayWinner && (
+                                      <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500 text-white shadow">
+                                        ✅ {aDisplayWinner.label}
                                       </span>
-                                    ))}
-                                    {aFinal.length > 1 && <span className="text-[10px] text-emerald-400/70">(one picked randomly)</span>}
+                                    )}
+                                    {isTied && <span className="text-[10px] text-yellow-400/80 font-bold">(tied — random pick)</span>}
                                   </div>
                                   {aLostPool > 0 && (
                                     <span className="text-[11px] font-black text-emerald-300 bg-emerald-900/50 px-2 py-0.5 rounded-full">
@@ -2197,7 +2200,7 @@ export default function Admin() {
                                 const sk = aStaked[s.key];
                                 const totalStakedAll = round?.totalStaked ?? 0;
                                 const pct = totalStakedAll > 0 ? Math.round((sk / totalStakedAll) * 100) : 0;
-                                const isWinner = aWillWin.has(s.key) && totalBets > 0;
+                                const isWinner = s.key === aDisplayWinner?.key && totalBets > 0;
                                 const isLoser = !isWinner && totalBets > 0 && count > 0;
                                 return (
                                   <div key={s.key} className={`border rounded-lg p-2 transition-all ${
