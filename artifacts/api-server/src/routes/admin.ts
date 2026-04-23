@@ -784,6 +784,167 @@ router.post("/admin/casino-rounds/:game/settle", requireAdmin, async (req, res):
   res.json({ message: "Round settled", round });
 });
 
+// All valid options per game — used by auto-settle
+const GAME_OPTIONS: Record<string, string[]> = {
+  "dragon-tiger":   ["dragon", "tiger", "tie"],
+  "coin-flip":      ["heads", "tails"],
+  "dice-roll":      ["high", "low", "seven"],
+  "rang":           ["player", "house"],
+  "court-piece":    ["player", "house"],
+  "teen-patti":     ["player", "banker", "pair"],
+  "lucky-7":        ["under7", "seven", "over7"],
+  "jhandi-munda":   ["spade", "heart", "diamond", "club", "star", "moon"],
+  "andar-bahar":    ["andar", "bahar"],
+  "roulette":       ["red", "black", "green"],
+  "bingo-777":      ["triple7", "bar", "cherry"],
+  "fruit-line":     ["jackpot", "mix", "plain"],
+  "sweet-bonanza":  ["bonanza", "scatter", "base"],
+  "crash":          ["x2", "x5", "x10"],
+  "joker":          ["player", "banker", "joker"],
+  "ten-cards":      ["player", "banker"],
+  "muflis":         ["player", "banker"],
+  "blackjack":      ["player", "dealer", "tie"],
+  "car-roulette":   ["car1", "car2", "car3"],
+  "god-of-fortune": ["fortune", "grand", "supreme"],
+  "rummy":          ["player", "house"],
+};
+
+// Shared settle helper — used by both manual and auto settle.
+async function settleRoundWith(game: string, result: string): Promise<{ message: string; round: CasinoRound; autoResult?: string }> {
+  function payoutMultiplier(g: string, sel: string, res2: string): number {
+    if (sel !== res2) return 0;
+    if (g === "dragon-tiger") return sel === "tie" ? 9 : 2;
+    if (g === "coin-flip") return 1.95;
+    if (g === "dice-roll") return sel === "seven" ? 5 : 1.9;
+    if (g === "rang" || g === "court-piece") return 1.95;
+    if (g === "teen-patti") return sel === "pair" ? 11 : 1.95;
+    if (g === "lucky-7")    return sel === "seven" ? 5 : 1.95;
+    if (g === "jhandi-munda") return 6;
+    if (g === "andar-bahar")  return 1.95;
+    if (g === "roulette")     return sel === "green" ? 14 : 1.95;
+    if (g === "bingo-777")    return sel === "triple7" ? 20 : sel === "bar" ? 5 : 2;
+    if (g === "fruit-line")   return sel === "jackpot" ? 10 : sel === "mix" ? 3 : 1.95;
+    if (g === "sweet-bonanza") return sel === "bonanza" ? 8 : sel === "scatter" ? 3 : 1.95;
+    if (g === "crash")        return sel === "x10" ? 10 : sel === "x5" ? 5 : 2;
+    if (g === "joker")        return sel === "joker" ? 9 : 1.95;
+    if (g === "ten-cards" || g === "muflis") return 1.95;
+    if (g === "blackjack")    return sel === "tie" ? 8 : 1.95;
+    if (g === "car-roulette") return sel === "car3" ? 5 : 1.95;
+    if (g === "god-of-fortune") return sel === "supreme" ? 10 : sel === "grand" ? 5 : 1.95;
+    if (g === "rummy")        return 1.95;
+    return 2;
+  }
+
+  const round = casinoOpenRounds.get(game);
+  if (!round || round.bets.length === 0) {
+    const empty: CasinoRound = {
+      id: round?.id ?? nextRoundId(game),
+      game,
+      openedAt: round?.openedAt ?? new Date().toISOString(),
+      status: "settled",
+      bets: round?.bets ?? [],
+      result,
+      settledAt: new Date().toISOString(),
+    };
+    casinoOpenRounds.delete(game);
+    casinoLastSettled.set(game, empty);
+    getOrOpenRound(game);
+    return { message: "Round settled (no bets)", round: empty };
+  }
+
+  for (const bet of round.bets) {
+    const mult = payoutMultiplier(game, bet.selection, result);
+    const winAmount = mult > 0 ? Math.round(bet.stake * mult * 100) / 100 : 0;
+    if (winAmount <= 0) continue;
+    const [u] = await db.select().from(usersTable).where(eq(usersTable.id, bet.userId));
+    if (!u) continue;
+    const newBal = Math.round((parseFloat(u.balance) + winAmount) * 100) / 100;
+    await db.update(usersTable).set({ balance: String(newBal) }).where(eq(usersTable.id, bet.userId));
+    await db.insert(transactionsTable).values({
+      userId: bet.userId,
+      type: "bet_won",
+      amount: String(winAmount),
+      balanceAfter: String(newBal),
+      description: `${prettyGame(game)} round settled — bet ${bet.selection}, result ${result}. Win ₹${winAmount}.`,
+    });
+  }
+
+  round.status = "settled";
+  round.result = result;
+  round.settledAt = new Date().toISOString();
+  round.details = generateRoundDetails(game, result);
+  casinoOpenRounds.delete(game);
+  casinoLastSettled.set(game, round);
+  getOrOpenRound(game);
+  return { message: "Round settled", round };
+}
+
+// AUTO-SETTLE: picks the option with the fewest total bets (house-edge logic).
+// If multiple options tie for fewest, picks the one with lowest total staked.
+// If nobody has bet on any option, picks a random option from the zeroes.
+router.post("/admin/casino-rounds/:game/auto-settle", requireAdmin, async (req, res): Promise<void> => {
+  const game = req.params.game;
+  const validOptions = GAME_OPTIONS[game];
+  if (!validOptions) { res.status(400).json({ error: `Unknown game: ${game}` }); return; }
+
+  const round = casinoOpenRounds.get(game);
+
+  // Count bets & staked per option
+  const betCounts: Record<string, number> = {};
+  const betStaked: Record<string, number> = {};
+  for (const opt of validOptions) { betCounts[opt] = 0; betStaked[opt] = 0; }
+  for (const bet of (round?.bets ?? [])) {
+    betCounts[bet.selection] = (betCounts[bet.selection] ?? 0) + 1;
+    betStaked[bet.selection] = (betStaked[bet.selection] ?? 0) + bet.stake;
+  }
+
+  // Find the min bet count
+  const minCount = Math.min(...validOptions.map(o => betCounts[o]));
+  const candidates = validOptions.filter(o => betCounts[o] === minCount);
+
+  // Among ties, pick the one with least staked; if still tied, pick randomly
+  const minStaked = Math.min(...candidates.map(o => betStaked[o]));
+  const finalCandidates = candidates.filter(o => betStaked[o] === minStaked);
+  const result = finalCandidates[Math.floor(Math.random() * finalCandidates.length)];
+
+  const reason = `Auto: "${result}" had fewest bets (${betCounts[result]}) & lowest staked (₹${betStaked[result].toFixed(0)})`;
+  try {
+    const out = await settleRoundWith(game, result);
+    res.json({ ...out, autoResult: result, reason });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// AUTO-SETTLE ALL: settles every open game in one click.
+router.post("/admin/casino-rounds/auto-settle-all", requireAdmin, async (req, res): Promise<void> => {
+  const results: { game: string; result: string; reason: string }[] = [];
+  const games = Array.from(casinoOpenRounds.keys());
+  for (const game of games) {
+    const validOptions = GAME_OPTIONS[game];
+    if (!validOptions) continue;
+    const round = casinoOpenRounds.get(game);
+    const betCounts: Record<string, number> = {};
+    const betStaked: Record<string, number> = {};
+    for (const opt of validOptions) { betCounts[opt] = 0; betStaked[opt] = 0; }
+    for (const bet of (round?.bets ?? [])) {
+      betCounts[bet.selection] = (betCounts[bet.selection] ?? 0) + 1;
+      betStaked[bet.selection] = (betStaked[bet.selection] ?? 0) + bet.stake;
+    }
+    const minCount = Math.min(...validOptions.map(o => betCounts[o]));
+    const candidates = validOptions.filter(o => betCounts[o] === minCount);
+    const minStaked = Math.min(...candidates.map(o => betStaked[o]));
+    const finalCandidates = candidates.filter(o => betStaked[o] === minStaked);
+    const result = finalCandidates[Math.floor(Math.random() * finalCandidates.length)];
+    const reason = `${betCounts[result]} bets, ₹${betStaked[result].toFixed(0)} staked`;
+    try {
+      await settleRoundWith(game, result);
+      results.push({ game, result, reason });
+    } catch (_) {}
+  }
+  res.json({ message: `Auto-settled ${results.length} game(s)`, results });
+});
+
 // Build game-specific presentation details (cards, dice, etc.) consistent with
 // the chosen result, so the user-facing UI can render a believable outcome.
 function generateRoundDetails(game: string, result: string): Record<string, unknown> {

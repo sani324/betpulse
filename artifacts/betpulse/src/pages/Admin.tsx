@@ -133,6 +133,8 @@ export default function Admin() {
   type LiveRound = { id: string; game: string; openedAt: string; totalBets: number; totalStaked: number; sides: LiveRoundSide[] };
   const [liveRounds, setLiveRounds] = useState<LiveRound[]>([]);
   const [settling, setSettling] = useState<string | null>(null);
+  const [autoSettling, setAutoSettling] = useState<string | null>(null);
+  const [lastAutoResult, setLastAutoResult] = useState<Record<string, { result: string; reason: string }>>({});
 
   type PaymentSetting = { method: string; label: string; accountName: string; accountNumber: string; instructions: string; isActive: boolean };
   const [paymentSettings, setPaymentSettings] = useState<PaymentSetting[]>([]);
@@ -377,11 +379,55 @@ export default function Admin() {
         credentials: "include", body: JSON.stringify({ result }),
       });
       if (!resp.ok) throw new Error("settle failed");
+      toast({ title: `✅ ${game} settled`, description: `Result: ${result}` });
       await loadLiveRounds();
     } catch (e) {
+      toast({ title: "Settle failed", variant: "destructive" });
       console.error(e);
     } finally {
       setSettling(null);
+    }
+  }
+
+  async function autoSettleRound(game: string) {
+    setAutoSettling(game);
+    try {
+      const resp = await fetch(`/api/admin/casino-rounds/${game}/auto-settle`, {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!resp.ok) throw new Error("auto-settle failed");
+      const data = await resp.json();
+      setLastAutoResult(prev => ({ ...prev, [game]: { result: data.autoResult, reason: data.reason } }));
+      toast({ title: `🤖 Auto-settled: ${game}`, description: data.reason });
+      await loadLiveRounds();
+    } catch (e) {
+      toast({ title: "Auto-settle failed", variant: "destructive" });
+    } finally {
+      setAutoSettling(null);
+    }
+  }
+
+  async function autoSettleAll() {
+    setAutoSettling("ALL");
+    try {
+      const resp = await fetch("/api/admin/casino-rounds/auto-settle-all", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!resp.ok) throw new Error("failed");
+      const data = await resp.json();
+      const updates: Record<string, { result: string; reason: string }> = {};
+      for (const r of (data.results ?? [])) {
+        updates[r.game] = { result: r.result, reason: r.reason };
+      }
+      setLastAutoResult(prev => ({ ...prev, ...updates }));
+      toast({ title: `🤖 Auto-settled ${data.results?.length ?? 0} games`, description: data.results?.map((r: any) => `${r.game}→${r.result}`).join(", ") });
+      await loadLiveRounds();
+    } catch (e) {
+      toast({ title: "Auto-settle all failed", variant: "destructive" });
+    } finally {
+      setAutoSettling(null);
     }
   }
 
@@ -1933,12 +1979,22 @@ export default function Admin() {
               <Card className="border-emerald-500/40 bg-emerald-500/5">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap">
                   <div>
-                    <CardTitle className="text-emerald-300 flex items-center gap-2">🟢 Live Rounds — Pick the Result</CardTitle>
+                    <CardTitle className="text-emerald-300 flex items-center gap-2">🟢 Live Rounds — Settle Results</CardTitle>
                     <CardDescription>
-                      All casino games are round-based. Bets queue here while users wait. <strong>You</strong> click Settle to choose the result. All players' bets pay out together; a new round opens automatically.
+                      <strong>Manual:</strong> You pick the winner per game. <strong>Auto:</strong> System picks the option with fewest bets (house edge — losers lose, house wins).
                     </CardDescription>
                   </div>
-                  <Button variant="outline" size="sm" onClick={loadLiveRounds}>Refresh</Button>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button
+                      variant="outline" size="sm"
+                      onClick={autoSettleAll}
+                      disabled={!!autoSettling || !!settling}
+                      className="bg-purple-600/20 border-purple-500/40 text-purple-300 hover:bg-purple-600/30"
+                    >
+                      {autoSettling === "ALL" ? "⏳ Auto-Settling..." : "🤖 Auto Settle ALL"}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={loadLiveRounds}>🔄 Refresh</Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-5">
                   {GAME_CONFIGS.map(cfg => {
@@ -1946,27 +2002,61 @@ export default function Admin() {
                     const sideMap: Record<string, LiveRoundSide> = {};
                     (round?.sides ?? []).forEach(s => { sideMap[s.selection] = s; });
                     const totalBets = round?.totalBets ?? 0;
+                    const isAutoSettlingThis = autoSettling === cfg.game;
+                    const lastAuto = lastAutoResult[cfg.game];
                     return (
                       <div key={cfg.game} className="border border-border/40 rounded-xl p-3 bg-card/20">
-                        <div className="flex items-baseline justify-between mb-2 flex-wrap gap-2">
+                        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                           <div className="font-bold text-base">{cfg.title}</div>
-                          <div className="text-xs text-muted-foreground">
-                            Round: <span className="font-mono">{round?.id?.slice(-6) ?? "—"}</span> · {totalBets} bet{totalBets === 1 ? "" : "s"} pending
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <div className="text-xs text-muted-foreground">
+                              Round: <span className="font-mono">{round?.id?.slice(-6) ?? "—"}</span> · <span className={totalBets > 0 ? "text-emerald-400 font-bold" : ""}>{totalBets} bet{totalBets === 1 ? "" : "s"}</span>
+                            </div>
+                            <Button
+                              size="sm"
+                              onClick={() => autoSettleRound(cfg.game)}
+                              disabled={!!settling || !!autoSettling}
+                              className="h-6 px-2 text-[11px] bg-purple-600/25 border border-purple-500/40 text-purple-300 hover:bg-purple-600/40"
+                              variant="outline"
+                            >
+                              {isAutoSettlingThis ? "⏳..." : "🤖 Auto"}
+                            </Button>
                           </div>
                         </div>
+
+                        {/* Last auto-settle result pill */}
+                        {lastAuto && (
+                          <div className="mb-2 px-2 py-1 rounded-md text-[10px] bg-purple-900/30 border border-purple-500/20 text-purple-300 flex items-center gap-1.5">
+                            <span>🤖</span>
+                            <span>Last auto: <strong className="text-purple-200">{lastAuto.result}</strong> — {lastAuto.reason}</span>
+                          </div>
+                        )}
+
+                        {/* Manual settle section header */}
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">✋ Manual — click to settle:</div>
                         <div className={`grid gap-2 ${cfg.sides.length > 6 ? "grid-cols-3 md:grid-cols-6" : cfg.sides.length === 2 ? "grid-cols-2" : "grid-cols-1 md:grid-cols-3"}`}>
                           {cfg.sides.map(s => {
                             const data = sideMap[s.key];
                             const count = data?.betCount ?? 0;
                             const staked = data?.totalStaked ?? 0;
                             const isSettling = settling === `${cfg.game}:${s.key}`;
+                            const totalStakedAll = round?.totalStaked ?? 0;
+                            const pct = totalStakedAll > 0 ? Math.round((staked / totalStakedAll) * 100) : 0;
                             return (
                               <div key={s.key} className="border rounded-lg p-2 bg-card/40 border-border/30">
                                 <div className="flex items-baseline justify-between mb-1">
                                   <div className={`font-semibold text-sm ${s.text}`}>{s.label}</div>
-                                  <div className="text-[11px] tabular-nums">{count}</div>
+                                  <div className="text-[11px] tabular-nums font-bold">{count} bets</div>
                                 </div>
-                                {staked > 0 && <div className="text-[10px] text-muted-foreground mb-1">₹{staked.toFixed(2)}</div>}
+                                {count > 0 && (
+                                  <>
+                                    <div className="text-[10px] text-muted-foreground mb-1">₹{staked.toFixed(0)} · {pct}% of pool</div>
+                                    {/* bet bar */}
+                                    <div className="h-1 rounded-full mb-1.5 bg-border/40">
+                                      <div className="h-full rounded-full bg-emerald-400/60" style={{ width: `${pct}%` }} />
+                                    </div>
+                                  </>
+                                )}
                                 {data?.users && data.users.length > 0 && (
                                   <div className="text-[10px] text-muted-foreground mb-2 max-h-12 overflow-y-auto">
                                     {data.users.map((u, i) => (
@@ -1980,17 +2070,17 @@ export default function Admin() {
                                 <Button
                                   size="sm"
                                   onClick={() => settleRound(cfg.game, s.key)}
-                                  disabled={!!settling}
+                                  disabled={!!settling || !!autoSettling}
                                   className={`w-full text-white text-xs h-7 ${s.color}`}
                                 >
-                                  {isSettling ? "..." : `Settle ${s.label}`}
+                                  {isSettling ? "Settling..." : `✅ ${s.label} Wins`}
                                 </Button>
                               </div>
                             );
                           })}
                         </div>
                         {totalBets === 0 && (
-                          <div className="text-[11px] text-muted-foreground mt-2 text-center">No bets pending. You can still settle to lock in a result for the next placed bet.</div>
+                          <div className="text-[11px] text-muted-foreground mt-2 text-center italic">No bets yet — settle anyway to pre-set result, or use 🤖 Auto.</div>
                         )}
                       </div>
                     );
