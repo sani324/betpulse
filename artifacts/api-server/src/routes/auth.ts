@@ -32,8 +32,8 @@ async function isEmailDomainValid(email: string): Promise<boolean> {
   }
 }
 
-async function sendOtpEmail(email: string, otp: string): Promise<void> {
-  const htmlBody = `
+function buildOtpEmailHtml(otp: string): string {
+  return `
     <div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;background:#f8fafc;padding:32px;border-radius:16px">
       <div style="text-align:center;margin-bottom:24px">
         <div style="font-size:40px;margin-bottom:8px">🎯</div>
@@ -53,13 +53,33 @@ async function sendOtpEmail(email: string, otp: string): Promise<void> {
       </p>
     </div>
   `;
+}
 
-  // Try configured SMTP first
+async function sendOtpEmail(email: string, otp: string): Promise<void> {
+  const subject = `${otp} is your BetPulse verification code`;
+  const html = buildOtpEmailHtml(otp);
+  const fromAddress = process.env.EMAIL_FROM ?? "BetPulse <noreply@betpulse.com>";
+
+  // 1. Try Resend API (preferred — free tier, reliable)
+  const resendKey = process.env.RESEND_API_KEY;
+  if (resendKey) {
+    const r = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${resendKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from: fromAddress, to: [email], subject, html }),
+    });
+    if (!r.ok) {
+      const err = await r.json() as { message?: string };
+      throw new Error(`Resend error: ${err.message ?? r.statusText}`);
+    }
+    console.log(`[Email] Sent via Resend to ${email}`);
+    return;
+  }
+
+  // 2. Try SMTP (Gmail, Outlook, any provider)
   const smtpHost = process.env.SMTP_HOST;
   const smtpUser = process.env.SMTP_USER;
   const smtpPass = process.env.SMTP_PASS;
-  const smtpFrom = process.env.SMTP_FROM ?? smtpUser ?? "noreply@betpulse.com";
-
   if (smtpHost && smtpUser && smtpPass) {
     const transporter = nodemailer.createTransport({
       host: smtpHost,
@@ -67,16 +87,12 @@ async function sendOtpEmail(email: string, otp: string): Promise<void> {
       secure: process.env.SMTP_SECURE === "true",
       auth: { user: smtpUser, pass: smtpPass },
     });
-    await transporter.sendMail({
-      from: `BetPulse <${smtpFrom}>`,
-      to: email,
-      subject: `${otp} is your BetPulse verification code`,
-      html: htmlBody,
-    });
+    await transporter.sendMail({ from: fromAddress, to: email, subject, html });
+    console.log(`[Email] Sent via SMTP to ${email}`);
     return;
   }
 
-  // No SMTP configured — throw so caller can use dev fallback
+  // No email service configured
   throw new Error("No email service configured");
 }
 
