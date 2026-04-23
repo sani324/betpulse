@@ -285,7 +285,7 @@ export default function DiceRollGame() {
             }, 950);
           }, 200);
         } catch {}
-      }, 1500);
+      }, 500);
     } catch {
       clearTimers();
       toast({ title: "Network Error", variant: "destructive" });

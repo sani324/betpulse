@@ -249,7 +249,7 @@ export default function RangGame() {
             else playLose();
           }, trickStart + data.tricks.length * 600 + 400);
         } catch {}
-      }, 1500);
+      }, 500);
     } catch { toast({ title: "Network Error", variant: "destructive" }); setPhase("betting"); }
   };
 

@@ -433,7 +433,7 @@ export default function DragonTigerGame() {
             setPhase("result");
           }, 2100);
         } catch { /* keep polling */ }
-      }, 1500);
+      }, 500);
     } catch {
       toast({ title: "Network Error", variant: "destructive" });
       setPhase("betting"); setIsDealing(false);

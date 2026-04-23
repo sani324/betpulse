@@ -112,7 +112,7 @@ export default function GenericCasinoGame({ config }: Props) {
           queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
         }
       } catch (_) {}
-    }, 2000);
+    }, 500);
   }, [queryClient, config.slug]);
 
   const placeBet = async () => {

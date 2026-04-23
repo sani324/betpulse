@@ -825,7 +825,7 @@ router.post("/admin/casino-rounds/:game/settle", requireAdmin, async (req, res):
    When OFF, only manual settlement works.
 ────────────────────────────────────────────────────────────── */
 let autoSettleModeOn = false;
-let autoSettleIntervalMs = 10_000; // 10 seconds default
+let autoSettleIntervalMs = 3_000; // 3 seconds default
 let autoSettleTimer: ReturnType<typeof setInterval> | null = null;
 
 async function runAutoSettleAll() {

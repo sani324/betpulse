@@ -288,7 +288,7 @@ export default function CodePieceGame() {
             else playLose();
           }, 800);
         } catch {}
-      }, 1500);
+      }, 500);
     } catch { toast({ title: "Network Error", variant: "destructive" }); setPhase("betting"); setRevealing(false); }
   };
 

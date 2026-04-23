@@ -205,7 +205,7 @@ export default function AndarBaharGame() {
             if (won) playWin(); else playLose();
           }, totalTime);
         } catch {}
-      }, 1500);
+      }, 500);
     } catch {
       toast({ title: "Network Error", variant: "destructive" });
       setPhase("betting");

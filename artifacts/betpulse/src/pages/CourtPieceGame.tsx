@@ -246,7 +246,7 @@ export default function CourtPieceGame() {
             else playLose();
           }, 400 + 4 * 350 + 180 + 600);
         } catch {}
-      }, 1500);
+      }, 500);
     } catch { toast({ title: "Network Error", variant: "destructive" }); setPhase("betting"); }
   };
 

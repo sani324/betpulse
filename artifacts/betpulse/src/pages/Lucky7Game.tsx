@@ -80,7 +80,7 @@ export default function Lucky7Game() {
           queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
         }
       } catch (_) {}
-    }, 2000);
+    }, 500);
   }, [queryClient]);
 
   const placeBet = async () => {
