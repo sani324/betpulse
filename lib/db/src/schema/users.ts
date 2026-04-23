@@ -13,6 +13,8 @@ export const usersTable = pgTable("users", {
   totalDeposited: numeric("total_deposited", { precision: 12, scale: 2 }).notNull().default("1000.00"),
   totalWagered: numeric("total_wagered", { precision: 12, scale: 2 }).notNull().default("0.00"),
   totalWon: numeric("total_won", { precision: 12, scale: 2 }).notNull().default("0.00"),
+  phone: text("phone"),
+  phoneVerified: boolean("phone_verified").notNull().default(false),
   isBlocked: boolean("is_blocked").notNull().default(false),
   isFlagged: boolean("is_flagged").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
