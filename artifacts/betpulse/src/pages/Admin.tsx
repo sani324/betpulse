@@ -2102,6 +2102,27 @@ export default function Admin() {
                     const totalBets = round?.totalBets ?? 0;
                     const isAutoSettlingThis = autoSettling === cfg.game;
                     const lastAuto = lastAutoResult[cfg.game];
+
+                    // Prediction for auto-mode display (mirrors backend logic)
+                    const aCounts: Record<string, number> = {};
+                    const aStaked: Record<string, number> = {};
+                    for (const s of cfg.sides) { aCounts[s.key] = sideMap[s.key]?.betCount ?? 0; aStaked[s.key] = sideMap[s.key]?.totalStaked ?? 0; }
+                    const aMinCount = Math.min(...cfg.sides.map(s => aCounts[s.key]));
+                    const aCandidates = cfg.sides.filter(s => aCounts[s.key] === aMinCount);
+                    const aMinStaked = Math.min(...aCandidates.map(s => aStaked[s.key]));
+                    const aFinal = aCandidates.filter(s => aStaked[s.key] === aMinStaked);
+                    const aWillWin = new Set(aFinal.map(s => s.key));
+                    const aWillLose = cfg.sides.filter(s => !aWillWin.has(s.key));
+                    const aLostPool = aWillLose.reduce((a, s) => a + aStaked[s.key], 0);
+                    const aWinLabels = aFinal.map(s => s.label.replace(/[^\w\s]/g,'').trim()).join(" or ");
+                    const aReason = totalBets === 0
+                      ? "No bets yet — auto-settle will skip this round"
+                      : aMinCount === 0
+                        ? `${aWinLabels} has 0 bets → nobody wins → house keeps all ₹${aLostPool.toFixed(0)}`
+                        : aFinal.length > 1
+                          ? `All options tied at ${aMinCount} bet(s) — randomly picks one of: ${aWinLabels}`
+                          : `${aWinLabels} has fewest bets (${aMinCount}) → house keeps ₹${aLostPool.toFixed(0)} from ${aWillLose.length} losing side(s)`;
+
                     return (
                       <div key={cfg.game} className={`border rounded-xl p-3 transition-all duration-200 ${autoMode ? "border-purple-500/20 bg-purple-950/10" : "border-border/40 bg-card/20"}`}>
                         <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
@@ -2133,40 +2154,80 @@ export default function Admin() {
                           </div>
                         )}
 
-                        {/* ── AUTO MODE ON: show bet summary only ── */}
+                        {/* ── AUTO MODE ON: prediction view ── */}
                         {autoMode ? (
                           <div>
-                            <div className="text-[10px] font-bold uppercase tracking-wider text-purple-400/60 mb-1.5">📊 Current Bets (auto-settle handles this):</div>
+                            {/* Prediction banner */}
+                            {totalBets > 0 ? (
+                              <div className="mb-3 rounded-xl p-3 border border-purple-500/40 bg-purple-950/40">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-purple-400">🤖 Auto will pick:</span>
+                                  <div className="flex gap-1 flex-wrap">
+                                    {aFinal.map(s => (
+                                      <span key={s.key} className={`px-2 py-0.5 rounded-full text-xs font-black ${s.color.split(" ")[0]} text-white`}>
+                                        {s.label}
+                                      </span>
+                                    ))}
+                                    {aFinal.length > 1 && <span className="text-[10px] text-purple-400/70 self-center">(random)</span>}
+                                  </div>
+                                </div>
+                                <div className="text-[11px] text-purple-300/70 leading-relaxed">{aReason}</div>
+                                {aMinCount === 0 && (
+                                  <div className="mt-1.5 text-[11px] font-bold text-emerald-400">
+                                    💰 House profit: ₹{aLostPool.toFixed(0)} — nobody bet on {aWinLabels}, everyone loses
+                                  </div>
+                                )}
+                                {aMinCount > 0 && aLostPool > 0 && (
+                                  <div className="mt-1.5 text-[11px] font-bold text-emerald-400">
+                                    💰 House profit: ₹{aLostPool.toFixed(0)} from {aWillLose.length} losing side{aWillLose.length > 1 ? "s" : ""}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="mb-3 rounded-lg px-3 py-2 border border-purple-500/20 text-[11px] text-purple-400/50 italic text-center">
+                                No bets yet — waiting for players. Auto-settle will skip empty rounds.
+                              </div>
+                            )}
+
+                            {/* Bet grid */}
                             <div className={`grid gap-2 ${cfg.sides.length > 6 ? "grid-cols-3 md:grid-cols-6" : cfg.sides.length === 2 ? "grid-cols-2" : "grid-cols-1 md:grid-cols-3"}`}>
                               {cfg.sides.map(s => {
-                                const data = sideMap[s.key];
-                                const count = data?.betCount ?? 0;
-                                const staked = data?.totalStaked ?? 0;
+                                const count = aCounts[s.key];
+                                const sk = aStaked[s.key];
                                 const totalStakedAll = round?.totalStaked ?? 0;
-                                const pct = totalStakedAll > 0 ? Math.round((staked / totalStakedAll) * 100) : 0;
-                                const isFewest = totalBets > 0 && count === Math.min(...cfg.sides.map(ss => sideMap[ss.key]?.betCount ?? 0));
+                                const pct = totalStakedAll > 0 ? Math.round((sk / totalStakedAll) * 100) : 0;
+                                const isWinner = aWillWin.has(s.key) && totalBets > 0;
+                                const isLoser = !isWinner && totalBets > 0 && count > 0;
                                 return (
-                                  <div key={s.key} className={`border rounded-lg p-2 transition-all ${isFewest && count === Math.min(...cfg.sides.map(ss => sideMap[ss.key]?.betCount ?? 0)) ? "border-purple-500/50 bg-purple-950/30" : "border-border/20 bg-card/20"}`}>
-                                    <div className="flex items-baseline justify-between mb-1">
+                                  <div key={s.key} className={`border rounded-lg p-2 transition-all ${
+                                    isWinner ? "border-purple-400/60 bg-purple-950/40 ring-1 ring-purple-500/30" :
+                                    isLoser  ? "border-red-500/20 bg-red-950/10 opacity-70" :
+                                    "border-border/20 bg-card/20"
+                                  }`}>
+                                    <div className="flex items-center justify-between mb-1">
                                       <div className={`font-semibold text-sm ${s.text}`}>{s.label}</div>
-                                      <div className="text-[11px] tabular-nums font-bold flex items-center gap-1">
-                                        {count} bets
-                                        {isFewest && totalBets > 0 && <span className="text-[9px] text-purple-300 font-black">🤖WIN</span>}
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-[11px] tabular-nums font-bold">{count}</span>
+                                        {isWinner && <span className="text-[9px] bg-purple-600 text-white px-1 rounded font-black">WIN</span>}
+                                        {isLoser  && <span className="text-[9px] bg-red-800/60 text-red-300 px-1 rounded font-black">LOSE</span>}
                                       </div>
                                     </div>
                                     {count > 0 && (
                                       <>
-                                        <div className="text-[10px] text-muted-foreground mb-1">₹{staked.toFixed(0)} · {pct}%</div>
-                                        <div className="h-1 rounded-full bg-border/40">
-                                          <div className="h-full rounded-full bg-purple-400/60" style={{ width: `${pct}%` }} />
+                                        <div className="text-[10px] text-muted-foreground mb-1">₹{sk.toFixed(0)} · {pct}%</div>
+                                        <div className="h-1.5 rounded-full bg-border/40">
+                                          <div className={`h-full rounded-full ${isWinner ? "bg-purple-400" : "bg-red-400/50"}`} style={{ width: `${pct}%` }} />
                                         </div>
                                       </>
                                     )}
-                                    {data?.users && data.users.length > 0 && (
+                                    {count === 0 && totalBets > 0 && isWinner && (
+                                      <div className="text-[10px] text-purple-300/70 mt-1">0 bets → will win</div>
+                                    )}
+                                    {sideMap[s.key]?.users && sideMap[s.key]!.users.length > 0 && (
                                       <div className="text-[10px] text-muted-foreground mt-1 max-h-10 overflow-y-auto">
-                                        {data.users.map((u, i) => (
+                                        {sideMap[s.key]!.users.map((u, i) => (
                                           <div key={i} className="flex justify-between gap-1 truncate">
-                                            <span className="truncate">{u.username}</span>
+                                            <span className={`truncate ${isLoser ? "line-through opacity-50" : ""}`}>{u.username}</span>
                                             <span className="tabular-nums">₹{u.stake}</span>
                                           </div>
                                         ))}
@@ -2176,7 +2237,6 @@ export default function Admin() {
                                 );
                               })}
                             </div>
-                            {totalBets === 0 && <div className="text-[11px] text-purple-400/50 mt-2 text-center italic">No bets yet — auto-settle will skip this round.</div>}
                           </div>
                         ) : (
                           /* ── MANUAL MODE: full settle buttons ── */
