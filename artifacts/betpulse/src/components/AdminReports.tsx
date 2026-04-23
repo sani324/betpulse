@@ -12,9 +12,9 @@ type Period = "daily" | "weekly" | "monthly";
 interface ReportSummary {
   total_bets: number;
   total_staked: string;
-  total_paid_out: string;
-  player_losses: string;
-  house_earnings: string;
+  player_gross_losses: string;   // sum of all losing stakes (what losers forfeited)
+  player_net_winnings: string;   // payout − stake for winning bets (actual profit to winners)
+  house_earnings: string;        // player_gross_losses − player_net_winnings
   winning_bets: number;
   losing_bets: number;
   unique_players: number;
@@ -34,8 +34,8 @@ interface PlayerRow {
   username: string;
   totalBets: number;
   totalStaked: string;
-  totalWon: string;
   totalLost: string;
+  netWinnings: string;
   netProfit?: string;
   netLoss?: string;
 }
@@ -52,7 +52,14 @@ interface ReportData {
 function fmt(val: string | number | undefined) {
   const n = parseFloat(String(val ?? 0));
   if (isNaN(n)) return "₨ 0";
-  return "₨ " + n.toLocaleString("en-PK", { maximumFractionDigits: 0 });
+  return "₨ " + Math.abs(n).toLocaleString("en-PK", { maximumFractionDigits: 0 });
+}
+
+function fmtSigned(val: string | number | undefined) {
+  const n = parseFloat(String(val ?? 0));
+  if (isNaN(n)) return "₨ 0";
+  const prefix = n >= 0 ? "+" : "−";
+  return prefix + " ₨ " + Math.abs(n).toLocaleString("en-PK", { maximumFractionDigits: 0 });
 }
 
 function pct(won: number, total: number) {
@@ -60,7 +67,7 @@ function pct(won: number, total: number) {
   return ((won / total) * 100).toFixed(1) + "%";
 }
 
-function houseEdge(staked: string, paid: string) {
+function houseEdgePct(staked: string, paid: string) {
   const s = parseFloat(staked);
   const p = parseFloat(paid);
   if (!s) return "0%";
@@ -76,8 +83,10 @@ export default function AdminReports() {
     setLoading(true);
     try {
       const r = await fetch(`/api/admin/reports?period=${p}`, { credentials: "include" });
-      const json = await r.json() as ReportData;
-      setData(json);
+      if (r.ok) {
+        const json = await r.json() as ReportData;
+        setData(json);
+      }
     } catch {
       // ignore
     } finally {
@@ -88,15 +97,21 @@ export default function AdminReports() {
   useEffect(() => { load(period); }, [period, load]);
 
   const periods: { key: Period; label: string; sub: string }[] = [
-    { key: "daily",   label: "Today",        sub: "Last 24 hours"  },
-    { key: "weekly",  label: "This Week",    sub: "Last 7 days"    },
-    { key: "monthly", label: "This Month",   sub: "Last 30 days"   },
+    { key: "daily",   label: "Today",      sub: "Last 24 hours" },
+    { key: "weekly",  label: "This Week",  sub: "Last 7 days"   },
+    { key: "monthly", label: "This Month", sub: "Last 30 days"  },
   ];
 
   const s = data?.summary;
 
+  // For reconciliation check: house_earnings = player_gross_losses - player_net_winnings
+  const houseCheck = parseFloat(s?.player_gross_losses ?? "0") - parseFloat(s?.player_net_winnings ?? "0");
+  const houseActual = parseFloat(s?.house_earnings ?? "0");
+  const reconciled = Math.abs(houseCheck - houseActual) < 1; // within ₨1 rounding
+
   return (
     <div className="space-y-6">
+
       {/* Period Selector */}
       <div className="flex gap-3">
         {periods.map(p => (
@@ -122,6 +137,7 @@ export default function AdminReports() {
         </div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
           {/* House Earnings */}
           <Card className="bg-gradient-to-br from-emerald-900/60 to-[#0d1f14] border-emerald-700/40 rounded-xl">
             <CardContent className="p-4">
@@ -131,41 +147,43 @@ export default function AdminReports() {
                 </div>
                 <span className="text-xs font-semibold text-emerald-300/70 uppercase tracking-wider">House Earnings</span>
               </div>
-              <div className="text-2xl font-black text-emerald-300">{fmt(s?.house_earnings)}</div>
+              <div className={`text-2xl font-black ${houseActual >= 0 ? "text-emerald-300" : "text-red-300"}`}>
+                {houseActual >= 0 ? "" : "−"}{fmt(s?.house_earnings)}
+              </div>
               <div className="text-xs text-emerald-400/60 mt-1">
-                Edge: {houseEdge(s?.total_staked ?? "0", s?.total_paid_out ?? "0")}
+                Net profit after all payouts
               </div>
             </CardContent>
           </Card>
 
-          {/* Player Losses */}
+          {/* Player Gross Losses */}
           <Card className="bg-gradient-to-br from-red-900/50 to-[#0d1f14] border-red-700/40 rounded-xl">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="p-1.5 rounded-lg bg-red-500/20">
                   <TrendingDown className="h-4 w-4 text-red-400" />
                 </div>
-                <span className="text-xs font-semibold text-red-300/70 uppercase tracking-wider">Players Lost</span>
+                <span className="text-xs font-semibold text-red-300/70 uppercase tracking-wider">Player Losses</span>
               </div>
-              <div className="text-2xl font-black text-red-300">{fmt(s?.player_losses)}</div>
+              <div className="text-2xl font-black text-red-300">{fmt(s?.player_gross_losses)}</div>
               <div className="text-xs text-red-400/60 mt-1">
-                {s?.losing_bets ?? 0} losing bets
+                Stakes forfeited on {s?.losing_bets ?? 0} lost bets
               </div>
             </CardContent>
           </Card>
 
-          {/* Player Winnings */}
+          {/* Player Net Winnings */}
           <Card className="bg-gradient-to-br from-yellow-900/50 to-[#0d1f14] border-yellow-700/40 rounded-xl">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="p-1.5 rounded-lg bg-yellow-500/20">
                   <Trophy className="h-4 w-4 text-yellow-400" />
                 </div>
-                <span className="text-xs font-semibold text-yellow-300/70 uppercase tracking-wider">Players Won</span>
+                <span className="text-xs font-semibold text-yellow-300/70 uppercase tracking-wider">Player Winnings</span>
               </div>
-              <div className="text-2xl font-black text-yellow-300">{fmt(s?.total_paid_out)}</div>
+              <div className="text-2xl font-black text-yellow-300">{fmt(s?.player_net_winnings)}</div>
               <div className="text-xs text-yellow-400/60 mt-1">
-                {s?.winning_bets ?? 0} winning bets
+                Net profit on {s?.winning_bets ?? 0} winning bets
               </div>
             </CardContent>
           </Card>
@@ -188,19 +206,33 @@ export default function AdminReports() {
         </div>
       )}
 
-      {/* Total Staked Banner */}
+      {/* Reconciliation Banner */}
       {!loading && s && (
-        <div className="rounded-xl bg-[#0d1f14] border border-[#1a3a22] px-5 py-3 flex items-center justify-between">
-          <div className="text-sm text-white/50">Total Amount Staked</div>
-          <div className="text-xl font-black text-white">{fmt(s.total_staked)}</div>
-          <div className="flex gap-4 text-xs text-white/40">
-            <span>Win rate: {pct(s.winning_bets, s.total_bets)}</span>
-            <span>Loss rate: {pct(s.losing_bets, s.total_bets)}</span>
+        <div className="rounded-xl bg-[#0d1f14] border border-[#1a3a22] px-5 py-3">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+            <span className="text-white/40 text-xs uppercase tracking-wider font-semibold">Formula</span>
+            <span className="font-mono text-emerald-300 font-bold">{fmt(s.house_earnings)}</span>
+            <span className="text-white/30">=</span>
+            <span className="text-red-300 font-semibold">{fmt(s.player_gross_losses)}</span>
+            <span className="text-white/30 font-bold">−</span>
+            <span className="text-yellow-300 font-semibold">{fmt(s.player_net_winnings)}</span>
+            <span className="text-white/20 mx-1">|</span>
+            <span className="text-white/40 text-xs">Total wagered:</span>
+            <span className="font-bold text-white">{fmt(s.total_staked)}</span>
+            <span className="text-white/20 mx-1">|</span>
+            <span className="text-white/40 text-xs">Win rate:</span>
+            <span className="text-white/70">{pct(s.winning_bets, s.total_bets)}</span>
+            {reconciled && (
+              <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-700/40 text-[10px] ml-auto" variant="outline">
+                ✓ Verified
+              </Badge>
+            )}
           </div>
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
         {/* Per-Game Breakdown */}
         <Card className="bg-[#0d1f14] border-[#1a3a22] rounded-xl">
           <CardHeader className="pb-3">
@@ -220,7 +252,7 @@ export default function AdminReports() {
                   <TableRow className="border-[#1a3a22] hover:bg-transparent">
                     <TableHead className="text-white/40 text-xs">Game</TableHead>
                     <TableHead className="text-white/40 text-xs text-right">Bets</TableHead>
-                    <TableHead className="text-white/40 text-xs text-right">Staked</TableHead>
+                    <TableHead className="text-white/40 text-xs text-right">Wagered</TableHead>
                     <TableHead className="text-white/40 text-xs text-right">House Profit</TableHead>
                     <TableHead className="text-white/40 text-xs text-right">Edge</TableHead>
                   </TableRow>
@@ -235,7 +267,7 @@ export default function AdminReports() {
                         <TableCell className="text-right text-white/60 text-xs">{fmt(g.totalStaked)}</TableCell>
                         <TableCell className="text-right">
                           <span className={`font-bold text-sm ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                            {profit >= 0 ? "+" : ""}{fmt(g.houseEarnings)}
+                            {profit >= 0 ? "+" : "−"}{fmt(g.houseEarnings)}
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
@@ -243,7 +275,7 @@ export default function AdminReports() {
                             className={`text-[10px] font-bold ${profit >= 0 ? "bg-emerald-500/20 text-emerald-300 border-emerald-700/40" : "bg-red-500/20 text-red-300 border-red-700/40"}`}
                             variant="outline"
                           >
-                            {houseEdge(g.totalStaked, g.totalPaidOut)}
+                            {houseEdgePct(g.totalStaked, g.totalPaidOut)}
                           </Badge>
                         </TableCell>
                       </TableRow>
@@ -255,7 +287,7 @@ export default function AdminReports() {
           </CardContent>
         </Card>
 
-        {/* Timeline (simple bar chart) */}
+        {/* Timeline Chart */}
         <Card className="bg-[#0d1f14] border-[#1a3a22] rounded-xl">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -269,12 +301,13 @@ export default function AdminReports() {
             ) : !Array.isArray(data?.timeline) || !data.timeline.length ? (
               <div className="text-center py-8 text-white/30 text-sm">No timeline data</div>
             ) : (() => {
-              const max = Math.max(...(data.timeline as { houseEarnings: string }[]).map(t => parseFloat(t.houseEarnings)));
+              const vals = data.timeline.map(t => parseFloat(t.houseEarnings));
+              const max = Math.max(...vals.map(Math.abs), 1);
               return (
                 <div className="space-y-1.5">
                   {data.timeline.map((t, i) => {
                     const val = parseFloat(t.houseEarnings);
-                    const w = max > 0 ? Math.max((val / max) * 100, 2) : 2;
+                    const w = Math.max((Math.abs(val) / max) * 100, 2);
                     const label = period === "daily"
                       ? new Date(t.bucket).toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" })
                       : new Date(t.bucket).toLocaleDateString("en-PK", { weekday: "short", day: "numeric" });
@@ -287,8 +320,8 @@ export default function AdminReports() {
                             style={{ width: `${w}%` }}
                           />
                         </div>
-                        <span className={`text-[10px] font-bold w-20 text-right shrink-0 ${val >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                          {val >= 0 ? "+" : ""}{fmt(val)}
+                        <span className={`text-[10px] font-bold w-24 text-right shrink-0 ${val >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                          {fmtSigned(val)}
                         </span>
                       </div>
                     );
@@ -302,13 +335,14 @@ export default function AdminReports() {
 
       {/* Top Winners & Losers */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
         {/* Top Winners */}
         <Card className="bg-[#0d1f14] border-[#1a3a22] rounded-xl">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <ArrowUpRight className="h-4 w-4 text-yellow-400" />
               Top 10 Winners
-              <span className="text-xs text-white/30 font-normal ml-1">(by net profit)</span>
+              <span className="text-xs text-white/30 font-normal ml-1">(net profit)</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -323,24 +357,27 @@ export default function AdminReports() {
                     <TableHead className="text-white/40 text-xs w-6">#</TableHead>
                     <TableHead className="text-white/40 text-xs">Player</TableHead>
                     <TableHead className="text-white/40 text-xs text-right">Bets</TableHead>
-                    <TableHead className="text-white/40 text-xs text-right">Staked</TableHead>
-                    <TableHead className="text-white/40 text-xs text-right">Net Won</TableHead>
+                    <TableHead className="text-white/40 text-xs text-right">Wagered</TableHead>
+                    <TableHead className="text-white/40 text-xs text-right">Net P&amp;L</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.topWinners.map((p, i) => (
-                    <TableRow key={i} className="border-[#1a3a22] hover:bg-white/5">
-                      <TableCell className="text-white/30 text-xs py-2.5">{i + 1}</TableCell>
-                      <TableCell className="font-bold text-white text-sm py-2.5">{p.username}</TableCell>
-                      <TableCell className="text-right text-white/50 text-xs">{p.totalBets}</TableCell>
-                      <TableCell className="text-right text-white/50 text-xs">{fmt(p.totalStaked)}</TableCell>
-                      <TableCell className="text-right">
-                        <span className={`font-bold text-sm ${parseFloat(p.netProfit ?? "0") >= 0 ? "text-yellow-400" : "text-red-400"}`}>
-                          {parseFloat(p.netProfit ?? "0") >= 0 ? "+" : ""}{fmt(p.netProfit)}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {data.topWinners.map((p, i) => {
+                    const net = parseFloat(p.netProfit ?? "0");
+                    return (
+                      <TableRow key={i} className="border-[#1a3a22] hover:bg-white/5">
+                        <TableCell className="text-white/30 text-xs py-2.5">{i + 1}</TableCell>
+                        <TableCell className="font-bold text-white text-sm py-2.5">{p.username}</TableCell>
+                        <TableCell className="text-right text-white/50 text-xs">{p.totalBets}</TableCell>
+                        <TableCell className="text-right text-white/50 text-xs">{fmt(p.totalStaked)}</TableCell>
+                        <TableCell className="text-right">
+                          <span className={`font-bold text-sm ${net >= 0 ? "text-yellow-400" : "text-red-400"}`}>
+                            {fmtSigned(net)}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
@@ -353,7 +390,7 @@ export default function AdminReports() {
             <CardTitle className="flex items-center gap-2 text-base">
               <ArrowDownRight className="h-4 w-4 text-red-400" />
               Top 10 Losers
-              <span className="text-xs text-white/30 font-normal ml-1">(by total loss)</span>
+              <span className="text-xs text-white/30 font-normal ml-1">(net loss)</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -368,22 +405,25 @@ export default function AdminReports() {
                     <TableHead className="text-white/40 text-xs w-6">#</TableHead>
                     <TableHead className="text-white/40 text-xs">Player</TableHead>
                     <TableHead className="text-white/40 text-xs text-right">Bets</TableHead>
-                    <TableHead className="text-white/40 text-xs text-right">Staked</TableHead>
+                    <TableHead className="text-white/40 text-xs text-right">Wagered</TableHead>
                     <TableHead className="text-white/40 text-xs text-right">Net Loss</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.topLosers.map((p, i) => (
-                    <TableRow key={i} className="border-[#1a3a22] hover:bg-white/5">
-                      <TableCell className="text-white/30 text-xs py-2.5">{i + 1}</TableCell>
-                      <TableCell className="font-bold text-white text-sm py-2.5">{p.username}</TableCell>
-                      <TableCell className="text-right text-white/50 text-xs">{p.totalBets}</TableCell>
-                      <TableCell className="text-right text-white/50 text-xs">{fmt(p.totalStaked)}</TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-bold text-sm text-red-400">-{fmt(p.netLoss)}</span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {data.topLosers.map((p, i) => {
+                    const net = parseFloat(p.netLoss ?? "0");
+                    return (
+                      <TableRow key={i} className="border-[#1a3a22] hover:bg-white/5">
+                        <TableCell className="text-white/30 text-xs py-2.5">{i + 1}</TableCell>
+                        <TableCell className="font-bold text-white text-sm py-2.5">{p.username}</TableCell>
+                        <TableCell className="text-right text-white/50 text-xs">{p.totalBets}</TableCell>
+                        <TableCell className="text-right text-white/50 text-xs">{fmt(p.totalStaked)}</TableCell>
+                        <TableCell className="text-right">
+                          <span className="font-bold text-sm text-red-400">−{fmt(net)}</span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
