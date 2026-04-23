@@ -63,7 +63,8 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ShieldAlert, TrendingUp, Users, Coins, Activity, Pencil, Trash2, UserCog, ArrowUpFromLine, ArrowDownToLine, CheckCircle, XCircle, Clock, AlertCircle, Flag, ShieldX, ShieldCheck, KeyRound, CalendarDays, PlusCircle, BarChart3, Receipt, CreditCard, Gift, Gamepad2 } from "lucide-react";
+import { ShieldAlert, TrendingUp, Users, Coins, Activity, Pencil, Trash2, UserCog, ArrowUpFromLine, ArrowDownToLine, CheckCircle, XCircle, Clock, AlertCircle, Flag, ShieldX, ShieldCheck, KeyRound, CalendarDays, PlusCircle, BarChart3, Receipt, CreditCard, Gift, Gamepad2, FileBarChart } from "lucide-react";
+import AdminReports from "@/components/AdminReports";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const createEventSchema = z.object({
@@ -860,6 +861,10 @@ export default function Admin() {
 
             {/* ANALYTICS group */}
             <p className="text-[9px] font-black uppercase tracking-widest text-white/30 px-1 pt-2 pb-0.5">Analytics</p>
+            <TabsTrigger value="reports" className="w-full justify-start gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold bg-orange-900/50 text-orange-100 border border-orange-800/40 data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:border-orange-400 data-[state=active]:shadow-lg data-[state=active]:shadow-orange-900/50 hover:bg-orange-800/60 transition-all shadow-none">
+              <FileBarChart className="h-4 w-4 shrink-0" />
+              Reports
+            </TabsTrigger>
             <TabsTrigger value="liability" className="w-full justify-start gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold bg-orange-900/50 text-orange-100 border border-orange-800/40 data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:border-orange-400 data-[state=active]:shadow-lg data-[state=active]:shadow-orange-900/50 hover:bg-orange-800/60 transition-all shadow-none">
               <BarChart3 className="h-4 w-4 shrink-0" />
               Liability
@@ -920,6 +925,15 @@ export default function Admin() {
 
           {/* ── Content Area ── */}
           <div className="flex-1 min-w-0">
+
+        {/* ── Reports ── */}
+        <TabsContent value="reports" className="space-y-4">
+          <div>
+            <h2 className="text-xl font-black text-white mb-1">Platform Reports</h2>
+            <p className="text-sm text-white/40">Daily, weekly and monthly earnings — house profits, player wins and losses</p>
+          </div>
+          <AdminReports />
+        </TabsContent>
 
         <TabsContent value="events" className="space-y-4">
           <Card className="border-border/50">

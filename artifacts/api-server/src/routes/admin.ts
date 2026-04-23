@@ -1357,6 +1357,108 @@ router.get("/admin/platform-settings/:key", requireAdmin, async (req, res): Prom
   res.json(result.rows[0]);
 });
 
+// ─── GET /admin/reports ───────────────────────────────────────────────────────
+router.get("/admin/reports", requireAdmin, async (req, res): Promise<void> => {
+  const period = String(req.query.period ?? "daily");
+  const intervalMap: Record<string, string> = { daily: "1 day", weekly: "7 days", monthly: "30 days" };
+  const interval = intervalMap[period] ?? "1 day";
+
+  // Overall summary
+  const summaryRes = await pool.query(`
+    SELECT
+      COUNT(*)::int                                                                              AS total_bets,
+      COALESCE(SUM(stake), 0)::numeric                                                           AS total_staked,
+      COALESCE(SUM(CASE WHEN status='won' THEN payout ELSE 0 END), 0)::numeric                   AS total_paid_out,
+      COALESCE(SUM(CASE WHEN status='lost' THEN stake ELSE 0 END), 0)::numeric                   AS player_losses,
+      COALESCE(SUM(stake) - SUM(CASE WHEN status='won' THEN payout ELSE 0 END), 0)::numeric      AS house_earnings,
+      COUNT(CASE WHEN status='won' THEN 1 END)::int                                              AS winning_bets,
+      COUNT(CASE WHEN status='lost' THEN 1 END)::int                                             AS losing_bets,
+      COUNT(DISTINCT user_id)::int                                                               AS unique_players
+    FROM casino_bets
+    WHERE status != 'pending'
+      AND created_at >= NOW() - INTERVAL '${interval}'
+  `);
+
+  // Per-game breakdown
+  const gameRes = await pool.query(`
+    SELECT
+      game_name                                                                                   AS "gameName",
+      COUNT(*)::int                                                                              AS "totalBets",
+      COALESCE(SUM(stake), 0)::numeric                                                           AS "totalStaked",
+      COALESCE(SUM(CASE WHEN status='won' THEN payout ELSE 0 END), 0)::numeric                   AS "totalPaidOut",
+      COALESCE(SUM(stake) - SUM(CASE WHEN status='won' THEN payout ELSE 0 END), 0)::numeric      AS "houseEarnings",
+      COUNT(CASE WHEN status='won' THEN 1 END)::int                                              AS "winningBets",
+      COUNT(CASE WHEN status='lost' THEN 1 END)::int                                             AS "losingBets"
+    FROM casino_bets
+    WHERE status != 'pending'
+      AND created_at >= NOW() - INTERVAL '${interval}'
+    GROUP BY game_name
+    ORDER BY "houseEarnings" DESC
+  `);
+
+  // Top 10 winners (players with highest net profit)
+  const topWinnersRes = await pool.query(`
+    SELECT
+      u.username,
+      COUNT(cb.id)::int                                                                          AS "totalBets",
+      COALESCE(SUM(cb.stake), 0)::numeric                                                        AS "totalStaked",
+      COALESCE(SUM(CASE WHEN cb.status='won' THEN cb.payout ELSE 0 END), 0)::numeric             AS "totalWon",
+      COALESCE(SUM(CASE WHEN cb.status='lost' THEN cb.stake ELSE 0 END), 0)::numeric             AS "totalLost",
+      COALESCE(SUM(CASE WHEN cb.status='won' THEN cb.payout ELSE 0 END) - SUM(cb.stake), 0)::numeric AS "netProfit"
+    FROM casino_bets cb
+    JOIN users u ON cb.user_id = u.id
+    WHERE cb.status != 'pending'
+      AND cb.created_at >= NOW() - INTERVAL '${interval}'
+    GROUP BY u.id, u.username
+    ORDER BY "netProfit" DESC
+    LIMIT 10
+  `);
+
+  // Top 10 losers (players with highest net loss)
+  const topLosersRes = await pool.query(`
+    SELECT
+      u.username,
+      COUNT(cb.id)::int                                                                          AS "totalBets",
+      COALESCE(SUM(cb.stake), 0)::numeric                                                        AS "totalStaked",
+      COALESCE(SUM(CASE WHEN cb.status='won' THEN cb.payout ELSE 0 END), 0)::numeric             AS "totalWon",
+      COALESCE(SUM(CASE WHEN cb.status='lost' THEN cb.stake ELSE 0 END), 0)::numeric             AS "totalLost",
+      COALESCE(SUM(cb.stake) - SUM(CASE WHEN cb.status='won' THEN cb.payout ELSE 0 END), 0)::numeric AS "netLoss"
+    FROM casino_bets cb
+    JOIN users u ON cb.user_id = u.id
+    WHERE cb.status != 'pending'
+      AND cb.created_at >= NOW() - INTERVAL '${interval}'
+    GROUP BY u.id, u.username
+    ORDER BY "netLoss" DESC
+    LIMIT 10
+  `);
+
+  // Day-by-day breakdown (for chart)
+  const buckets = period === "daily" ? 24 : period === "weekly" ? 7 : 30;
+  const bucketInterval = period === "daily" ? "1 hour" : "1 day";
+  const dailyRes = await pool.query(`
+    SELECT
+      date_trunc('${period === "daily" ? "hour" : "day"}', created_at)  AS "bucket",
+      COALESCE(SUM(stake), 0)::numeric                                   AS "staked",
+      COALESCE(SUM(CASE WHEN status='won' THEN payout ELSE 0 END), 0)::numeric AS "paidOut",
+      COALESCE(SUM(stake) - SUM(CASE WHEN status='won' THEN payout ELSE 0 END), 0)::numeric AS "houseEarnings",
+      COUNT(*)::int                                                      AS "bets"
+    FROM casino_bets
+    WHERE status != 'pending'
+      AND created_at >= NOW() - INTERVAL '${interval}'
+    GROUP BY 1
+    ORDER BY 1
+  `);
+
+  res.json({
+    period,
+    summary: summaryRes.rows[0] ?? {},
+    gameBreakdown: gameRes.rows,
+    topWinners: topWinnersRes.rows,
+    topLosers: topLosersRes.rows,
+    timeline: dailyRes.rows,
+  });
+});
+
 // Get all platform settings
 router.get("/admin/platform-settings", requireAdmin, async (_req, res): Promise<void> => {
   const result = await pool.query("SELECT key, value FROM platform_settings");
