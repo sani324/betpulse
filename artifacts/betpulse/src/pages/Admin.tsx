@@ -63,7 +63,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ShieldAlert, TrendingUp, Users, Coins, Activity, Pencil, Trash2, UserCog, ArrowUpFromLine, ArrowDownToLine, CheckCircle, XCircle, Clock, AlertCircle, Flag, ShieldX, ShieldCheck, KeyRound } from "lucide-react";
+import { ShieldAlert, TrendingUp, Users, Coins, Activity, Pencil, Trash2, UserCog, ArrowUpFromLine, ArrowDownToLine, CheckCircle, XCircle, Clock, AlertCircle, Flag, ShieldX, ShieldCheck, KeyRound, CalendarDays, PlusCircle, BarChart3, Receipt, CreditCard, Gift, Gamepad2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const createEventSchema = z.object({
@@ -840,38 +840,105 @@ export default function Admin() {
         if (v === "paymentsettings") loadPaymentSettings();
         if (v === "signupbonus" && !signupBonusLoaded) loadSignupBonus();
       }}>
-        <TabsList className="bg-card/50 p-1 mb-6 flex-wrap h-auto gap-1">
-          <TabsTrigger value="events">Manage Events</TabsTrigger>
-          <TabsTrigger value="create">Create Event</TabsTrigger>
-          <TabsTrigger value="liability">📊 Liability Monitor</TabsTrigger>
-          <TabsTrigger value="bets">All Bets</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="deposits">
-            Deposits
-            {deposits.filter(d => d.status === "pending").length > 0 && (
-              <span className="ml-1.5 bg-blue-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
-                {deposits.filter(d => d.status === "pending").length}
-              </span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="withdrawals">
-            Withdrawals
-            {withdrawals.filter(w => w.status === "pending").length > 0 && (
-              <span className="ml-1.5 bg-yellow-500 text-black text-xs font-bold px-1.5 py-0.5 rounded-full">
-                {withdrawals.filter(w => w.status === "pending").length}
-              </span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="paymentsettings" className="bg-green-500/10 text-green-400 data-[state=active]:bg-green-600 data-[state=active]:text-white">
-            💳 Payment Setup
-          </TabsTrigger>
-          <TabsTrigger value="signupbonus" className="bg-purple-500/10 text-purple-400 data-[state=active]:bg-purple-600 data-[state=active]:text-white">
-            🎁 Signup Bonus
-          </TabsTrigger>
-          <TabsTrigger value="gamecontrols" className="bg-orange-500/10 text-orange-400 data-[state=active]:bg-orange-500 data-[state=active]:text-white">
-            🎮 Game Controls
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex gap-6 items-start">
+          {/* ── Sidebar Navigation ── */}
+          <TabsList className="flex flex-col h-auto w-52 shrink-0 bg-card/60 border border-border/40 rounded-2xl p-2 gap-0.5 sticky top-4">
+
+            {/* EVENTS group */}
+            <div className="px-2 pt-2 pb-1">
+              <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Events</p>
+            </div>
+            <TabsTrigger value="events" className="w-full justify-start gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-white/5 transition-colors">
+              <CalendarDays className="h-4 w-4 shrink-0" />
+              Manage Events
+            </TabsTrigger>
+            <TabsTrigger value="create" className="w-full justify-start gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-white/5 transition-colors">
+              <PlusCircle className="h-4 w-4 shrink-0" />
+              Create Event
+            </TabsTrigger>
+
+            <div className="my-1.5 border-t border-border/30" />
+
+            {/* ANALYTICS group */}
+            <div className="px-2 pt-1 pb-1">
+              <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Analytics</p>
+            </div>
+            <TabsTrigger value="liability" className="w-full justify-start gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-orange-500/15 data-[state=active]:text-orange-400 data-[state=active]:shadow-none hover:bg-white/5 transition-colors">
+              <BarChart3 className="h-4 w-4 shrink-0" />
+              Liability
+            </TabsTrigger>
+            <TabsTrigger value="bets" className="w-full justify-start gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-white/5 transition-colors">
+              <Receipt className="h-4 w-4 shrink-0" />
+              All Bets
+            </TabsTrigger>
+
+            <div className="my-1.5 border-t border-border/30" />
+
+            {/* USERS group */}
+            <div className="px-2 pt-1 pb-1">
+              <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Users</p>
+            </div>
+            <TabsTrigger value="users" className="w-full justify-start gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-white/5 transition-colors">
+              <Users className="h-4 w-4 shrink-0" />
+              Users
+            </TabsTrigger>
+
+            <div className="my-1.5 border-t border-border/30" />
+
+            {/* FINANCE group */}
+            <div className="px-2 pt-1 pb-1">
+              <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Finance</p>
+            </div>
+            <TabsTrigger value="deposits" className="w-full justify-start gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-blue-500/15 data-[state=active]:text-blue-400 data-[state=active]:shadow-none hover:bg-white/5 transition-colors">
+              <ArrowDownToLine className="h-4 w-4 shrink-0" />
+              <span className="flex-1 text-left">Deposits</span>
+              {deposits.filter(d => d.status === "pending").length > 0 && (
+                <span className="bg-blue-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full leading-none">
+                  {deposits.filter(d => d.status === "pending").length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="withdrawals" className="w-full justify-start gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-yellow-500/15 data-[state=active]:text-yellow-400 data-[state=active]:shadow-none hover:bg-white/5 transition-colors">
+              <ArrowUpFromLine className="h-4 w-4 shrink-0" />
+              <span className="flex-1 text-left">Withdrawals</span>
+              {withdrawals.filter(w => w.status === "pending").length > 0 && (
+                <span className="bg-yellow-500 text-black text-[10px] font-black px-1.5 py-0.5 rounded-full leading-none">
+                  {withdrawals.filter(w => w.status === "pending").length}
+                </span>
+              )}
+            </TabsTrigger>
+
+            <div className="my-1.5 border-t border-border/30" />
+
+            {/* SETTINGS group */}
+            <div className="px-2 pt-1 pb-1">
+              <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Settings</p>
+            </div>
+            <TabsTrigger value="paymentsettings" className="w-full justify-start gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-400 data-[state=active]:shadow-none hover:bg-white/5 transition-colors">
+              <CreditCard className="h-4 w-4 shrink-0" />
+              Payment Setup
+            </TabsTrigger>
+            <TabsTrigger value="signupbonus" className="w-full justify-start gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-purple-500/15 data-[state=active]:text-purple-400 data-[state=active]:shadow-none hover:bg-white/5 transition-colors">
+              <Gift className="h-4 w-4 shrink-0" />
+              Signup Bonus
+            </TabsTrigger>
+
+            <div className="my-1.5 border-t border-border/30" />
+
+            {/* GAMES group */}
+            <div className="px-2 pt-1 pb-1">
+              <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Games</p>
+            </div>
+            <TabsTrigger value="gamecontrols" className="w-full justify-start gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-amber-500/15 data-[state=active]:text-amber-400 data-[state=active]:shadow-none hover:bg-white/5 transition-colors">
+              <Gamepad2 className="h-4 w-4 shrink-0" />
+              Game Controls
+            </TabsTrigger>
+
+            <div className="pb-1" />
+          </TabsList>
+
+          {/* ── Content Area ── */}
+          <div className="flex-1 min-w-0">
 
         <TabsContent value="events" className="space-y-4">
           <Card className="border-border/50">
@@ -2598,6 +2665,8 @@ export default function Admin() {
             </CardContent>
           </Card>
         </TabsContent>
+          </div>{/* end flex-1 content area */}
+        </div>{/* end flex gap-6 */}
       </Tabs>
 
       <Dialog open={editOddsOpen} onOpenChange={setEditOddsOpen}>
