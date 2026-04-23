@@ -211,34 +211,45 @@ export default function RangGame() {
         toast({ title: "Bet Failed", description: err.error || "Try again.", variant: "destructive" });
         setPhase("betting"); return;
       }
-      const data = await resp.json();
-      setResult(data);
+      const placed = await resp.json();
+      const roundId = placed.roundId as string;
+      const myStake = stake, mySel = selection;
+      qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      qc.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
+      toast({ title: "Bet placed", description: "Waiting for the round to be settled..." });
+      const startedAt = Date.now();
+      const pollId: ReturnType<typeof setInterval> = setInterval(async () => {
+        if (Date.now() - startedAt > 10 * 60 * 1000) { clearInterval(pollId); return; }
+        try {
+          const r = await fetch(`/api/games/casino-round/rang/${encodeURIComponent(roundId)}`, { credentials: "include" });
+          if (!r.ok) return;
+          const dd = await r.json();
+          if (dd.status !== "settled") return;
+          clearInterval(pollId);
+          const data = { ...dd.details, winner: dd.result } as { trumpSuit: string; trumpCard: { rank: string; suit: string; isTrump?: boolean }; playerHand: { rank: string; suit: string; isTrump: boolean }[]; houseHand: { rank: string; suit: string; isTrump: boolean }[]; tricks: { playerCard: { rank: string; suit: string; isTrump?: boolean }; houseCard: { rank: string; suit: string; isTrump?: boolean }; winner: Side | "draw" }[]; playerTricks: number; houseTricks: number; winner: Side };
+          const won = data.winner === mySel;
+          const winAmount = won ? Math.round(myStake * 1.95 * 100) / 100 : 0;
+          setResult({ ...data, won, winAmount, netChange: winAmount - myStake, newBalance: 0 });
 
-      // 1. Reveal trump card at 400ms
-      addTmr(() => { setShowTrump(true); playTrumpReveal(); }, 400);
-
-      // 2. Deal 5 player + 5 house cards staggered (starting 1s)
-      for (let i = 0; i < 5; i++) {
-        addTmr(() => { playCardFlip(); setRevealedPlayer(r => { const n=[...r]; n[i]=true; return n; }); }, 1000 + i * 300);
-        addTmr(() => { playCardFlip(); setRevealedHouse(r => { const n=[...r]; n[i]=true; return n; }); }, 1000 + i * 300 + 150);
-      }
-
-      // 3. Show tricks one by one
-      const trickStart = 1000 + 4 * 300 + 150 + 500;
-      setPhase("tricks");
-      for (let t = 0; t < data.tricks.length; t++) {
-        addTmr(() => { setVisibleTricks(t + 1); playTrickWin(); }, trickStart + t * 600);
-      }
-
-      // 4. Final result
-      addTmr(() => {
-        setPhase("result");
-        setHistory(h => [...h, data.winner]);
-        qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
-        qc.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
-        if (data.won) { playWin(); addTmr(() => { setShowWinPop(true); setShowCoins(true); }, 300); addTmr(() => setShowCoins(false), 3500); }
-        else playLose();
-      }, trickStart + data.tricks.length * 600 + 400);
+          addTmr(() => { setShowTrump(true); playTrumpReveal(); }, 400);
+          for (let i = 0; i < 5; i++) {
+            addTmr(() => { playCardFlip(); setRevealedPlayer(rr => { const n=[...rr]; n[i]=true; return n; }); }, 1000 + i * 300);
+            addTmr(() => { playCardFlip(); setRevealedHouse(rr => { const n=[...rr]; n[i]=true; return n; }); }, 1000 + i * 300 + 150);
+          }
+          const trickStart = 1000 + 4 * 300 + 150 + 500;
+          setPhase("tricks");
+          for (let t = 0; t < data.tricks.length; t++) {
+            addTmr(() => { setVisibleTricks(t + 1); playTrickWin(); }, trickStart + t * 600);
+          }
+          addTmr(() => {
+            setPhase("result"); setHistory(h => [...h, data.winner]);
+            qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
+            qc.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
+            if (won) { playWin(); addTmr(() => { setShowWinPop(true); setShowCoins(true); }, 300); addTmr(() => setShowCoins(false), 3500); }
+            else playLose();
+          }, trickStart + data.tricks.length * 600 + 400);
+        } catch {}
+      }, 1500);
     } catch { toast({ title: "Network Error", variant: "destructive" }); setPhase("betting"); }
   };
 

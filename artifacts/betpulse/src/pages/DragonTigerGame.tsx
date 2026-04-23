@@ -404,7 +404,7 @@ export default function DragonTigerGame() {
       pollRef.current = setInterval(async () => {
         if (Date.now() - startedAt > 10 * 60 * 1000) { stopPolling(); return; } // give up after 10min
         try {
-          const r = await fetch(`/api/games/dragon-tiger/round/${encodeURIComponent(roundId)}`, { credentials: "include" });
+          const r = await fetch(`/api/games/casino-round/dragon-tiger/${encodeURIComponent(roundId)}`, { credentials: "include" });
           if (!r.ok) return;
           const data = await r.json();
           if (data.status !== "settled") return;

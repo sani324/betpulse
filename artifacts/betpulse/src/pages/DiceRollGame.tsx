@@ -253,27 +253,39 @@ export default function DiceRollGame() {
         else toast({ title: "Bet Failed", description: err.error || "Something went wrong.", variant: "destructive" });
         clearTimers(); setPhase("betting"); return;
       }
-      const data = await resp.json();
-
-      // After at least 1.5s of rolling, stop interval and trigger landing
-      addTimer(() => {
-        if (rollInterval.current) { clearInterval(rollInterval.current); rollInterval.current = null; }
-        // Lock to final dice values and trigger fall-in animation
-        setDice1(data.dice1);
-        setDice2(data.dice2);
-        setPhase("landing");
-        playLandSound();
-
-        // After landing animation completes, show result
-        addTimer(() => {
-          setResult(data);
-          setPhase("result");
-          queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-          queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
-          if (data.won) playWin(); else playLose();
-        }, 950);
-      }, 1600);
-
+      const placed = await resp.json();
+      const roundId = placed.roundId as string;
+      const myStake = stake, mySel = selection;
+      queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
+      toast({ title: "Bet placed", description: "Waiting for the round to be settled..." });
+      const startedAt = Date.now();
+      const pollId: ReturnType<typeof setInterval> = setInterval(async () => {
+        if (Date.now() - startedAt > 10 * 60 * 1000) { clearInterval(pollId); if (rollInterval.current) clearInterval(rollInterval.current); return; }
+        try {
+          const r = await fetch(`/api/games/casino-round/dice-roll/${encodeURIComponent(roundId)}`, { credentials: "include" });
+          if (!r.ok) return;
+          const d = await r.json();
+          if (d.status !== "settled") return;
+          clearInterval(pollId);
+          const det = d.details as { dice1: number; dice2: number; sum: number };
+          const settled = d.result as "high" | "low" | "seven";
+          const won = settled === mySel;
+          const mult = mySel === "seven" ? 5 : 1.9;
+          const winAmount = won ? Math.round(myStake * mult * 100) / 100 : 0;
+          addTimer(() => {
+            if (rollInterval.current) { clearInterval(rollInterval.current); rollInterval.current = null; }
+            setDice1(det.dice1); setDice2(det.dice2); setPhase("landing"); playLandSound();
+            addTimer(() => {
+              setResult({ ...det, result: settled, won, winAmount, netChange: winAmount - myStake, newBalance: 0 });
+              setPhase("result");
+              queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+              queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
+              if (won) playWin(); else playLose();
+            }, 950);
+          }, 200);
+        } catch {}
+      }, 1500);
     } catch {
       clearTimers();
       toast({ title: "Network Error", variant: "destructive" });

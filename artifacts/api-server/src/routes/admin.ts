@@ -738,7 +738,14 @@ router.post("/admin/casino-rounds/:game/settle", requireAdmin, async (req, res):
     if (g === "coin-flip") return 1.95;
     if (g === "dice-roll") return sel === "seven" ? 5 : 1.9;
     if (g === "andar-bahar") return 1.95;
-    if (g === "rang" || g === "court-piece" || g === "code-piece") return 1.95;
+    if (g === "rang" || g === "court-piece") return 1.95;
+    if (g === "code-piece") {
+      // result here can be "small", "big", or a digit "0".."9".
+      const digit = /^[0-9]$/.test(res2) ? parseInt(res2, 10) : -1;
+      if (sel === "small") return digit >= 0 && digit < 5 ? 1.95 : (res2 === "small" ? 1.95 : 0);
+      if (sel === "big")   return digit >= 5 ? 1.95 : (res2 === "big" ? 1.95 : 0);
+      return sel === res2 ? 9 : 0; // exact digit match
+    }
     return 2;
   }
 
@@ -816,7 +823,89 @@ function generateRoundDetails(game: string, result: string): Record<string, unkn
       const [a,b] = c[Math.floor(Math.random()*c.length)]; return { dice1:a, dice2:b, sum:a+b };
     }
   }
-  if (game === "andar-bahar") return { joker: randCard(), winner: result };
+  if (game === "andar-bahar") {
+    const joker = randCard();
+    const winner = result === "andar" ? "andar" : "bahar";
+    const dealtCards: { card: { rank: string; suit: string; value: number }; side: "andar" | "bahar"; isMatch: boolean }[] = [];
+    const steps = Math.floor(Math.random() * 5) + 2;
+    for (let i = 0; i < steps; i++) {
+      const side = (i % 2 === 0 ? "andar" : "bahar") as "andar" | "bahar";
+      let c = randCard();
+      while (c.rank === joker.rank) c = randCard();
+      dealtCards.push({ card: c, side, isMatch: false });
+    }
+    let lastSide = (steps % 2 === 0 ? "andar" : "bahar") as "andar" | "bahar";
+    if (lastSide !== winner) {
+      let c = randCard();
+      while (c.rank === joker.rank) c = randCard();
+      dealtCards.push({ card: c, side: lastSide, isMatch: false });
+      lastSide = lastSide === "andar" ? "bahar" : "andar";
+    }
+    const matchSuit = SUITS[Math.floor(Math.random() * SUITS.length)];
+    dealtCards.push({ card: card(joker.rank, matchSuit), side: winner, isMatch: true });
+    return { joker, dealtCards, winner };
+  }
+  if (game === "rang" || game === "court-piece") {
+    // Build a random deck and deal until natural winner matches the chosen result.
+    const RR = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
+    const VV: Record<string, number> = { "2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":10,J:11,Q:12,K:13,A:14 };
+    function buildDeck() {
+      const d: { rank: string; suit: string; value: number }[] = [];
+      for (const s of SUITS) for (const r of RR) d.push({ rank: r, suit: s, value: VV[r] });
+      for (let i = d.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [d[i], d[j]] = [d[j], d[i]]; }
+      return d;
+    }
+    const COURT_R = ["J", "Q", "K", "A"];
+    for (let attempt = 0; attempt < 200; attempt++) {
+      const d = buildDeck();
+      if (game === "rang") {
+        const trumpCard = d[0];
+        const trumpSuit = trumpCard.suit;
+        const playerHand = [d[1], d[3], d[5], d[7], d[9]].map(c => ({ ...c, isTrump: c.suit === trumpSuit }));
+        const houseHand  = [d[2], d[4], d[6], d[8], d[10]].map(c => ({ ...c, isTrump: c.suit === trumpSuit }));
+        const tricks: { playerCard: typeof playerHand[0]; houseCard: typeof houseHand[0]; winner: "player" | "house" | "draw" }[] = [];
+        let pT = 0, hT = 0;
+        for (let i = 0; i < 5; i++) {
+          const pc = playerHand[i], hc = houseHand[i];
+          let w: "player" | "house" | "draw";
+          if (pc.isTrump && !hc.isTrump) w = "player";
+          else if (!pc.isTrump && hc.isTrump) w = "house";
+          else if (pc.value > hc.value) w = "player";
+          else if (hc.value > pc.value) w = "house";
+          else w = "draw";
+          if (w === "player") pT++; else if (w === "house") hT++;
+          tricks.push({ playerCard: pc, houseCard: hc, winner: w });
+        }
+        const natural = pT >= hT ? "player" : "house";
+        if (natural === result) {
+          return { trumpSuit, trumpCard, playerHand, houseHand, tricks, playerTricks: pT, houseTricks: hT, winner: result };
+        }
+      } else {
+        const playerHand = [d[0], d[2], d[4], d[6], d[8]];
+        const houseHand  = [d[1], d[3], d[5], d[7], d[9]];
+        const playerCourt = playerHand.filter(c => COURT_R.includes(c.rank)).length;
+        const houseCourt  = houseHand.filter(c => COURT_R.includes(c.rank)).length;
+        const playerTotal = playerHand.reduce((s, c) => s + c.value, 0);
+        const houseTotal  = houseHand.reduce((s, c) => s + c.value, 0);
+        let natural: "player" | "house";
+        if (playerCourt > houseCourt) natural = "player";
+        else if (houseCourt > playerCourt) natural = "house";
+        else natural = playerTotal >= houseTotal ? "player" : "house";
+        if (natural === result) {
+          return { playerHand, houseHand, playerCourt, houseCourt, playerTotal, houseTotal, winner: result };
+        }
+      }
+    }
+    return { winner: result };
+  }
+  if (game === "code-piece") {
+    // Result can be "small" (0-4), "big" (5-9), or a specific digit "0".."9".
+    let n: number;
+    if (result === "small") n = Math.floor(Math.random() * 5);
+    else if (result === "big") n = 5 + Math.floor(Math.random() * 5);
+    else { const d = parseInt(result, 10); n = isNaN(d) ? 0 : d; }
+    return { number: n, isSmall: n < 5, isBig: n >= 5 };
+  }
   return { result };
 }
 

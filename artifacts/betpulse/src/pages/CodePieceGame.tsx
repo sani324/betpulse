@@ -257,16 +257,38 @@ export default function CodePieceGame() {
         if (resp.status === 401) queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
         setPhase("betting"); setRevealing(false); return;
       }
-      const data = await resp.json();
-      addTimer(() => {
-        setRevealing(false); setFinalNum(data.number);
-        setResult({ number: data.number, isSmall: data.isSmall, isBig: data.isBig, won: data.won, winAmount: data.winAmount, netChange: data.netChange, newBalance: data.newBalance });
-        setPhase("result"); setHistory(h => [...h, data.number]);
-        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-        queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
-        if (data.won) { playWin(); setTimeout(() => { setShowWin(true); setShowCoins(true); }, 200); setTimeout(() => setShowCoins(false), 3500); }
-        else playLose();
-      }, 2200);
+      const placed = await resp.json();
+      const roundId = placed.roundId as string;
+      const myStake = stake, mySel = selection;
+      queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
+      toast({ title: "Bet placed", description: "Waiting for the round to be settled..." });
+      const startedAt = Date.now();
+      const pollId: ReturnType<typeof setInterval> = setInterval(async () => {
+        if (Date.now() - startedAt > 10 * 60 * 1000) { clearInterval(pollId); return; }
+        try {
+          const r = await fetch(`/api/games/casino-round/code-piece/${encodeURIComponent(roundId)}`, { credentials: "include" });
+          if (!r.ok) return;
+          const dd = await r.json();
+          if (dd.status !== "settled") return;
+          clearInterval(pollId);
+          const det = dd.details as { number: number; isSmall: boolean; isBig: boolean };
+          let won = false; let mult = 0;
+          if (mySel === "small") { won = det.isSmall; mult = 1.95; }
+          else if (mySel === "big") { won = det.isBig; mult = 1.95; }
+          else { won = String(det.number) === mySel; mult = 9; }
+          const winAmount = won ? Math.round(myStake * mult * 100) / 100 : 0;
+          addTimer(() => {
+            setRevealing(false); setFinalNum(det.number);
+            setResult({ number: det.number, isSmall: det.isSmall, isBig: det.isBig, won, winAmount, netChange: winAmount - myStake, newBalance: 0 });
+            setPhase("result"); setHistory(h => [...h, det.number]);
+            queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+            queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
+            if (won) { playWin(); setTimeout(() => { setShowWin(true); setShowCoins(true); }, 200); setTimeout(() => setShowCoins(false), 3500); }
+            else playLose();
+          }, 800);
+        } catch {}
+      }, 1500);
     } catch { toast({ title: "Network Error", variant: "destructive" }); setPhase("betting"); setRevealing(false); }
   };
 

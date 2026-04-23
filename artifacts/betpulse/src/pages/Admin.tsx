@@ -1832,81 +1832,111 @@ export default function Admin() {
 
         {/* ─── GAME CONTROLS TAB ─── */}
         <TabsContent value="gamecontrols" className="space-y-4">
-          {/* LIVE ROUND CONTROL — Dragon Tiger is round-based: bets queue, you pick the result */}
-          <Card className="border-emerald-500/40 bg-emerald-500/5">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap">
-              <div>
-                <CardTitle className="text-emerald-300 flex items-center gap-2">
-                  🟢 Live Round — Dragon Tiger
-                </CardTitle>
-                <CardDescription>
-                  Bets are queued here while users wait. <strong>You</strong> decide the result by clicking Settle. All players' bets pay out together. A new round opens automatically.
-                </CardDescription>
-              </div>
-              <Button variant="outline" size="sm" onClick={loadLiveRounds}>Refresh</Button>
-            </CardHeader>
-            <CardContent>
-              {(() => {
-                const dt = liveRounds.find(r => r.game === "dragon-tiger");
-                const sideMap: Record<string, LiveRoundSide> = {};
-                (dt?.sides ?? []).forEach(s => { sideMap[s.selection] = s; });
-                const sides = [
-                  { key: "dragon", label: "🐲 Dragon", color: "bg-red-600 hover:bg-red-700", ring: "ring-red-400/60", text: "text-red-300" },
-                  { key: "tiger",  label: "🐯 Tiger",  color: "bg-orange-500 hover:bg-orange-600", ring: "ring-orange-400/60", text: "text-orange-300" },
-                  { key: "tie",    label: "🤝 Tie",    color: "bg-yellow-600 hover:bg-yellow-700", ring: "ring-yellow-400/60", text: "text-yellow-300" },
-                ];
-                const totalBets = dt?.totalBets ?? 0;
-                return (
+          {/* LIVE ROUND CONTROL — every casino game is round-based: bets queue, admin picks the result */}
+          {(() => {
+            const GAME_CONFIGS: { game: string; title: string; sides: { key: string; label: string; color: string; text: string }[] }[] = [
+              { game: "dragon-tiger", title: "🐲 Dragon Tiger", sides: [
+                { key: "dragon", label: "🐲 Dragon", color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
+                { key: "tiger",  label: "🐯 Tiger",  color: "bg-orange-500 hover:bg-orange-600", text: "text-orange-300" },
+                { key: "tie",    label: "🤝 Tie",    color: "bg-yellow-600 hover:bg-yellow-700", text: "text-yellow-300" },
+              ]},
+              { game: "coin-flip", title: "🪙 Coin Flip", sides: [
+                { key: "heads", label: "Heads", color: "bg-amber-500 hover:bg-amber-600", text: "text-amber-300" },
+                { key: "tails", label: "Tails", color: "bg-slate-500 hover:bg-slate-600", text: "text-slate-300" },
+              ]},
+              { game: "dice-roll", title: "🎲 Dice Roll", sides: [
+                { key: "low",   label: "Low (2-6)",  color: "bg-blue-600 hover:bg-blue-700", text: "text-blue-300" },
+                { key: "seven", label: "Seven (7) 5x", color: "bg-purple-600 hover:bg-purple-700", text: "text-purple-300" },
+                { key: "high",  label: "High (8-12)", color: "bg-pink-600 hover:bg-pink-700", text: "text-pink-300" },
+              ]},
+              { game: "andar-bahar", title: "🃏 Andar Bahar", sides: [
+                { key: "andar", label: "Andar", color: "bg-rose-600 hover:bg-rose-700", text: "text-rose-300" },
+                { key: "bahar", label: "Bahar", color: "bg-cyan-600 hover:bg-cyan-700", text: "text-cyan-300" },
+              ]},
+              { game: "rang", title: "♠ Rang", sides: [
+                { key: "player", label: "Player", color: "bg-emerald-600 hover:bg-emerald-700", text: "text-emerald-300" },
+                { key: "house",  label: "House",  color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
+              ]},
+              { game: "court-piece", title: "♣ Court Piece", sides: [
+                { key: "player", label: "Player", color: "bg-emerald-600 hover:bg-emerald-700", text: "text-emerald-300" },
+                { key: "house",  label: "House",  color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
+              ]},
+              { game: "code-piece", title: "🔢 Code Piece", sides: [
+                { key: "small", label: "Small (0-4)", color: "bg-blue-600 hover:bg-blue-700", text: "text-blue-300" },
+                { key: "big",   label: "Big (5-9)",   color: "bg-pink-600 hover:bg-pink-700", text: "text-pink-300" },
+                ...Array.from({ length: 10 }).map((_, i) => ({ key: String(i), label: String(i), color: "bg-amber-600 hover:bg-amber-700", text: "text-amber-300" })),
+              ]},
+            ];
+            return (
+              <Card className="border-emerald-500/40 bg-emerald-500/5">
+                <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap">
                   <div>
-                    <div className="text-xs text-muted-foreground mb-3">
-                      Round id: <span className="font-mono">{dt?.id ?? "—"}</span> · {totalBets} bet{totalBets === 1 ? "" : "s"} pending
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      {sides.map(s => {
-                        const data = sideMap[s.key];
-                        const count = data?.betCount ?? 0;
-                        const staked = data?.totalStaked ?? 0;
-                        const pct = totalBets > 0 ? Math.round((count / totalBets) * 100) : 0;
-                        const isSettling = settling === `dragon-tiger:${s.key}`;
-                        return (
-                          <div key={s.key} className={`border rounded-xl p-4 bg-card/40 border-border/40`}>
-                            <div className="flex items-baseline justify-between mb-2">
-                              <div className={`font-bold text-lg ${s.text}`}>{s.label}</div>
-                              <div className="text-xs text-muted-foreground">{pct}%</div>
-                            </div>
-                            <div className="text-3xl font-black tabular-nums mb-1">{count}</div>
-                            <div className="text-xs text-muted-foreground mb-2">bets · ₹{staked.toFixed(2)} staked</div>
-                            {data?.users && data.users.length > 0 && (
-                              <div className="text-[11px] text-muted-foreground mb-3 max-h-16 overflow-y-auto">
-                                {data.users.map((u, i) => (
-                                  <div key={i} className="flex justify-between gap-2 truncate">
-                                    <span className="truncate">{u.username}</span>
-                                    <span className="tabular-nums">₹{u.stake}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            <Button
-                              onClick={() => settleRound("dragon-tiger", s.key)}
-                              disabled={!!settling}
-                              className={`w-full text-white font-bold ${s.color}`}
-                            >
-                              {isSettling ? "Settling..." : `Settle as ${s.label}`}
-                            </Button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {totalBets === 0 && (
-                      <div className="text-xs text-muted-foreground mt-3 text-center">
-                        No bets placed yet. Have a user open Dragon Tiger and place a bet — it will appear here within ~2 seconds.
-                      </div>
-                    )}
+                    <CardTitle className="text-emerald-300 flex items-center gap-2">🟢 Live Rounds — Pick the Result</CardTitle>
+                    <CardDescription>
+                      All casino games are round-based. Bets queue here while users wait. <strong>You</strong> click Settle to choose the result. All players' bets pay out together; a new round opens automatically.
+                    </CardDescription>
                   </div>
-                );
-              })()}
-            </CardContent>
-          </Card>
+                  <Button variant="outline" size="sm" onClick={loadLiveRounds}>Refresh</Button>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  {GAME_CONFIGS.map(cfg => {
+                    const round = liveRounds.find(r => r.game === cfg.game);
+                    const sideMap: Record<string, LiveRoundSide> = {};
+                    (round?.sides ?? []).forEach(s => { sideMap[s.selection] = s; });
+                    const totalBets = round?.totalBets ?? 0;
+                    return (
+                      <div key={cfg.game} className="border border-border/40 rounded-xl p-3 bg-card/20">
+                        <div className="flex items-baseline justify-between mb-2 flex-wrap gap-2">
+                          <div className="font-bold text-base">{cfg.title}</div>
+                          <div className="text-xs text-muted-foreground">
+                            Round: <span className="font-mono">{round?.id?.slice(-6) ?? "—"}</span> · {totalBets} bet{totalBets === 1 ? "" : "s"} pending
+                          </div>
+                        </div>
+                        <div className={`grid gap-2 ${cfg.sides.length > 6 ? "grid-cols-3 md:grid-cols-6" : cfg.sides.length === 2 ? "grid-cols-2" : "grid-cols-1 md:grid-cols-3"}`}>
+                          {cfg.sides.map(s => {
+                            const data = sideMap[s.key];
+                            const count = data?.betCount ?? 0;
+                            const staked = data?.totalStaked ?? 0;
+                            const isSettling = settling === `${cfg.game}:${s.key}`;
+                            return (
+                              <div key={s.key} className="border rounded-lg p-2 bg-card/40 border-border/30">
+                                <div className="flex items-baseline justify-between mb-1">
+                                  <div className={`font-semibold text-sm ${s.text}`}>{s.label}</div>
+                                  <div className="text-[11px] tabular-nums">{count}</div>
+                                </div>
+                                {staked > 0 && <div className="text-[10px] text-muted-foreground mb-1">₹{staked.toFixed(2)}</div>}
+                                {data?.users && data.users.length > 0 && (
+                                  <div className="text-[10px] text-muted-foreground mb-2 max-h-12 overflow-y-auto">
+                                    {data.users.map((u, i) => (
+                                      <div key={i} className="flex justify-between gap-1 truncate">
+                                        <span className="truncate">{u.username}</span>
+                                        <span className="tabular-nums">₹{u.stake}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                <Button
+                                  size="sm"
+                                  onClick={() => settleRound(cfg.game, s.key)}
+                                  disabled={!!settling}
+                                  className={`w-full text-white text-xs h-7 ${s.color}`}
+                                >
+                                  {isSettling ? "..." : `Settle ${s.label}`}
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {totalBets === 0 && (
+                          <div className="text-[11px] text-muted-foreground mt-2 text-center">No bets pending. You can still settle to lock in a result for the next placed bet.</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           <Card className="border-cyan-500/30 bg-cyan-500/5">
             <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap">

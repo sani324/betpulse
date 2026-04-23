@@ -206,31 +206,47 @@ export default function CourtPieceGame() {
         toast({ title: "Bet Failed", description: err.error || "Try again.", variant: "destructive" });
         setPhase("betting"); return;
       }
-      const data = await resp.json();
-      // Reveal cards one by one with staggered timing
-      for (let i = 0; i < 5; i++) {
-        const idx = i;
-        addTmr(() => {
-          playCardFlip();
-          if (IS_COURT(data.playerHand[idx].rank)) addTmr(() => playCourtCard(), 150);
-          setRevealedPlayer(r => { const n=[...r]; n[idx]=true; return n; });
-        }, 400 + idx * 350);
-        addTmr(() => {
-          playCardFlip();
-          if (IS_COURT(data.houseHand[idx].rank)) addTmr(() => playCourtCard(), 150);
-          setRevealedHouse(r => { const n=[...r]; n[idx]=true; return n; });
-        }, 400 + idx * 350 + 180);
-      }
-      // After all cards dealt, show result
-      addTmr(() => {
-        setResult({ playerHand: data.playerHand, houseHand: data.houseHand, playerCourt: data.playerCourt, houseCourt: data.houseCourt, winner: data.winner, won: data.won, winAmount: data.winAmount, newBalance: data.newBalance });
-        setPhase("result");
-        setHistory(h => [...h, data.winner]);
-        qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
-        qc.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
-        if (data.won) { playWin(); addTmr(() => { setShowWinPop(true); setShowCoins(true); }, 300); addTmr(() => setShowCoins(false), 3500); }
-        else playLose();
-      }, 400 + 4 * 350 + 180 + 600);
+      const placed = await resp.json();
+      const roundId = placed.roundId as string;
+      const myStake = stake, mySel = selection;
+      qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      qc.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
+      toast({ title: "Bet placed", description: "Waiting for the round to be settled..." });
+      const startedAt = Date.now();
+      const pollId: ReturnType<typeof setInterval> = setInterval(async () => {
+        if (Date.now() - startedAt > 10 * 60 * 1000) { clearInterval(pollId); return; }
+        try {
+          const r = await fetch(`/api/games/casino-round/court-piece/${encodeURIComponent(roundId)}`, { credentials: "include" });
+          if (!r.ok) return;
+          const dd = await r.json();
+          if (dd.status !== "settled") return;
+          clearInterval(pollId);
+          const data = { ...dd.details, winner: dd.result };
+          const won = data.winner === mySel;
+          const winAmount = won ? Math.round(myStake * 1.95 * 100) / 100 : 0;
+          for (let i = 0; i < 5; i++) {
+            const idx = i;
+            addTmr(() => {
+              playCardFlip();
+              if (IS_COURT(data.playerHand[idx].rank)) addTmr(() => playCourtCard(), 150);
+              setRevealedPlayer(rr => { const n=[...rr]; n[idx]=true; return n; });
+            }, 400 + idx * 350);
+            addTmr(() => {
+              playCardFlip();
+              if (IS_COURT(data.houseHand[idx].rank)) addTmr(() => playCourtCard(), 150);
+              setRevealedHouse(rr => { const n=[...rr]; n[idx]=true; return n; });
+            }, 400 + idx * 350 + 180);
+          }
+          addTmr(() => {
+            setResult({ playerHand: data.playerHand, houseHand: data.houseHand, playerCourt: data.playerCourt, houseCourt: data.houseCourt, winner: data.winner, won, winAmount, newBalance: 0 });
+            setPhase("result"); setHistory(h => [...h, data.winner]);
+            qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
+            qc.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
+            if (won) { playWin(); addTmr(() => { setShowWinPop(true); setShowCoins(true); }, 300); addTmr(() => setShowCoins(false), 3500); }
+            else playLose();
+          }, 400 + 4 * 350 + 180 + 600);
+        } catch {}
+      }, 1500);
     } catch { toast({ title: "Network Error", variant: "destructive" }); setPhase("betting"); }
   };
 

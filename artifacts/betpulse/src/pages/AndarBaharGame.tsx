@@ -175,23 +175,37 @@ export default function AndarBaharGame() {
         else toast({ title: "Bet Failed", description: err.error || "Something went wrong.", variant: "destructive" });
         setPhase("betting"); return;
       }
-      const data = await resp.json();
-      setJoker(data.joker);
-      const cards = data.dealtCards as Array<{ card: DCard; side: Side; isMatch: boolean }>;
-      setAllCards(cards);
-
-      addTimer(() => { setJokerRevealed(true); playCardSound(); }, 500);
-      cards.forEach((_, i) => {
-        addTimer(() => { setRevealedCount(i + 1); playCardSound(); }, 1200 + i * 320);
-      });
-      const totalTime = 1200 + cards.length * 320 + 600;
-      addTimer(() => {
-        setResult({ result: data.result, won: data.won, winAmount: data.winAmount, netChange: data.netChange, newBalance: data.newBalance });
-        setPhase("result");
-        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-        queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
-        if (data.won) playWin(); else playLose();
-      }, totalTime);
+      const placed = await resp.json();
+      const roundId = placed.roundId as string;
+      const myStake = stake, mySel = selection;
+      queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
+      toast({ title: "Bet placed", description: "Waiting for the round to be settled..." });
+      const startedAt = Date.now();
+      const pollId: ReturnType<typeof setInterval> = setInterval(async () => {
+        if (Date.now() - startedAt > 10 * 60 * 1000) { clearInterval(pollId); return; }
+        try {
+          const r = await fetch(`/api/games/casino-round/andar-bahar/${encodeURIComponent(roundId)}`, { credentials: "include" });
+          if (!r.ok) return;
+          const d = await r.json();
+          if (d.status !== "settled") return;
+          clearInterval(pollId);
+          const det = d.details as { joker: DCard; dealtCards: Array<{ card: DCard; side: Side; isMatch: boolean }>; winner: Side };
+          const won = det.winner === mySel;
+          const winAmount = won ? Math.round(myStake * 1.95 * 100) / 100 : 0;
+          setJoker(det.joker); setAllCards(det.dealtCards);
+          addTimer(() => { setJokerRevealed(true); playCardSound(); }, 500);
+          det.dealtCards.forEach((_, i) => addTimer(() => { setRevealedCount(i + 1); playCardSound(); }, 1200 + i * 320));
+          const totalTime = 1200 + det.dealtCards.length * 320 + 600;
+          addTimer(() => {
+            setResult({ result: det.winner, won, winAmount, netChange: winAmount - myStake, newBalance: 0 });
+            setPhase("result");
+            queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+            queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
+            if (won) playWin(); else playLose();
+          }, totalTime);
+        } catch {}
+      }, 1500);
     } catch {
       toast({ title: "Network Error", variant: "destructive" });
       setPhase("betting");

@@ -221,15 +221,35 @@ export default function CoinFlipGame() {
         if (resp.status === 401) queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
         setPhase("betting"); setSpinning(false); return;
       }
-      const data = await resp.json();
-      addTimer(() => {
-        setSpinning(false); setCoinResult(data.result); setResult(data); setPhase("result");
-        setHistory(h => [...h, data.result]);
-        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-        queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
-        if (data.won) { playWin(); setTimeout(() => { setShowWin(true); setShowCoins(true); }, 200); setTimeout(() => setShowCoins(false), 3500); }
-        else playLose();
-      }, 2200);
+      const placed = await resp.json();
+      const roundId = placed.roundId as string;
+      const myStake = stake, mySel = selection;
+      queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
+      toast({ title: "Bet placed", description: "Waiting for the round to be settled..." });
+      const startedAt = Date.now();
+      const pollId: ReturnType<typeof setInterval> = setInterval(async () => {
+        if (Date.now() - startedAt > 10 * 60 * 1000) { clearInterval(pollId); return; }
+        try {
+          const r = await fetch(`/api/games/casino-round/coin-flip/${encodeURIComponent(roundId)}`, { credentials: "include" });
+          if (!r.ok) return;
+          const d = await r.json();
+          if (d.status !== "settled") return;
+          clearInterval(pollId);
+          const settled = d.result as "heads" | "tails";
+          const won = settled === mySel;
+          const winAmount = won ? Math.round(myStake * 1.95 * 100) / 100 : 0;
+          addTimer(() => {
+            setSpinning(false); setCoinResult(settled);
+            setResult({ result: settled, won, winAmount, netChange: winAmount - myStake, newBalance: 0 });
+            setPhase("result"); setHistory(h => [...h, settled]);
+            queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+            queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
+            if (won) { playWin(); setTimeout(() => { setShowWin(true); setShowCoins(true); }, 200); setTimeout(() => setShowCoins(false), 3500); }
+            else playLose();
+          }, 800);
+        } catch {}
+      }, 1500);
     } catch { toast({ title: "Network Error", variant: "destructive" }); setPhase("betting"); setSpinning(false); }
   };
 
