@@ -1212,7 +1212,7 @@ export default function Admin() {
                   />
 
                   <div className="space-y-4 border rounded-md p-4 bg-background/50">
-                    <h3 className="font-medium text-sm">Initial Odds (higher margin = more house profit)</h3>
+                    <h3 className="font-medium text-sm">Initial Odds (higher margin = more admin profit)</h3>
                     <div className="grid grid-cols-3 gap-4">
                       <FormField
                         control={form.control}
@@ -1288,7 +1288,7 @@ export default function Admin() {
                       <TableHead>Pick</TableHead>
                       <TableHead className="text-right">Stake</TableHead>
                       <TableHead className="text-right">Odds</TableHead>
-                      <TableHead className="text-right">House Profit</TableHead>
+                      <TableHead className="text-right">Admin Profit</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1297,7 +1297,9 @@ export default function Admin() {
                       <TableRow key={bet.id}>
                         <TableCell className="font-medium">{bet.username}</TableCell>
                         <TableCell>{bet.homeTeam} vs {bet.awayTeam}</TableCell>
-                        <TableCell className="uppercase text-xs font-bold">{bet.selection}</TableCell>
+                        <TableCell className="text-xs font-bold">
+                          {bet.selection === "home" ? `${bet.homeTeam} Win` : bet.selection === "away" ? `${bet.awayTeam} Win` : bet.selection === "draw" ? "Draw" : bet.selection.charAt(0).toUpperCase() + bet.selection.slice(1)}
+                        </TableCell>
                         <TableCell className="text-right font-mono">{formatCurrency(bet.stake)}</TableCell>
                         <TableCell className="text-right font-mono">{bet.odds.toFixed(2)}</TableCell>
                         <TableCell className={`text-right font-mono font-bold ${bet.profit && bet.profit > 0 ? 'text-primary' : bet.profit && bet.profit < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
@@ -2118,12 +2120,12 @@ export default function Admin() {
                     const aReason = totalBets === 0
                       ? "No bets yet — auto-settle will skip this round"
                       : aMinCount === 0 && aFinal.length > 1
-                        ? `${aWinLabels} — BOTH have 0 bets. System randomly picks one. Either way nobody wins → all ${aWillLose.map(s=>s.label.replace(/[^\w\s]/g,'').trim()).join(" + ")} bettors LOSE → house keeps ₹${aLostPool.toFixed(0)}`
+                        ? `${aWinLabels} — BOTH have 0 bets. System randomly picks one. Either way nobody wins → all ${aWillLose.map(s=>s.label.replace(/[^\w\s]/g,'').trim()).join(" + ")} bettors LOSE → Admin keeps ₹${aLostPool.toFixed(0)}`
                         : aMinCount === 0
-                          ? `${aWinLabels} has 0 bets → declared winner but nobody bet on it → all other bettors lose → house keeps ₹${aLostPool.toFixed(0)}`
+                          ? `${aWinLabels} has 0 bets → declared winner but nobody bet on it → all other bettors lose → Admin keeps ₹${aLostPool.toFixed(0)}`
                           : aFinal.length > 1
                             ? `All options tied at ${aMinCount} bet(s) — randomly picks one of: ${aWinLabels}`
-                            : `${aWinLabels} has fewest bets (${aMinCount}) → house keeps ₹${aLostPool.toFixed(0)} from ${aWillLose.length} losing side(s)`;
+                            : `${aWinLabels} has fewest bets (${aMinCount}) → Admin keeps ₹${aLostPool.toFixed(0)} from ${aWillLose.length} losing side(s)`;
 
                     return (
                       <div key={cfg.game} className={`border rounded-xl p-3 transition-all duration-200 ${autoMode ? "border-purple-500/20 bg-purple-950/10" : "border-border/40 bg-card/20"}`}>
@@ -2176,12 +2178,12 @@ export default function Admin() {
                                 <div className="text-[11px] text-purple-300/70 leading-relaxed">{aReason}</div>
                                 {aMinCount === 0 && (
                                   <div className="mt-1.5 text-[11px] font-bold text-emerald-400">
-                                    💰 House profit: ₹{aLostPool.toFixed(0)} — nobody bet on {aWinLabels}, everyone loses
+                                    💰 Admin Profit: ₹{aLostPool.toFixed(0)} — nobody bet on {aWinLabels}, all bettors lose
                                   </div>
                                 )}
                                 {aMinCount > 0 && aLostPool > 0 && (
                                   <div className="mt-1.5 text-[11px] font-bold text-emerald-400">
-                                    💰 House profit: ₹{aLostPool.toFixed(0)} from {aWillLose.length} losing side{aWillLose.length > 1 ? "s" : ""}
+                                    💰 Admin Profit: ₹{aLostPool.toFixed(0)} from {aWillLose.length} losing side{aWillLose.length > 1 ? "s" : ""}
                                   </div>
                                 )}
                               </div>
@@ -2348,8 +2350,8 @@ export default function Admin() {
                             return (
                               <div key={s.selection} className="text-xs">
                                 <div className="flex items-center justify-between mb-0.5">
-                                  <span className={`font-semibold uppercase ${isLeader ? "text-cyan-300" : "text-muted-foreground"}`}>
-                                    {s.selection}
+                                  <span className={`font-semibold ${isLeader ? "text-cyan-300" : "text-muted-foreground"}`}>
+                                    {s.selection.split("-").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
                                   </span>
                                   <span className="tabular-nums">
                                     <span className="font-bold text-foreground">{s.betCount}</span>
