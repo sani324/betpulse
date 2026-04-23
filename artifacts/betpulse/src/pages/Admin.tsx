@@ -136,7 +136,7 @@ export default function Admin() {
   const [autoSettling, setAutoSettling] = useState<string | null>(null);
   const [lastAutoResult, setLastAutoResult] = useState<Record<string, { result: string; reason: string }>>({});
   const [autoMode, setAutoMode] = useState(false);
-  const [autoInterval, setAutoInterval] = useState(30);
+  const [autoInterval, setAutoInterval] = useState(10);
   const [autoModeLoading, setAutoModeLoading] = useState(false);
 
   type PaymentSetting = { method: string; label: string; accountName: string; accountNumber: string; instructions: string; isActive: boolean };
@@ -355,9 +355,10 @@ export default function Admin() {
   // Auto-refresh the live round every 2s while the Game Controls tab is active.
   useEffect(() => {
     loadAutoMode();
+    loadLiveRounds();
     const t = setInterval(() => {
       loadLiveRounds();
-    }, 3000);
+    }, 2000);
     return () => clearInterval(t);
   }, []);
 
@@ -438,7 +439,7 @@ export default function Admin() {
       if (resp.ok) {
         const data = await resp.json();
         setAutoMode(data.enabled);
-        setAutoInterval(data.intervalSec ?? 30);
+        setAutoInterval(data.intervalSec ?? 10);
       }
     } catch {}
   }
@@ -454,7 +455,7 @@ export default function Admin() {
       if (!resp.ok) throw new Error("failed");
       const data = await resp.json();
       setAutoMode(data.enabled);
-      setAutoInterval(data.intervalSec ?? 30);
+      setAutoInterval(data.intervalSec ?? 10);
       toast({
         title: data.enabled ? "🤖 Auto Mode ON" : "✋ Manual Mode ON",
         description: data.enabled
