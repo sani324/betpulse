@@ -740,7 +740,19 @@ router.post("/admin/casino-rounds/:game/settle", requireAdmin, async (req, res):
     if (g === "rang" || g === "court-piece") return 1.95;
     if (g === "teen-patti") return sel === "pair" ? 11 : 1.95;
     if (g === "lucky-7")    return sel === "seven" ? 5 : 1.95;
-    if (g === "jhandi-munda") return 6; // 1 symbol on 6-sided die
+    if (g === "jhandi-munda") return 6;
+    if (g === "andar-bahar")  return 1.95;
+    if (g === "roulette")     return sel === "green" ? 14 : 1.95;
+    if (g === "bingo-777")    return sel === "triple7" ? 20 : sel === "bar" ? 5 : 2;
+    if (g === "fruit-line")   return sel === "jackpot" ? 10 : sel === "mix" ? 3 : 1.95;
+    if (g === "sweet-bonanza") return sel === "bonanza" ? 8 : sel === "scatter" ? 3 : 1.95;
+    if (g === "crash")        return sel === "x10" ? 10 : sel === "x5" ? 5 : 2;
+    if (g === "joker")        return sel === "joker" ? 9 : 1.95;
+    if (g === "ten-cards" || g === "muflis") return 1.95;
+    if (g === "blackjack")    return sel === "tie" ? 8 : 1.95;
+    if (g === "car-roulette") return sel === "car3" ? 5 : 1.95;
+    if (g === "god-of-fortune") return sel === "supreme" ? 10 : sel === "grand" ? 5 : 1.95;
+    if (g === "rummy")        return 1.95;
     return 2;
   }
 
@@ -959,11 +971,24 @@ function prettyGame(key: string): string {
     "dragon-tiger":  "Dragon Tiger",
     "coin-flip":     "Coin Flip",
     "dice-roll":     "Dice Roll",
-    "rang":          "Rang",
-    "court-piece":   "Court Piece",
-    "teen-patti":    "Teen Patti",
-    "lucky-7":       "Lucky 7",
-    "jhandi-munda":  "Jhandi Munda",
+    "rang":           "Rang",
+    "court-piece":    "Court Piece",
+    "teen-patti":     "Teen Patti",
+    "lucky-7":        "Lucky 7",
+    "jhandi-munda":   "Jhandi Munda",
+    "andar-bahar":    "Andar Bahar",
+    "roulette":       "Roulette",
+    "bingo-777":      "Bingo 777",
+    "fruit-line":     "Fruit Line",
+    "sweet-bonanza":  "Sweet Bonanza",
+    "crash":          "Crash",
+    "joker":          "Joker",
+    "ten-cards":      "10 Cards",
+    "muflis":         "Muflis",
+    "blackjack":      "Blackjack",
+    "car-roulette":   "Car Roulette",
+    "god-of-fortune": "God of Fortune",
+    "rummy":          "Rummy",
   } as Record<string, string>)[key] ?? key;
 }
 
@@ -1011,7 +1036,7 @@ router.get("/admin/casino-stats", requireAdmin, async (req, res): Promise<void> 
     .where(
       and(
         sql`${transactionsTable.createdAt} >= ${since}`,
-        sql`${transactionsTable.description} ~ '^(Dragon Tiger|Coin Flip|Dice Roll|Rang|Court Piece|Teen Patti|Lucky 7|Jhandi Munda) '`,
+        sql`${transactionsTable.description} ~ '^(Dragon Tiger|Coin Flip|Dice Roll|Rang|Court Piece|Teen Patti|Lucky 7|Jhandi Munda|Andar Bahar|Roulette|Bingo 777|Fruit Line|Sweet Bonanza|Crash|Joker|10 Cards|Muflis|Blackjack|Car Roulette|God of Fortune|Rummy) '`,
       ),
     );
 
@@ -1025,13 +1050,26 @@ router.get("/admin/casino-stats", requireAdmin, async (req, res): Promise<void> 
     "Dice Roll": "dice-roll",
     "Rang": "rang",
     "Court Piece": "court-piece",
+    "Andar Bahar": "andar-bahar",
+    "Roulette": "roulette",
+    "Bingo 777": "bingo-777",
+    "Fruit Line": "fruit-line",
+    "Sweet Bonanza": "sweet-bonanza",
+    "Crash": "crash",
+    "Joker": "joker",
+    "10 Cards": "ten-cards",
+    "Muflis": "muflis",
+    "Blackjack": "blackjack",
+    "Car Roulette": "car-roulette",
+    "God of Fortune": "god-of-fortune",
+    "Rummy": "rummy",
   };
 
   for (const r of rows) {
     // Description format: "<Game> — bet <selection>, ...". Estimate stake from
     // amount: bet_placed amount = stake; bet_won amount = net win, so stake is unknown
     // here — we still count the bet, and approximate stake as the amount for placed bets.
-    const m = r.description.match(/^(Dragon Tiger|Coin Flip|Dice Roll|Rang|Court Piece|Teen Patti|Lucky 7|Jhandi Munda)\s+—\s+bet\s+([a-zA-Z0-9_-]+)(?:,\s+result\s+([a-zA-Z0-9_-]+))?/);
+    const m = r.description.match(/^(Dragon Tiger|Coin Flip|Dice Roll|Rang|Court Piece|Teen Patti|Lucky 7|Jhandi Munda|Andar Bahar|Roulette|Bingo 777|Fruit Line|Sweet Bonanza|Crash|Joker|10 Cards|Muflis|Blackjack|Car Roulette|God of Fortune|Rummy)\s+—\s+bet\s+([a-zA-Z0-9_-]+)(?:,\s+result\s+([a-zA-Z0-9_-]+))?/);
     if (!m) continue;
     const gameName = m[1];
     const selection = m[2];

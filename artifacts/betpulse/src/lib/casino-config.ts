@@ -1,6 +1,9 @@
 export const CASINO_SPORTS = [
   "Teen Patti", "Dragon Tiger", "Rang", "Piec",
   "Lucky 7", "Jhandi Munda",
+  "Andar Bahar", "Roulette", "Bingo 777", "Fruit Line", "Sweet Bonanza",
+  "Crash", "Joker", "10 Cards", "Muflis", "Blackjack",
+  "Car Roulette", "God of Fortune", "Rummy",
 ];
 
 export const CASINO_ICONS: Record<string, string> = {
@@ -10,6 +13,19 @@ export const CASINO_ICONS: Record<string, string> = {
   "Piec": "🂡",
   "Lucky 7": "🎲",
   "Jhandi Munda": "🎴",
+  "Andar Bahar": "🃏",
+  "Roulette": "🎡",
+  "Bingo 777": "🎰",
+  "Fruit Line": "🍉",
+  "Sweet Bonanza": "🍭",
+  "Crash": "🚀",
+  "Joker": "🃏",
+  "10 Cards": "🔟",
+  "Muflis": "♟️",
+  "Blackjack": "♠️",
+  "Car Roulette": "🏎️",
+  "God of Fortune": "🐉",
+  "Rummy": "🀄",
 };
 
 export const CASINO_DESC: Record<string, string> = {
@@ -19,4 +35,17 @@ export const CASINO_DESC: Record<string, string> = {
   "Piec": "Team A vs Team B",
   "Lucky 7": "Under / 7 / Over",
   "Jhandi Munda": "6 Dice · 6 Symbols",
+  "Andar Bahar": "Andar vs Bahar",
+  "Roulette": "Red / Black / Green",
+  "Bingo 777": "Triple 7 / BAR / Cherry",
+  "Fruit Line": "Jackpot / Mix / Single",
+  "Sweet Bonanza": "Bonanza / Scatter / Base",
+  "Crash": "2× / 5× / 10×",
+  "Joker": "Player / Banker / Joker",
+  "10 Cards": "Player vs Banker",
+  "Muflis": "Player vs Banker",
+  "Blackjack": "Player / Dealer / Tie",
+  "Car Roulette": "Car 1 / Car 2 / Car 3",
+  "God of Fortune": "Fortune / Grand / Supreme",
+  "Rummy": "Player vs House",
 };

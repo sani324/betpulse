@@ -1044,11 +1044,24 @@ export default function Admin() {
                             <SelectContent>
                               <SelectItem value="Teen Patti">👑 Teen Patti</SelectItem>
                               <SelectItem value="Dragon Tiger">🔥 Dragon Tiger</SelectItem>
+                              <SelectItem value="Andar Bahar">🃏 Andar Bahar</SelectItem>
+                              <SelectItem value="Blackjack">♠️ Blackjack</SelectItem>
+                              <SelectItem value="Roulette">🎡 Roulette</SelectItem>
                               <SelectItem value="Lucky 7">🎲 Lucky 7</SelectItem>
                               <SelectItem value="Jhandi Munda">🎴 Jhandi Munda</SelectItem>
+                              <SelectItem value="Joker">🃏 Joker</SelectItem>
+                              <SelectItem value="Crash">🚀 Crash</SelectItem>
+                              <SelectItem value="God of Fortune">🐉 God of Fortune</SelectItem>
+                              <SelectItem value="Bingo 777">🎰 777 Bingo</SelectItem>
+                              <SelectItem value="Sweet Bonanza">🍭 Sweet Bonanza</SelectItem>
+                              <SelectItem value="10 Cards">🔟 10 Cards</SelectItem>
+                              <SelectItem value="Muflis">♟️ Muflis</SelectItem>
+                              <SelectItem value="Car Roulette">🏎️ Car Roulette</SelectItem>
+                              <SelectItem value="Fruit Line">🍉 Fruit Line</SelectItem>
                               <SelectItem value="Coin Flip">🪙 Coin Flip</SelectItem>
-                              <SelectItem value="Dice Roll">🎲 Dice Roll</SelectItem>
+                              <SelectItem value="Rummy">🀄 Rummy</SelectItem>
                               <SelectItem value="Rang">♠️ Rang</SelectItem>
+                              <SelectItem value="Dice Roll">🎲 Dice Roll</SelectItem>
                               <SelectItem value="Court Piece">🂡 Court Piece</SelectItem>
                             </SelectContent>
                           </Select>
@@ -1854,6 +1867,67 @@ export default function Admin() {
                 { key: "player", label: "Player", color: "bg-emerald-600 hover:bg-emerald-700", text: "text-emerald-300" },
                 { key: "house",  label: "House",  color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
               ]},
+              { game: "andar-bahar", title: "🃏 Andar Bahar", sides: [
+                { key: "andar", label: "⬅ Andar", color: "bg-blue-600 hover:bg-blue-700", text: "text-blue-300" },
+                { key: "bahar", label: "➡ Bahar", color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
+              ]},
+              { game: "roulette", title: "🎡 Roulette", sides: [
+                { key: "red",   label: "🔴 Red",   color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
+                { key: "black", label: "⚫ Black", color: "bg-slate-600 hover:bg-slate-700", text: "text-slate-300" },
+                { key: "green", label: "🟢 Green 14×", color: "bg-green-600 hover:bg-green-700", text: "text-green-300" },
+              ]},
+              { game: "bingo-777", title: "🎰 777 Bingo", sides: [
+                { key: "triple7", label: "7️⃣ Triple 7 (20×)", color: "bg-yellow-500 hover:bg-yellow-600", text: "text-yellow-300" },
+                { key: "bar",     label: "🟥 BAR (5×)",       color: "bg-purple-600 hover:bg-purple-700", text: "text-purple-300" },
+                { key: "cherry",  label: "🍒 Cherry (2×)",    color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
+              ]},
+              { game: "fruit-line", title: "🍉 Fruit Line", sides: [
+                { key: "jackpot", label: "🍇 Jackpot (10×)", color: "bg-yellow-500 hover:bg-yellow-600", text: "text-yellow-300" },
+                { key: "mix",     label: "🍉 Mix Win (3×)",  color: "bg-green-600 hover:bg-green-700", text: "text-green-300" },
+                { key: "plain",   label: "🍋 Single (1.95×)",color: "bg-blue-600 hover:bg-blue-700", text: "text-blue-300" },
+              ]},
+              { game: "sweet-bonanza", title: "🍭 Sweet Bonanza", sides: [
+                { key: "bonanza", label: "🍭 Bonanza (8×)",  color: "bg-pink-600 hover:bg-pink-700", text: "text-pink-300" },
+                { key: "scatter", label: "⭐ Scatter (3×)",  color: "bg-orange-500 hover:bg-orange-600", text: "text-orange-300" },
+                { key: "base",    label: "🍬 Base (1.95×)",  color: "bg-blue-600 hover:bg-blue-700", text: "text-blue-300" },
+              ]},
+              { game: "crash", title: "🚀 Crash", sides: [
+                { key: "x2",  label: "💚 Cash at 2×",  color: "bg-green-600 hover:bg-green-700", text: "text-green-300" },
+                { key: "x5",  label: "🧡 Cash at 5×",  color: "bg-orange-500 hover:bg-orange-600", text: "text-orange-300" },
+                { key: "x10", label: "🔴 Cash at 10×", color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
+              ]},
+              { game: "joker", title: "🃏 Joker", sides: [
+                { key: "player", label: "👤 Player",      color: "bg-blue-600 hover:bg-blue-700", text: "text-blue-300" },
+                { key: "banker", label: "🏦 Banker",      color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
+                { key: "joker",  label: "🤡 Joker (9×)", color: "bg-yellow-500 hover:bg-yellow-600", text: "text-yellow-300" },
+              ]},
+              { game: "ten-cards", title: "🔟 10 Cards", sides: [
+                { key: "player", label: "👤 Player", color: "bg-blue-600 hover:bg-blue-700", text: "text-blue-300" },
+                { key: "banker", label: "🏦 Banker", color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
+              ]},
+              { game: "muflis", title: "♟️ Muflis", sides: [
+                { key: "player", label: "👤 Player", color: "bg-blue-600 hover:bg-blue-700", text: "text-blue-300" },
+                { key: "banker", label: "🏦 Banker", color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
+              ]},
+              { game: "blackjack", title: "♠️ Blackjack", sides: [
+                { key: "player", label: "🤚 Player",     color: "bg-green-600 hover:bg-green-700", text: "text-green-300" },
+                { key: "dealer", label: "🏠 Dealer",     color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
+                { key: "tie",    label: "🤝 Tie (8×)",   color: "bg-yellow-500 hover:bg-yellow-600", text: "text-yellow-300" },
+              ]},
+              { game: "car-roulette", title: "🏎️ Car Roulette", sides: [
+                { key: "car1", label: "🔴 Car 1",      color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
+                { key: "car2", label: "🔵 Car 2",      color: "bg-blue-600 hover:bg-blue-700", text: "text-blue-300" },
+                { key: "car3", label: "🟡 Car 3 (5×)", color: "bg-yellow-500 hover:bg-yellow-600", text: "text-yellow-300" },
+              ]},
+              { game: "god-of-fortune", title: "🐉 God of Fortune", sides: [
+                { key: "fortune", label: "🍀 Fortune",        color: "bg-green-600 hover:bg-green-700", text: "text-green-300" },
+                { key: "grand",   label: "🔥 Grand (5×)",     color: "bg-orange-500 hover:bg-orange-600", text: "text-orange-300" },
+                { key: "supreme", label: "👑 Supreme (10×)",  color: "bg-yellow-500 hover:bg-yellow-600", text: "text-yellow-300" },
+              ]},
+              { game: "rummy", title: "🀄 Rummy", sides: [
+                { key: "player", label: "👤 Player", color: "bg-green-600 hover:bg-green-700", text: "text-green-300" },
+                { key: "house",  label: "🏠 House",  color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
+              ]},
             ];
             return (
               <Card className="border-emerald-500/40 bg-emerald-500/5">
@@ -2061,6 +2135,106 @@ export default function Admin() {
                     options: [
                       { value: "player", label: "🤲 Player Wins", color: "bg-green-600 hover:bg-green-700 text-white" },
                       { value: "house",  label: "🏠 House Wins",  color: "bg-red-600 hover:bg-red-700 text-white" },
+                    ],
+                  },
+                  {
+                    game: "andar-bahar", label: "🃏 Andar Bahar",
+                    options: [
+                      { value: "andar", label: "⬅ Andar", color: "bg-blue-600 hover:bg-blue-700 text-white" },
+                      { value: "bahar", label: "➡ Bahar", color: "bg-red-600 hover:bg-red-700 text-white" },
+                    ],
+                  },
+                  {
+                    game: "roulette", label: "🎡 Roulette",
+                    options: [
+                      { value: "red",   label: "🔴 Red",      color: "bg-red-600 hover:bg-red-700 text-white" },
+                      { value: "black", label: "⚫ Black",    color: "bg-slate-600 hover:bg-slate-700 text-white" },
+                      { value: "green", label: "🟢 Green 14×",color: "bg-green-600 hover:bg-green-700 text-white" },
+                    ],
+                  },
+                  {
+                    game: "bingo-777", label: "🎰 777 Bingo",
+                    options: [
+                      { value: "triple7", label: "7️⃣ Triple 7", color: "bg-yellow-500 hover:bg-yellow-600 text-white" },
+                      { value: "bar",     label: "🟥 BAR",      color: "bg-purple-600 hover:bg-purple-700 text-white" },
+                      { value: "cherry",  label: "🍒 Cherry",   color: "bg-red-600 hover:bg-red-700 text-white" },
+                    ],
+                  },
+                  {
+                    game: "fruit-line", label: "🍉 Fruit Line",
+                    options: [
+                      { value: "jackpot", label: "🍇 Jackpot", color: "bg-yellow-500 hover:bg-yellow-600 text-white" },
+                      { value: "mix",     label: "🍉 Mix Win", color: "bg-green-600 hover:bg-green-700 text-white" },
+                      { value: "plain",   label: "🍋 Single",  color: "bg-blue-600 hover:bg-blue-700 text-white" },
+                    ],
+                  },
+                  {
+                    game: "sweet-bonanza", label: "🍭 Sweet Bonanza",
+                    options: [
+                      { value: "bonanza", label: "🍭 Bonanza", color: "bg-pink-600 hover:bg-pink-700 text-white" },
+                      { value: "scatter", label: "⭐ Scatter", color: "bg-orange-500 hover:bg-orange-600 text-white" },
+                      { value: "base",    label: "🍬 Base",    color: "bg-blue-600 hover:bg-blue-700 text-white" },
+                    ],
+                  },
+                  {
+                    game: "crash", label: "🚀 Crash",
+                    options: [
+                      { value: "x2",  label: "💚 2×",  color: "bg-green-600 hover:bg-green-700 text-white" },
+                      { value: "x5",  label: "🧡 5×",  color: "bg-orange-500 hover:bg-orange-600 text-white" },
+                      { value: "x10", label: "🔴 10×", color: "bg-red-600 hover:bg-red-700 text-white" },
+                    ],
+                  },
+                  {
+                    game: "joker", label: "🃏 Joker",
+                    options: [
+                      { value: "player", label: "👤 Player",   color: "bg-blue-600 hover:bg-blue-700 text-white" },
+                      { value: "banker", label: "🏦 Banker",   color: "bg-red-600 hover:bg-red-700 text-white" },
+                      { value: "joker",  label: "🤡 Joker 9×", color: "bg-yellow-500 hover:bg-yellow-600 text-white" },
+                    ],
+                  },
+                  {
+                    game: "ten-cards", label: "🔟 10 Cards",
+                    options: [
+                      { value: "player", label: "👤 Player", color: "bg-blue-600 hover:bg-blue-700 text-white" },
+                      { value: "banker", label: "🏦 Banker", color: "bg-red-600 hover:bg-red-700 text-white" },
+                    ],
+                  },
+                  {
+                    game: "muflis", label: "♟️ Muflis",
+                    options: [
+                      { value: "player", label: "👤 Player", color: "bg-blue-600 hover:bg-blue-700 text-white" },
+                      { value: "banker", label: "🏦 Banker", color: "bg-red-600 hover:bg-red-700 text-white" },
+                    ],
+                  },
+                  {
+                    game: "blackjack", label: "♠️ Blackjack",
+                    options: [
+                      { value: "player", label: "🤚 Player",   color: "bg-green-600 hover:bg-green-700 text-white" },
+                      { value: "dealer", label: "🏠 Dealer",   color: "bg-red-600 hover:bg-red-700 text-white" },
+                      { value: "tie",    label: "🤝 Tie 8×",   color: "bg-yellow-500 hover:bg-yellow-600 text-white" },
+                    ],
+                  },
+                  {
+                    game: "car-roulette", label: "🏎️ Car Roulette",
+                    options: [
+                      { value: "car1", label: "🔴 Car 1",     color: "bg-red-600 hover:bg-red-700 text-white" },
+                      { value: "car2", label: "🔵 Car 2",     color: "bg-blue-600 hover:bg-blue-700 text-white" },
+                      { value: "car3", label: "🟡 Car 3 5×",  color: "bg-yellow-500 hover:bg-yellow-600 text-white" },
+                    ],
+                  },
+                  {
+                    game: "god-of-fortune", label: "🐉 God of Fortune",
+                    options: [
+                      { value: "fortune", label: "🍀 Fortune",       color: "bg-green-600 hover:bg-green-700 text-white" },
+                      { value: "grand",   label: "🔥 Grand 5×",      color: "bg-orange-500 hover:bg-orange-600 text-white" },
+                      { value: "supreme", label: "👑 Supreme 10×",   color: "bg-yellow-500 hover:bg-yellow-600 text-white" },
+                    ],
+                  },
+                  {
+                    game: "rummy", label: "🀄 Rummy",
+                    options: [
+                      { value: "player", label: "👤 Player", color: "bg-green-600 hover:bg-green-700 text-white" },
+                      { value: "house",  label: "🏠 House",  color: "bg-red-600 hover:bg-red-700 text-white" },
                     ],
                   },
                 ].map(({ game, label, options }) => {

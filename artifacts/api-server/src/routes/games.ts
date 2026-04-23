@@ -142,5 +142,19 @@ router.post("/games/court-piece",   requireAuth, (req, res) => queueRoundBet(req
 router.post("/games/teen-patti",    requireAuth, (req, res) => queueRoundBet(req, res, "teen-patti",    ["player", "banker", "pair"]));
 router.post("/games/lucky-7",       requireAuth, (req, res) => queueRoundBet(req, res, "lucky-7",       ["under7", "seven", "over7"]));
 router.post("/games/jhandi-munda",  requireAuth, (req, res) => queueRoundBet(req, res, "jhandi-munda",  ["spade", "heart", "diamond", "club", "star", "moon"]));
+// Catalog games
+router.post("/games/andar-bahar",   requireAuth, (req, res) => queueRoundBet(req, res, "andar-bahar",   ["andar", "bahar"]));
+router.post("/games/roulette",      requireAuth, (req, res) => queueRoundBet(req, res, "roulette",      ["red", "black", "green"]));
+router.post("/games/bingo-777",     requireAuth, (req, res) => queueRoundBet(req, res, "bingo-777",     ["triple7", "bar", "cherry"]));
+router.post("/games/fruit-line",    requireAuth, (req, res) => queueRoundBet(req, res, "fruit-line",    ["jackpot", "mix", "plain"]));
+router.post("/games/sweet-bonanza", requireAuth, (req, res) => queueRoundBet(req, res, "sweet-bonanza", ["bonanza", "scatter", "base"]));
+router.post("/games/crash",         requireAuth, (req, res) => queueRoundBet(req, res, "crash",         ["x2", "x5", "x10"]));
+router.post("/games/joker",         requireAuth, (req, res) => queueRoundBet(req, res, "joker",         ["player", "banker", "joker"]));
+router.post("/games/ten-cards",     requireAuth, (req, res) => queueRoundBet(req, res, "ten-cards",     ["player", "banker"]));
+router.post("/games/muflis",        requireAuth, (req, res) => queueRoundBet(req, res, "muflis",        ["player", "banker"]));
+router.post("/games/blackjack",     requireAuth, (req, res) => queueRoundBet(req, res, "blackjack",     ["player", "dealer", "tie"]));
+router.post("/games/car-roulette",  requireAuth, (req, res) => queueRoundBet(req, res, "car-roulette",  ["car1", "car2", "car3"]));
+router.post("/games/god-of-fortune",requireAuth, (req, res) => queueRoundBet(req, res, "god-of-fortune",["fortune", "grand", "supreme"]));
+router.post("/games/rummy",         requireAuth, (req, res) => queueRoundBet(req, res, "rummy",         ["player", "house"]));
 
 export default router;

@@ -7,14 +7,27 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CASINO_SPORTS } from "@/lib/casino-config";
 
 const CASINO_GAMES = [
-  { slug: "teen-patti",  label: "Teen Patti",  emoji: "👑", desc: "Classic 3-card Indian poker",        tag: "HOTTEST",  tagColor: "#ef4444", players: "12.4K", featured: true  },
-  { slug: "dragon-tiger",label: "Dragon Tiger",emoji: "🔥", desc: "Fast 2-card draw · Dragon vs Tiger",  tag: "TRENDING", tagColor: "#f97316", players: "8.2K"                 },
-  { slug: "lucky-7",     label: "Lucky 7",     emoji: "🎲", desc: "Sum the dice · Under / 7 / Over",     tag: "NEW",      tagColor: "#22c55e", players: "5.1K" },
-  { slug: "jhandi-munda",label: "Jhandi Munda",emoji: "🎴", desc: "6 dice · 6 symbols · Indian classic", tag: "NEW",      tagColor: "#22c55e", players: "4.3K" },
-  { slug: "coin-flip",   label: "Coin Flip",   emoji: "🪙", desc: "Heads or Tails · 1.95× payout",                                        players: "3.1K" },
-  { slug: "dice-roll",   label: "Dice Roll",   emoji: "🎲", desc: "High / Low / Lucky 7",                                                  players: "2.8K" },
-  { slug: "rang",        label: "Rang",        emoji: "♠️", desc: "Strategic trick-taking card game",                                      players: "1.9K" },
-  { slug: "court-piece", label: "Court Piece", emoji: "🂡", desc: "Partnership card battle",                                               players: "1.5K" },
+  { slug: "teen-patti",    label: "Teen Patti",       emoji: "👑", desc: "Classic 3-card Indian poker",          tag: "HOTTEST",  tagColor: "#ef4444", players: "12.4K", featured: true },
+  { slug: "dragon-tiger",  label: "Dragon Tiger",     emoji: "🔥", desc: "Fast 2-card draw · Dragon vs Tiger",   tag: "TRENDING", tagColor: "#f97316", players: "8.2K"  },
+  { slug: "andar-bahar",   label: "Andar Bahar",      emoji: "🃏", desc: "Classic Indian card prediction game",  tag: "HOT",      tagColor: "#ef4444", players: "6.5K"  },
+  { slug: "blackjack",     label: "Blackjack",        emoji: "♠️", desc: "Beat the dealer · 21",                tag: "NEW",      tagColor: "#22c55e", players: "5.8K"  },
+  { slug: "roulette",      label: "Roulette",         emoji: "🎡", desc: "Spin the wheel · Red / Black / Green", tag: "NEW",      tagColor: "#22c55e", players: "5.2K"  },
+  { slug: "lucky-7",       label: "Lucky 7",          emoji: "🎲", desc: "Sum the dice · Under / 7 / Over",                                          players: "5.1K"  },
+  { slug: "jhandi-munda",  label: "Jhandi Munda",     emoji: "🎴", desc: "6 dice · 6 symbols · Indian classic",                                      players: "4.3K"  },
+  { slug: "joker",         label: "Joker",            emoji: "🃏", desc: "Teen Patti with Joker wild card",                                          players: "4.0K"  },
+  { slug: "crash",         label: "Crash",            emoji: "🚀", desc: "Bet your cashout · Higher = bigger win",tag: "HOT",     tagColor: "#ef4444", players: "3.8K"  },
+  { slug: "god-of-fortune",label: "God of Fortune",   emoji: "🐉", desc: "Fortune favours the brave",                                               players: "3.5K"  },
+  { slug: "bingo-777",     label: "777 Bingo",        emoji: "🎰", desc: "Spin the slots · Triple 7 jackpot",                                       players: "3.2K"  },
+  { slug: "sweet-bonanza",  label: "Sweet Bonanza",   emoji: "🍭", desc: "Sweet wins · Bonanza payout",                                             players: "3.0K"  },
+  { slug: "ten-cards",     label: "10 Cards",         emoji: "🔟", desc: "10-card Teen Patti variant",                                               players: "2.8K"  },
+  { slug: "muflis",        label: "Muflis",           emoji: "♟️", desc: "Reverse Teen Patti · Lowest wins",                                        players: "2.5K"  },
+  { slug: "car-roulette",  label: "Car Roulette",     emoji: "🏎️", desc: "Pick the winning car · Fast & furious",                                   players: "2.2K"  },
+  { slug: "fruit-line",    label: "Fruit Line",       emoji: "🍉", desc: "Match the fruits · Jackpot wins big",                                      players: "2.0K"  },
+  { slug: "coin-flip",     label: "Coin Flip",        emoji: "🪙", desc: "Heads or Tails · 1.95× payout",                                           players: "1.9K"  },
+  { slug: "rummy",         label: "Rummy",            emoji: "🀄", desc: "Classic card game · Player vs House",                                      players: "1.8K"  },
+  { slug: "rang",          label: "Rang",             emoji: "♠️", desc: "Strategic trick-taking card game",                                         players: "1.6K"  },
+  { slug: "dice-roll",     label: "Dice Roll",        emoji: "🎲", desc: "High / Low / Lucky 7",                                                     players: "1.4K"  },
+  { slug: "court-piece",   label: "Court Piece",      emoji: "🂡", desc: "Partnership card battle",                                                  players: "1.2K"  },
 ];
 
 export default function Home() {
