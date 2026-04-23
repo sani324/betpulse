@@ -784,6 +784,65 @@ router.post("/admin/casino-rounds/:game/settle", requireAdmin, async (req, res):
   res.json({ message: "Round settled", round });
 });
 
+/* ──────────────────────────────────────────────────────────────
+   AUTO-SETTLE MODE — global ON/OFF toggle
+   When ON, a server-side interval fires every autoSettleIntervalMs
+   and auto-settles every open round that has at least one bet.
+   When OFF, only manual settlement works.
+────────────────────────────────────────────────────────────── */
+let autoSettleModeOn = false;
+let autoSettleIntervalMs = 30_000; // 30 seconds default
+let autoSettleTimer: ReturnType<typeof setInterval> | null = null;
+
+async function runAutoSettleAll() {
+  const games = Array.from(casinoOpenRounds.keys());
+  for (const game of games) {
+    const round = casinoOpenRounds.get(game);
+    if (!round || round.bets.length === 0) continue; // skip empty rounds
+    const validOptions = GAME_OPTIONS[game];
+    if (!validOptions) continue;
+    const betCounts: Record<string, number> = {};
+    const betStaked: Record<string, number> = {};
+    for (const opt of validOptions) { betCounts[opt] = 0; betStaked[opt] = 0; }
+    for (const bet of round.bets) {
+      betCounts[bet.selection] = (betCounts[bet.selection] ?? 0) + 1;
+      betStaked[bet.selection] = (betStaked[bet.selection] ?? 0) + bet.stake;
+    }
+    const minCount = Math.min(...validOptions.map(o => betCounts[o]));
+    const candidates = validOptions.filter(o => betCounts[o] === minCount);
+    const minStaked = Math.min(...candidates.map(o => betStaked[o]));
+    const finalCandidates = candidates.filter(o => betStaked[o] === minStaked);
+    const result = finalCandidates[Math.floor(Math.random() * finalCandidates.length)];
+    try { await settleRoundWith(game, result); } catch (_) {}
+  }
+}
+
+function startAutoTimer() {
+  if (autoSettleTimer) clearInterval(autoSettleTimer);
+  autoSettleTimer = setInterval(() => { runAutoSettleAll().catch(() => {}); }, autoSettleIntervalMs);
+}
+
+function stopAutoTimer() {
+  if (autoSettleTimer) { clearInterval(autoSettleTimer); autoSettleTimer = null; }
+}
+
+// GET current auto-settle mode status
+router.get("/admin/auto-settle-mode", requireAdmin, (_req, res) => {
+  res.json({ enabled: autoSettleModeOn, intervalMs: autoSettleIntervalMs, intervalSec: Math.round(autoSettleIntervalMs / 1000) });
+});
+
+// POST to toggle auto-settle mode on or off
+router.post("/admin/auto-settle-mode", requireAdmin, (req, res) => {
+  const { enabled, intervalSec } = req.body ?? {};
+  if (typeof enabled !== "boolean") { res.status(400).json({ error: "enabled (boolean) is required" }); return; }
+  if (typeof intervalSec === "number" && intervalSec >= 5) {
+    autoSettleIntervalMs = intervalSec * 1000;
+  }
+  autoSettleModeOn = enabled;
+  if (enabled) startAutoTimer(); else stopAutoTimer();
+  res.json({ enabled: autoSettleModeOn, intervalMs: autoSettleIntervalMs, intervalSec: Math.round(autoSettleIntervalMs / 1000) });
+});
+
 // All valid options per game — used by auto-settle
 const GAME_OPTIONS: Record<string, string[]> = {
   "dragon-tiger":   ["dragon", "tiger", "tie"],

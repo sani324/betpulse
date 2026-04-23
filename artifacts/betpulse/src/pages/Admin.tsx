@@ -135,6 +135,9 @@ export default function Admin() {
   const [settling, setSettling] = useState<string | null>(null);
   const [autoSettling, setAutoSettling] = useState<string | null>(null);
   const [lastAutoResult, setLastAutoResult] = useState<Record<string, { result: string; reason: string }>>({});
+  const [autoMode, setAutoMode] = useState(false);
+  const [autoInterval, setAutoInterval] = useState(30);
+  const [autoModeLoading, setAutoModeLoading] = useState(false);
 
   type PaymentSetting = { method: string; label: string; accountName: string; accountNumber: string; instructions: string; isActive: boolean };
   const [paymentSettings, setPaymentSettings] = useState<PaymentSetting[]>([]);
@@ -351,12 +354,10 @@ export default function Admin() {
 
   // Auto-refresh the live round every 2s while the Game Controls tab is active.
   useEffect(() => {
+    loadAutoMode();
     const t = setInterval(() => {
-      // Cheap optimistic poll — silently ignored if not on the tab.
-      const isOnTab = document.querySelector('[data-state="active"][data-radix-collection-item]');
-      void isOnTab; // not strict; just always poll, it's lightweight
       loadLiveRounds();
-    }, 2000);
+    }, 3000);
     return () => clearInterval(t);
   }, []);
 
@@ -428,6 +429,43 @@ export default function Admin() {
       toast({ title: "Auto-settle all failed", variant: "destructive" });
     } finally {
       setAutoSettling(null);
+    }
+  }
+
+  async function loadAutoMode() {
+    try {
+      const resp = await fetch("/api/admin/auto-settle-mode", { credentials: "include" });
+      if (resp.ok) {
+        const data = await resp.json();
+        setAutoMode(data.enabled);
+        setAutoInterval(data.intervalSec ?? 30);
+      }
+    } catch {}
+  }
+
+  async function toggleAutoMode(enabled: boolean) {
+    setAutoModeLoading(true);
+    try {
+      const resp = await fetch("/api/admin/auto-settle-mode", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled, intervalSec: autoInterval }),
+      });
+      if (!resp.ok) throw new Error("failed");
+      const data = await resp.json();
+      setAutoMode(data.enabled);
+      setAutoInterval(data.intervalSec ?? 30);
+      toast({
+        title: data.enabled ? "🤖 Auto Mode ON" : "✋ Manual Mode ON",
+        description: data.enabled
+          ? `System will auto-settle every ${data.intervalSec}s. House always wins.`
+          : "Auto-settle stopped. You control results manually.",
+      });
+      await loadLiveRounds();
+    } catch {
+      toast({ title: "Failed to toggle mode", variant: "destructive" });
+    } finally {
+      setAutoModeLoading(false);
     }
   }
 
@@ -1978,22 +2016,82 @@ export default function Admin() {
             return (
               <Card className="border-emerald-500/40 bg-emerald-500/5">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap">
-                  <div>
-                    <CardTitle className="text-emerald-300 flex items-center gap-2">🟢 Live Rounds — Settle Results</CardTitle>
-                    <CardDescription>
-                      <strong>Manual:</strong> You pick the winner per game. <strong>Auto:</strong> System picks the option with fewest bets (house edge — losers lose, house wins).
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Button
-                      variant="outline" size="sm"
-                      onClick={autoSettleAll}
-                      disabled={!!autoSettling || !!settling}
-                      className="bg-purple-600/20 border-purple-500/40 text-purple-300 hover:bg-purple-600/30"
-                    >
-                      {autoSettling === "ALL" ? "⏳ Auto-Settling..." : "🤖 Auto Settle ALL"}
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={loadLiveRounds}>🔄 Refresh</Button>
+                  <div className="w-full space-y-3">
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                      <CardTitle className="text-emerald-300 flex items-center gap-2">🟢 Live Rounds — Settlement Control</CardTitle>
+                      <Button variant="outline" size="sm" onClick={loadLiveRounds}>🔄 Refresh</Button>
+                    </div>
+
+                    {/* ── BIG ON/OFF TOGGLE ── */}
+                    <div className={`rounded-xl p-4 border-2 transition-all duration-300 ${autoMode ? "border-purple-500/60 bg-purple-950/40" : "border-border/40 bg-card/20"}`}>
+                      <div className="flex items-center justify-between gap-4 flex-wrap">
+                        <div className="flex items-center gap-3">
+                          {/* Traffic-light style indicator */}
+                          <div className={`w-14 h-8 rounded-full relative cursor-pointer transition-all duration-300 flex-shrink-0 ${autoMode ? "bg-purple-600" : "bg-zinc-600"}`}
+                            onClick={() => !autoModeLoading && toggleAutoMode(!autoMode)}>
+                            <div className={`absolute top-1 w-6 h-6 rounded-full shadow-md transition-all duration-300 ${autoMode ? "left-7 bg-white" : "left-1 bg-zinc-300"}`} />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className={`font-black text-lg ${autoMode ? "text-purple-300" : "text-muted-foreground"}`}>
+                                {autoMode ? "🤖 AUTO MODE" : "✋ MANUAL MODE"}
+                              </span>
+                              {autoMode && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-500/25 text-purple-300 animate-pulse">● ACTIVE</span>}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              {autoMode
+                                ? `House auto-wins every ${autoInterval}s — fewest-bet option wins automatically`
+                                : "You manually choose who wins each round"}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* Interval picker — only shown when auto mode off (to configure before turning on) */}
+                          {!autoMode && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs text-muted-foreground">Every</span>
+                              <select
+                                value={autoInterval}
+                                onChange={e => setAutoInterval(Number(e.target.value))}
+                                className="bg-card/60 border border-border/50 rounded-md px-2 py-1 text-xs text-white"
+                              >
+                                {[10,15,20,30,45,60,90,120].map(s => (
+                                  <option key={s} value={s}>{s}s</option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+                          <Button
+                            size="sm"
+                            disabled={autoModeLoading}
+                            onClick={() => toggleAutoMode(!autoMode)}
+                            className={`font-black px-5 ${autoMode
+                              ? "bg-zinc-700 hover:bg-zinc-600 text-white"
+                              : "bg-purple-600 hover:bg-purple-700 text-white"}`}
+                          >
+                            {autoModeLoading ? "..." : autoMode ? "Turn OFF" : "Turn ON"}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Auto mode description strip */}
+                      {autoMode && (
+                        <div className="mt-3 pt-3 border-t border-purple-500/20 flex items-center justify-between gap-2 flex-wrap">
+                          <div className="text-xs text-purple-300/70">
+                            Auto-picks the option with <strong className="text-purple-200">fewest bets</strong> every <strong className="text-purple-200">{autoInterval}s</strong>. If 3 bet Tiger and 0 bet Tie → <strong className="text-purple-200">Tie wins</strong>. Manual buttons are disabled.
+                          </div>
+                          <Button
+                            size="sm" variant="outline"
+                            onClick={autoSettleAll}
+                            disabled={!!autoSettling}
+                            className="text-[11px] border-purple-500/40 text-purple-300 hover:bg-purple-900/40"
+                          >
+                            {autoSettling === "ALL" ? "⏳..." : "⚡ Run Now"}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-5">
@@ -2005,22 +2103,25 @@ export default function Admin() {
                     const isAutoSettlingThis = autoSettling === cfg.game;
                     const lastAuto = lastAutoResult[cfg.game];
                     return (
-                      <div key={cfg.game} className="border border-border/40 rounded-xl p-3 bg-card/20">
+                      <div key={cfg.game} className={`border rounded-xl p-3 transition-all duration-200 ${autoMode ? "border-purple-500/20 bg-purple-950/10" : "border-border/40 bg-card/20"}`}>
                         <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                           <div className="font-bold text-base">{cfg.title}</div>
                           <div className="flex items-center gap-2 flex-wrap">
                             <div className="text-xs text-muted-foreground">
-                              Round: <span className="font-mono">{round?.id?.slice(-6) ?? "—"}</span> · <span className={totalBets > 0 ? "text-emerald-400 font-bold" : ""}>{totalBets} bet{totalBets === 1 ? "" : "s"}</span>
+                              <span className="font-mono">{round?.id?.slice(-6) ?? "—"}</span> · <span className={totalBets > 0 ? "text-emerald-400 font-bold" : ""}>{totalBets} bet{totalBets === 1 ? "" : "s"}</span>
                             </div>
-                            <Button
-                              size="sm"
-                              onClick={() => autoSettleRound(cfg.game)}
-                              disabled={!!settling || !!autoSettling}
-                              className="h-6 px-2 text-[11px] bg-purple-600/25 border border-purple-500/40 text-purple-300 hover:bg-purple-600/40"
-                              variant="outline"
-                            >
-                              {isAutoSettlingThis ? "⏳..." : "🤖 Auto"}
-                            </Button>
+                            {/* Per-game auto button — hidden when global auto mode is ON */}
+                            {!autoMode && (
+                              <Button
+                                size="sm"
+                                onClick={() => autoSettleRound(cfg.game)}
+                                disabled={!!settling || !!autoSettling}
+                                className="h-6 px-2 text-[11px] bg-purple-600/25 border border-purple-500/40 text-purple-300 hover:bg-purple-600/40"
+                                variant="outline"
+                              >
+                                {isAutoSettlingThis ? "⏳..." : "🤖 Auto"}
+                              </Button>
+                            )}
                           </div>
                         </div>
 
@@ -2028,59 +2129,105 @@ export default function Admin() {
                         {lastAuto && (
                           <div className="mb-2 px-2 py-1 rounded-md text-[10px] bg-purple-900/30 border border-purple-500/20 text-purple-300 flex items-center gap-1.5">
                             <span>🤖</span>
-                            <span>Last auto: <strong className="text-purple-200">{lastAuto.result}</strong> — {lastAuto.reason}</span>
+                            <span>Last: <strong className="text-purple-200">{lastAuto.result}</strong> — {lastAuto.reason}</span>
                           </div>
                         )}
 
-                        {/* Manual settle section header */}
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">✋ Manual — click to settle:</div>
-                        <div className={`grid gap-2 ${cfg.sides.length > 6 ? "grid-cols-3 md:grid-cols-6" : cfg.sides.length === 2 ? "grid-cols-2" : "grid-cols-1 md:grid-cols-3"}`}>
-                          {cfg.sides.map(s => {
-                            const data = sideMap[s.key];
-                            const count = data?.betCount ?? 0;
-                            const staked = data?.totalStaked ?? 0;
-                            const isSettling = settling === `${cfg.game}:${s.key}`;
-                            const totalStakedAll = round?.totalStaked ?? 0;
-                            const pct = totalStakedAll > 0 ? Math.round((staked / totalStakedAll) * 100) : 0;
-                            return (
-                              <div key={s.key} className="border rounded-lg p-2 bg-card/40 border-border/30">
-                                <div className="flex items-baseline justify-between mb-1">
-                                  <div className={`font-semibold text-sm ${s.text}`}>{s.label}</div>
-                                  <div className="text-[11px] tabular-nums font-bold">{count} bets</div>
-                                </div>
-                                {count > 0 && (
-                                  <>
-                                    <div className="text-[10px] text-muted-foreground mb-1">₹{staked.toFixed(0)} · {pct}% of pool</div>
-                                    {/* bet bar */}
-                                    <div className="h-1 rounded-full mb-1.5 bg-border/40">
-                                      <div className="h-full rounded-full bg-emerald-400/60" style={{ width: `${pct}%` }} />
-                                    </div>
-                                  </>
-                                )}
-                                {data?.users && data.users.length > 0 && (
-                                  <div className="text-[10px] text-muted-foreground mb-2 max-h-12 overflow-y-auto">
-                                    {data.users.map((u, i) => (
-                                      <div key={i} className="flex justify-between gap-1 truncate">
-                                        <span className="truncate">{u.username}</span>
-                                        <span className="tabular-nums">₹{u.stake}</span>
+                        {/* ── AUTO MODE ON: show bet summary only ── */}
+                        {autoMode ? (
+                          <div>
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-purple-400/60 mb-1.5">📊 Current Bets (auto-settle handles this):</div>
+                            <div className={`grid gap-2 ${cfg.sides.length > 6 ? "grid-cols-3 md:grid-cols-6" : cfg.sides.length === 2 ? "grid-cols-2" : "grid-cols-1 md:grid-cols-3"}`}>
+                              {cfg.sides.map(s => {
+                                const data = sideMap[s.key];
+                                const count = data?.betCount ?? 0;
+                                const staked = data?.totalStaked ?? 0;
+                                const totalStakedAll = round?.totalStaked ?? 0;
+                                const pct = totalStakedAll > 0 ? Math.round((staked / totalStakedAll) * 100) : 0;
+                                const isFewest = totalBets > 0 && count === Math.min(...cfg.sides.map(ss => sideMap[ss.key]?.betCount ?? 0));
+                                return (
+                                  <div key={s.key} className={`border rounded-lg p-2 transition-all ${isFewest && count === Math.min(...cfg.sides.map(ss => sideMap[ss.key]?.betCount ?? 0)) ? "border-purple-500/50 bg-purple-950/30" : "border-border/20 bg-card/20"}`}>
+                                    <div className="flex items-baseline justify-between mb-1">
+                                      <div className={`font-semibold text-sm ${s.text}`}>{s.label}</div>
+                                      <div className="text-[11px] tabular-nums font-bold flex items-center gap-1">
+                                        {count} bets
+                                        {isFewest && totalBets > 0 && <span className="text-[9px] text-purple-300 font-black">🤖WIN</span>}
                                       </div>
-                                    ))}
+                                    </div>
+                                    {count > 0 && (
+                                      <>
+                                        <div className="text-[10px] text-muted-foreground mb-1">₹{staked.toFixed(0)} · {pct}%</div>
+                                        <div className="h-1 rounded-full bg-border/40">
+                                          <div className="h-full rounded-full bg-purple-400/60" style={{ width: `${pct}%` }} />
+                                        </div>
+                                      </>
+                                    )}
+                                    {data?.users && data.users.length > 0 && (
+                                      <div className="text-[10px] text-muted-foreground mt-1 max-h-10 overflow-y-auto">
+                                        {data.users.map((u, i) => (
+                                          <div key={i} className="flex justify-between gap-1 truncate">
+                                            <span className="truncate">{u.username}</span>
+                                            <span className="tabular-nums">₹{u.stake}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
-                                )}
-                                <Button
-                                  size="sm"
-                                  onClick={() => settleRound(cfg.game, s.key)}
-                                  disabled={!!settling || !!autoSettling}
-                                  className={`w-full text-white text-xs h-7 ${s.color}`}
-                                >
-                                  {isSettling ? "Settling..." : `✅ ${s.label} Wins`}
-                                </Button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        {totalBets === 0 && (
-                          <div className="text-[11px] text-muted-foreground mt-2 text-center italic">No bets yet — settle anyway to pre-set result, or use 🤖 Auto.</div>
+                                );
+                              })}
+                            </div>
+                            {totalBets === 0 && <div className="text-[11px] text-purple-400/50 mt-2 text-center italic">No bets yet — auto-settle will skip this round.</div>}
+                          </div>
+                        ) : (
+                          /* ── MANUAL MODE: full settle buttons ── */
+                          <div>
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">✋ Click to settle manually:</div>
+                            <div className={`grid gap-2 ${cfg.sides.length > 6 ? "grid-cols-3 md:grid-cols-6" : cfg.sides.length === 2 ? "grid-cols-2" : "grid-cols-1 md:grid-cols-3"}`}>
+                              {cfg.sides.map(s => {
+                                const data = sideMap[s.key];
+                                const count = data?.betCount ?? 0;
+                                const staked = data?.totalStaked ?? 0;
+                                const isSettling = settling === `${cfg.game}:${s.key}`;
+                                const totalStakedAll = round?.totalStaked ?? 0;
+                                const pct = totalStakedAll > 0 ? Math.round((staked / totalStakedAll) * 100) : 0;
+                                return (
+                                  <div key={s.key} className="border rounded-lg p-2 bg-card/40 border-border/30">
+                                    <div className="flex items-baseline justify-between mb-1">
+                                      <div className={`font-semibold text-sm ${s.text}`}>{s.label}</div>
+                                      <div className="text-[11px] tabular-nums font-bold">{count} bets</div>
+                                    </div>
+                                    {count > 0 && (
+                                      <>
+                                        <div className="text-[10px] text-muted-foreground mb-1">₹{staked.toFixed(0)} · {pct}% of pool</div>
+                                        <div className="h-1 rounded-full mb-1.5 bg-border/40">
+                                          <div className="h-full rounded-full bg-emerald-400/60" style={{ width: `${pct}%` }} />
+                                        </div>
+                                      </>
+                                    )}
+                                    {data?.users && data.users.length > 0 && (
+                                      <div className="text-[10px] text-muted-foreground mb-2 max-h-12 overflow-y-auto">
+                                        {data.users.map((u, i) => (
+                                          <div key={i} className="flex justify-between gap-1 truncate">
+                                            <span className="truncate">{u.username}</span>
+                                            <span className="tabular-nums">₹{u.stake}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    <Button
+                                      size="sm"
+                                      onClick={() => settleRound(cfg.game, s.key)}
+                                      disabled={!!settling || !!autoSettling}
+                                      className={`w-full text-white text-xs h-7 ${s.color}`}
+                                    >
+                                      {isSettling ? "Settling..." : `✅ ${s.label} Wins`}
+                                    </Button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {totalBets === 0 && <div className="text-[11px] text-muted-foreground mt-2 text-center italic">No bets yet. Settle anyway or wait for players.</div>}
+                          </div>
                         )}
                       </div>
                     );
