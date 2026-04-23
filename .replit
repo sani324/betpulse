@@ -23,3 +23,11 @@ timeoutMs = 20000
 
 [userenv.shared]
 NEON_DATABASE_URL = "postgresql://neondb_owner:npg_3xzhOcHIieJ6@ep-spring-term-amyg3kf8-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+
+[[ports]]
+localPort = 8080
+externalPort = 80
+
+[[ports]]
+localPort = 23811
+externalPort = 3000
