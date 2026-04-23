@@ -1,321 +1,240 @@
-import { useState } from "react";
 import { useLocation } from "wouter";
-import { useGetEvents, useGetLiveEvents, getGetEventsQueryKey, getGetLiveEventsQueryKey } from "@workspace/api-client-react";
+import { useGetLiveEvents, getGetLiveEventsQueryKey } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth-context";
-import { EventCard } from "@/components/EventCard";
 import { CasinoCard } from "@/components/CasinoCard";
-import { Activity, CalendarDays, Gem, Trophy, Zap, Users, TrendingUp } from "lucide-react";
+import { Activity, Crown, Flame, Gamepad2, Sparkles, ArrowRight, Users, Zap, TrendingUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CASINO_SPORTS, CASINO_ICONS, CASINO_DESC } from "@/lib/casino-config";
+import { CASINO_SPORTS } from "@/lib/casino-config";
 
-const SPORTS = ["All", "Football", "Basketball", "Tennis", "Cricket"];
-
-const SPORT_ICONS: Record<string, string> = {
-  All: "🌐",
-  Football: "⚽",
-  Basketball: "🏀",
-  Tennis: "🎾",
-  Cricket: "🏏",
-  Casino: "🎰",
-};
-
-const QUICK_STATS = [
-  { icon: <Zap className="h-4 w-4" />, value: "12", label: "Live Now" },
-  { icon: <TrendingUp className="h-4 w-4" />, value: "PKR 2Cr+", label: "Paid Out" },
-  { icon: <Users className="h-4 w-4" />, value: "50K+", label: "Players" },
+const CASINO_GAMES = [
+  { slug: "teen-patti",  label: "Teen Patti",  emoji: "👑", desc: "Classic 3-card Indian poker",        tag: "HOTTEST",  tagColor: "#ef4444", players: "12.4K", featured: true  },
+  { slug: "dragon-tiger",label: "Dragon Tiger",emoji: "🔥", desc: "Fast 2-card draw · Dragon vs Tiger",  tag: "TRENDING", tagColor: "#f97316", players: "8.2K"                 },
+  { slug: "andar-bahar", label: "Andar Bahar", emoji: "🃏", desc: "Classic prediction card game",                                          players: "6.5K"                 },
+  { slug: "lucky-7",     label: "Lucky 7",     emoji: "🎲", desc: "Sum the dice · Under / 7 / Over",     tag: "NEW",      tagColor: "#22c55e", players: "5.1K"                 },
+  { slug: "jhandi-munda",label: "Jhandi Munda",emoji: "🎴", desc: "6 dice · 6 symbols · Indian classic", tag: "NEW",      tagColor: "#22c55e", players: "4.3K"                 },
+  { slug: "coin-flip",   label: "Coin Flip",   emoji: "🪙", desc: "Heads or Tails · 1.95× payout",                                        players: "3.1K"                 },
+  { slug: "dice-roll",   label: "Dice Roll",   emoji: "🎲", desc: "High / Low / Lucky 7",                                                  players: "2.8K"                 },
+  { slug: "rang",        label: "Rang",        emoji: "♠️", desc: "Strategic trick-taking card game",                                      players: "1.9K"                 },
+  { slug: "court-piece", label: "Court Piece", emoji: "🂡", desc: "Partnership card battle",                                               players: "1.5K"                 },
+  { slug: "code-piece",  label: "Code Piece",  emoji: "🔢", desc: "Number sequence strategy · 9×",                                         players: "900+"                 },
 ];
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState("All");
-  const [selectedCasinoGame, setSelectedCasinoGame] = useState<string | null>(null);
   const [, setLocation] = useLocation();
   const { isAuthenticated } = useAuth();
-
-  const isCasino = activeTab === "Casino";
-  const sportParam = activeTab === "All" || isCasino ? undefined : activeTab;
-
-  const { data: events, isLoading: isLoadingEvents } = useGetEvents(
-    { sport: sportParam, status: "upcoming" },
-    { query: { queryKey: getGetEventsQueryKey({ sport: sportParam, status: "upcoming" }) } }
-  );
 
   const { data: liveEvents, isLoading: isLoadingLive } = useGetLiveEvents(
     { query: { queryKey: getGetLiveEventsQueryKey() } }
   );
 
-  const filteredUpcoming = isCasino
-    ? (events?.filter(e =>
-        CASINO_SPORTS.includes(e.sport) &&
-        (selectedCasinoGame === null || e.sport === selectedCasinoGame)
-      ) || [])
-    : (events || []);
-
-  const filteredLive = liveEvents?.filter(e => {
-    if (activeTab === "All") return true;
-    if (isCasino) {
-      const isCasinoSport = CASINO_SPORTS.includes(e.sport);
-      if (!isCasinoSport) return false;
-      return selectedCasinoGame === null || e.sport === selectedCasinoGame;
-    }
-    return e.sport === activeTab;
-  }) || [];
-
-  const handleTabChange = (v: string) => {
-    setActiveTab(v);
-    setSelectedCasinoGame(null);
-  };
-
-  const toggleCasinoGame = (game: string) => {
-    setSelectedCasinoGame(prev => (prev === game ? null : game));
-  };
+  const casinoLive = liveEvents?.filter(e => CASINO_SPORTS.includes(e.sport)) || [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-10">
 
       {/* ── HERO BANNER ── */}
       <section
-        className="relative overflow-hidden rounded-2xl"
-        style={{
-          background: "linear-gradient(135deg, #064e3b 0%, #0a6b52 30%, #1a3a5c 65%, #1e1b4b 100%)",
-          minHeight: 180,
-        }}
+        className="relative overflow-hidden rounded-3xl"
+        style={{ minHeight: 220, background: "linear-gradient(135deg, #0d2b1a 0%, #113a21 50%, #0a2414 100%)", border: "1px solid rgba(245,197,66,0.2)" }}
       >
-        {/* Decorative circles */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-12 -right-12 h-56 w-56 rounded-full" style={{ background: "rgba(16,185,129,0.15)" }} />
-          <div className="absolute -bottom-16 -left-8 h-48 w-48 rounded-full" style={{ background: "rgba(99,102,241,0.12)" }} />
+        {/* Background card suits pattern */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden select-none" style={{ opacity: 0.04 }}>
+          <div className="flex flex-wrap gap-6 p-4 text-7xl leading-tight">
+            {[...Array(40)].map((_, i) => <span key={i}>{["♠", "♥", "♣", "♦"][i % 4]}</span>)}
+          </div>
         </div>
 
-        <div className="relative z-10 flex flex-col gap-4 p-5 sm:p-7 md:flex-row md:items-center md:justify-between">
-          {/* Left: Headline */}
-          <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-green-400/30 bg-green-400/10 px-3 py-1 text-xs font-semibold text-green-400">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
-              LIVE BETTING OPEN
-            </div>
-            <h1 className="text-2xl font-extrabold text-white sm:text-3xl">
-              Win Big on <span style={{ color: "#34d399" }}>Every Match</span>
-            </h1>
-            <p className="mt-1 text-sm text-white/60">Cricket · Football · Casino · PKR Payouts</p>
+        {/* Gold ambient glow */}
+        <div className="pointer-events-none absolute -top-20 -right-20 w-80 h-80 rounded-full" style={{ background: "rgba(245,197,66,0.07)", filter: "blur(80px)" }} />
 
-            {/* Quick stats row */}
-            <div className="mt-4 flex flex-wrap gap-5">
-              {QUICK_STATS.map(s => (
-                <div key={s.label} className="flex items-center gap-2">
-                  <span className="text-green-400">{s.icon}</span>
-                  <div>
-                    <div className="text-sm font-bold text-white">{s.value}</div>
-                    <div className="text-[10px] text-white/50">{s.label}</div>
-                  </div>
-                </div>
-              ))}
+        {/* Decorative playing cards */}
+        <div className="pointer-events-none absolute right-6 bottom-0 hidden md:flex items-end gap-2" style={{ height: "100%" }}>
+          {[
+            { r: "A", s: "♥", c: "text-red-600", rot: "-rotate-12" },
+            { r: "A", s: "♠", c: "text-gray-900", rot: "translate-y-[-16px]" },
+            { r: "A", s: "♦", c: "text-red-600", rot: "rotate-12" },
+          ].map((card, i) => (
+            <div key={i} className={`w-20 h-28 rounded-xl shadow-2xl flex flex-col items-center justify-center ${card.rot}`} style={{ background: "white", border: "2px solid #e5e7eb" }}>
+              <span className={`text-3xl font-black ${card.c}`}>{card.r}</span>
+              <span className={`text-2xl ${card.c}`}>{card.s}</span>
             </div>
+          ))}
+        </div>
+
+        <div className="relative z-10 p-6 sm:p-8 md:pr-64">
+          <div className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider mb-4" style={{ background: "rgba(245,197,66,0.12)", border: "1px solid rgba(245,197,66,0.3)", color: "#f5c542" }}>
+            <Sparkles size={12} /> Premium Indian Casino
           </div>
+          <h1 className="text-3xl font-black text-white leading-tight mb-2 sm:text-4xl">
+            Welcome to{" "}
+            <span style={{ background: "linear-gradient(90deg,#f5c542,#ffeba1)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+              BetPulse
+            </span>
+          </h1>
+          <p className="text-sm mb-6 max-w-md" style={{ color: "rgba(255,255,255,0.6)" }}>
+            Teen Patti · Dragon Tiger · Andar Bahar · Lucky 7 · Jhandi Munda
+          </p>
 
-          {/* Right: Quick play casino games */}
-          <div className="flex flex-wrap gap-2 md:flex-col md:items-end">
+          <div className="flex flex-wrap gap-5 mb-6">
             {[
-              { href: "/play/dragon-tiger", label: "Dragon Tiger", emoji: "🐲", color: "linear-gradient(135deg,#7f1d1d,#991b1b)", badge: "Cards" },
-              { href: "/play/coin-flip",    label: "Coin Flip",    emoji: "🪙", color: "linear-gradient(135deg,#92400e,#b45309)", badge: "1.95×" },
-              { href: "/play/dice-roll",    label: "Dice Roll",    emoji: "🎲", color: "linear-gradient(135deg,#1e3a8a,#1d4ed8)", badge: "Lucky 7" },
-              { href: "/play/andar-bahar",  label: "Andar Bahar",  emoji: "🃏", color: "linear-gradient(135deg,#064e3b,#065f46)", badge: "Cards" },
-              { href: "/play/rang",         label: "Rang",         emoji: "🃏", color: "linear-gradient(135deg,#78350f,#b45309)", badge: "Trump" },
-              { href: "/play/court-piece",  label: "Court Piece",  emoji: "🃏", color: "linear-gradient(135deg,#064e3b,#0f766e)", badge: "Cards" },
-            ].map(g => (
-              <button
-                key={g.href}
-                onClick={() => setLocation(g.href)}
-                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white transition-all hover:scale-105 active:scale-95"
-                style={{ background: g.color, boxShadow: "0 2px 12px rgba(0,0,0,0.3)" }}
-              >
-                {g.emoji} {g.label}
-                <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[9px]">{g.badge}</span>
-              </button>
+              { icon: <Zap size={14} />, value: "Live", label: "Games Now" },
+              { icon: <TrendingUp size={14} />, value: "₹2Cr+", label: "Paid Out" },
+              { icon: <Users size={14} />, value: "50K+", label: "Players" },
+            ].map(s => (
+              <div key={s.label} className="flex items-center gap-2">
+                <span style={{ color: "#f5c542" }}>{s.icon}</span>
+                <div>
+                  <div className="text-sm font-bold text-white">{s.value}</div>
+                  <div className="text-[10px]" style={{ color: "rgba(255,255,255,0.45)" }}>{s.label}</div>
+                </div>
+              </div>
             ))}
           </div>
+
+          {!isAuthenticated && (
+            <div className="flex gap-3 flex-wrap">
+              <button
+                onClick={() => setLocation("/register")}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-105 active:scale-95"
+                style={{ background: "linear-gradient(135deg,#d4a017,#f5c542)", color: "#081c0e", boxShadow: "0 0 20px rgba(245,197,66,0.35)" }}
+              >
+                Claim ₹500 Bonus <ArrowRight size={16} />
+              </button>
+              <button
+                onClick={() => setLocation("/login")}
+                className="px-5 py-2.5 rounded-xl text-sm font-bold transition-all hover:bg-white/10"
+                style={{ background: "rgba(255,255,255,0.08)", color: "white", border: "1px solid rgba(255,255,255,0.2)" }}
+              >
+                Login
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
-      {/* ── SPORT TABS ── */}
+      {/* ── LIVE ROUNDS ── */}
+      {casinoLive.length > 0 && (
+        <section>
+          <div className="mb-4 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+            <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: "#f87171" }}>
+              <Activity size={18} /> Live Rounds
+            </h2>
+            <span className="rounded-full px-2.5 py-0.5 text-xs font-bold" style={{ background: "rgba(239,68,68,0.15)", color: "#f87171", border: "1px solid rgba(239,68,68,0.25)" }}>
+              {casinoLive.length}
+            </span>
+          </div>
+          {isLoadingLive ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2].map(i => <Skeleton key={i} className="h-48 w-full rounded-2xl" style={{ background: "rgba(20,61,35,0.4)" }} />)}
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {casinoLive.map(event => <CasinoCard key={event.id} event={event} />)}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ── ALL GAMES ── */}
       <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-            {isCasino ? <><Gem className="h-5 w-5 text-purple-500" /> Casino Games</> : <><Trophy className="h-5 w-5 text-primary" /> Sports Betting</>}
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <Crown size={20} style={{ color: "#f5c542" }} />
+            <span>All Casino Games</span>
           </h2>
+          <span className="text-xs font-semibold" style={{ color: "rgba(245,197,66,0.55)" }}>
+            {CASINO_GAMES.length} games
+          </span>
         </div>
 
-        {/* Scrollable pill tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide" style={{ scrollbarWidth: "none" }}>
-          {SPORTS.map((sport) => (
+        {/* Featured Hero Card — Teen Patti */}
+        <div
+          className="relative overflow-hidden rounded-3xl mb-5 cursor-pointer group"
+          onClick={() => setLocation("/play/teen-patti")}
+          style={{ minHeight: 200, background: "linear-gradient(135deg,#0d2b1a,#1a4a2b,#0a2414)", border: "1px solid rgba(245,197,66,0.35)" }}
+        >
+          <div className="pointer-events-none absolute -right-10 -top-10 w-64 h-64 rounded-full" style={{ background: "rgba(245,197,66,0.06)", filter: "blur(60px)" }} />
+          <div className="pointer-events-none absolute inset-0 select-none flex flex-wrap gap-4 p-4 text-5xl" style={{ opacity: 0.03 }}>
+            {["♠","♥","♣","♦","♠","♥","♣","♦"].map((s, i) => <span key={i}>{s}</span>)}
+          </div>
+
+          {/* Decorative cards */}
+          <div className="pointer-events-none absolute right-6 bottom-0 hidden sm:flex items-end gap-1">
+            {[
+              { r: "A", s: "♥", c: "text-red-600", cls: "-rotate-12" },
+              { r: "K", s: "♠", c: "text-gray-900", cls: "translate-y-[-16px] z-10" },
+              { r: "Q", s: "♦", c: "text-red-600", cls: "rotate-12" },
+            ].map((c, i) => (
+              <div key={i} className={`w-16 rounded-xl flex flex-col items-center justify-center transition-transform group-hover:scale-105 ${c.cls}`} style={{ height: 88, background: "white", border: "2px solid #e5e7eb" }}>
+                <span className={`text-2xl font-black ${c.c}`}>{c.r}</span>
+                <span className={`text-xl ${c.c}`}>{c.s}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="relative z-10 p-7">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider mb-3" style={{ background: "rgba(239,68,68,0.2)", border: "1px solid rgba(239,68,68,0.35)", color: "#f87171" }}>
+              <Flame size={11} /> Hottest Game
+            </div>
+            <h3 className="text-4xl font-black text-white mb-2 tracking-tight">Teen Patti</h3>
+            <p className="text-sm mb-5" style={{ color: "rgba(255,255,255,0.55)" }}>The legendary 3-card Indian poker · Real players · High stakes</p>
+            <div className="flex items-center gap-4">
+              <button
+                className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all hover:scale-105 active:scale-95"
+                style={{ background: "linear-gradient(135deg,#d4a017,#f5c542)", color: "#081c0e", boxShadow: "0 0 20px rgba(245,197,66,0.4)" }}
+              >
+                Play Now <Gamepad2 size={16} />
+              </button>
+              <div className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: "rgba(255,255,255,0.45)" }}>
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> 12,450 Playing
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Rest of games grid */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          {CASINO_GAMES.filter(g => g.slug !== "teen-patti").map(game => (
             <button
-              key={sport}
-              onClick={() => handleTabChange(sport)}
-              data-testid={`tab-sport-${sport}`}
-              className="flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-all"
-              style={{
-                background: activeTab === sport
-                  ? "linear-gradient(135deg, #059669, #065f46)"
-                  : "rgba(255,255,255,0.06)",
-                color: activeTab === sport ? "white" : "rgba(255,255,255,0.55)",
-                border: activeTab === sport ? "none" : "1px solid rgba(255,255,255,0.1)",
-                boxShadow: activeTab === sport ? "0 2px 12px rgba(5,150,105,0.35)" : "none",
-              }}
+              key={game.slug}
+              onClick={() => setLocation(`/play/${game.slug}`)}
+              className="relative group rounded-2xl p-4 flex flex-col text-left transition-all hover:scale-[1.03] hover:-translate-y-1 active:scale-95"
+              style={{ background: "linear-gradient(135deg,#113a21,#0a2414)", border: "1px solid rgba(255,255,255,0.06)" }}
             >
-              <span>{SPORT_ICONS[sport]}</span>
-              {sport}
+              {/* Hover glow overlay */}
+              <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" style={{ background: "linear-gradient(135deg,rgba(245,197,66,0.05),transparent)", border: "1px solid rgba(245,197,66,0.25)" }} />
+
+              <div className="relative flex justify-between items-start mb-4">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style={{ background: "rgba(10,36,20,0.9)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                  {game.emoji}
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-1 text-[9px] font-bold rounded-full px-1.5 py-0.5" style={{ background: "rgba(0,0,0,0.4)", color: "rgba(255,255,255,0.45)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> {game.players}
+                  </div>
+                  {game.tag && (
+                    <div className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: `${game.tagColor}22`, color: game.tagColor, border: `1px solid ${game.tagColor}44` }}>
+                      {game.tag}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="relative mt-auto">
+                <h4 className="text-sm font-bold leading-tight group-hover:text-yellow-400 transition-colors" style={{ color: "white" }}>{game.label}</h4>
+                <p className="text-[10px] mt-0.5 line-clamp-1" style={{ color: "rgba(255,255,255,0.38)" }}>{game.desc}</p>
+              </div>
+
+              {/* Play button overlay on hover */}
+              <div className="absolute inset-0 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all pointer-events-none" style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }}>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg" style={{ background: "linear-gradient(135deg,#d4a017,#f5c542)" }}>
+                  <Gamepad2 size={18} style={{ color: "#081c0e" }} />
+                </div>
+              </div>
             </button>
           ))}
-          <button
-            onClick={() => handleTabChange("Casino")}
-            data-testid="tab-sport-Casino"
-            className="flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-all"
-            style={{
-              background: activeTab === "Casino"
-                ? "linear-gradient(135deg, #7c3aed, #4f46e5)"
-                : "rgba(255,255,255,0.06)",
-              color: activeTab === "Casino" ? "white" : "rgba(255,255,255,0.55)",
-              border: activeTab === "Casino" ? "none" : "1px solid rgba(255,255,255,0.1)",
-              boxShadow: activeTab === "Casino" ? "0 2px 12px rgba(124,58,237,0.35)" : "none",
-            }}
-          >
-            🎰 Casino
-          </button>
         </div>
-      </section>
-
-      {/* ── CASINO GAME PICKER ── */}
-      {isCasino && (
-        <section>
-          <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            {selectedCasinoGame
-              ? `${CASINO_ICONS[selectedCasinoGame]} ${selectedCasinoGame} — tap again to show all`
-              : "Pick a game to filter:"}
-          </p>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-            {CASINO_SPORTS.map(game => {
-              const isActive = selectedCasinoGame === game;
-              return (
-                <button
-                  key={game}
-                  onClick={() => toggleCasinoGame(game)}
-                  className="rounded-xl border-2 p-3 text-center transition-all hover:scale-105 active:scale-95"
-                  style={{
-                    borderColor: isActive ? "#a855f7" : "rgba(168,85,247,0.25)",
-                    background: isActive ? "rgba(168,85,247,0.25)" : "rgba(168,85,247,0.07)",
-                    boxShadow: isActive ? "0 0 16px rgba(168,85,247,0.3)" : "none",
-                    transform: isActive ? "scale(1.05)" : "scale(1)",
-                  }}
-                >
-                  <div className="text-2xl mb-1">{CASINO_ICONS[game]}</div>
-                  <div className="text-[11px] font-bold text-foreground leading-tight">{game}</div>
-                  {isActive && <div className="mt-1 text-[9px] font-bold text-purple-400">● ON</div>}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* ── PROMOTIONAL BANNER ── */}
-      {!isAuthenticated && (
-        <section
-          className="flex flex-col items-center justify-between gap-4 rounded-xl p-5 sm:flex-row"
-          style={{
-            background: "linear-gradient(135deg, rgba(245,158,11,0.12), rgba(234,88,12,0.10))",
-            border: "1px solid rgba(245,158,11,0.25)",
-          }}
-        >
-          <div>
-            <div className="text-base font-bold text-amber-400">🎁 Welcome Bonus — PKR 50,000 Free Credits!</div>
-            <div className="mt-0.5 text-xs text-muted-foreground">Create a free account and start betting with bonus balance today.</div>
-          </div>
-          <button
-            onClick={() => setLocation("/register")}
-            className="shrink-0 rounded-xl px-5 py-2.5 text-sm font-bold text-white transition-all hover:scale-105"
-            style={{ background: "linear-gradient(135deg, #d97706, #b45309)", boxShadow: "0 4px 12px rgba(217,119,6,0.35)" }}
-          >
-            Claim Bonus →
-          </button>
-        </section>
-      )}
-
-      {/* ── LIVE EVENTS ── */}
-      <section>
-        <div className="mb-4 flex items-center gap-2">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
-          <h2 className="text-lg font-bold text-red-500 flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            {isCasino ? "Live Rounds" : "Live Now"}
-          </h2>
-          {filteredLive.length > 0 && (
-            <span className="rounded-full bg-red-500/15 px-2.5 py-0.5 text-xs font-bold text-red-400 border border-red-500/20">
-              {filteredLive.length}
-            </span>
-          )}
-        </div>
-
-        {isLoadingLive ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[1, 2].map(i => <Skeleton key={i} className="h-48 w-full rounded-xl bg-card/40" />)}
-          </div>
-        ) : filteredLive.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredLive.map(event =>
-              isCasino
-                ? <CasinoCard key={event.id} event={event} />
-                : <EventCard key={event.id} event={event} />
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center rounded-xl border border-border/30 bg-card/20 p-8 text-center text-muted-foreground">
-            <Activity className="mb-2 h-8 w-8 opacity-20" />
-            <p className="text-sm">No live {isCasino ? "rounds" : "events"} right now</p>
-          </div>
-        )}
-      </section>
-
-      {/* ── UPCOMING ── */}
-      <section>
-        <div className="mb-4 flex items-center gap-2">
-          <h2 className="text-lg font-bold flex items-center gap-2">
-            <CalendarDays className="h-5 w-5 text-primary" />
-            {isCasino
-              ? selectedCasinoGame
-                ? `${CASINO_ICONS[selectedCasinoGame]} ${selectedCasinoGame} Rounds`
-                : "Open Rounds"
-              : "Upcoming Matches"}
-          </h2>
-          {filteredUpcoming.length > 0 && (
-            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary border border-primary/20">
-              {filteredUpcoming.length}
-            </span>
-          )}
-        </div>
-
-        {isLoadingEvents ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map(i => <Skeleton key={i} className="h-48 w-full rounded-xl bg-card/40" />)}
-          </div>
-        ) : filteredUpcoming.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredUpcoming.map(event =>
-              isCasino
-                ? <CasinoCard key={event.id} event={event} />
-                : <EventCard key={event.id} event={event} />
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center rounded-xl border border-border/30 bg-card/20 p-8 text-center text-muted-foreground">
-            <CalendarDays className="mb-2 h-8 w-8 opacity-20" />
-            <p className="text-sm">
-              {isCasino && selectedCasinoGame
-                ? `No open ${selectedCasinoGame} rounds right now.`
-                : isCasino
-                ? "No open casino rounds right now."
-                : `No upcoming ${activeTab === "All" ? "" : activeTab + " "}events.`}
-            </p>
-          </div>
-        )}
       </section>
     </div>
   );

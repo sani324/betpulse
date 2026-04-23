@@ -133,12 +133,16 @@ async function deductAndRecord(userId: number, stake: number, won: boolean, winA
    game-specific details (cards/dice/hands) consistent with the chosen
    result and pays out winners. */
 
-router.post("/games/dragon-tiger", requireAuth, (req, res) => queueRoundBet(req, res, "dragon-tiger", ["dragon", "tiger", "tie"]));
-router.post("/games/coin-flip",    requireAuth, (req, res) => queueRoundBet(req, res, "coin-flip",    ["heads", "tails"]));
-router.post("/games/dice-roll",    requireAuth, (req, res) => queueRoundBet(req, res, "dice-roll",    ["high", "low", "seven"]));
-router.post("/games/andar-bahar",  requireAuth, (req, res) => queueRoundBet(req, res, "andar-bahar",  ["andar", "bahar"]));
-router.post("/games/rang",         requireAuth, (req, res) => queueRoundBet(req, res, "rang",         ["player", "house"]));
-router.post("/games/court-piece",  requireAuth, (req, res) => queueRoundBet(req, res, "court-piece",  ["player", "house"]));
-router.post("/games/code-piece",   requireAuth, (req, res) => queueRoundBet(req, res, "code-piece",   ["small", "big", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]));
+router.post("/games/dragon-tiger",  requireAuth, (req, res) => queueRoundBet(req, res, "dragon-tiger",  ["dragon", "tiger", "tie"]));
+router.post("/games/coin-flip",     requireAuth, (req, res) => queueRoundBet(req, res, "coin-flip",     ["heads", "tails"]));
+router.post("/games/dice-roll",     requireAuth, (req, res) => queueRoundBet(req, res, "dice-roll",     ["high", "low", "seven"]));
+router.post("/games/andar-bahar",   requireAuth, (req, res) => queueRoundBet(req, res, "andar-bahar",   ["andar", "bahar"]));
+router.post("/games/rang",          requireAuth, (req, res) => queueRoundBet(req, res, "rang",          ["player", "house"]));
+router.post("/games/court-piece",   requireAuth, (req, res) => queueRoundBet(req, res, "court-piece",   ["player", "house"]));
+router.post("/games/code-piece",    requireAuth, (req, res) => queueRoundBet(req, res, "code-piece",    ["small", "big", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]));
+// New games
+router.post("/games/teen-patti",    requireAuth, (req, res) => queueRoundBet(req, res, "teen-patti",    ["player", "banker", "pair"]));
+router.post("/games/lucky-7",       requireAuth, (req, res) => queueRoundBet(req, res, "lucky-7",       ["under7", "seven", "over7"]));
+router.post("/games/jhandi-munda",  requireAuth, (req, res) => queueRoundBet(req, res, "jhandi-munda",  ["spade", "heart", "diamond", "club", "star", "moon"]));
 
 export default router;

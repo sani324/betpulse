@@ -740,12 +740,14 @@ router.post("/admin/casino-rounds/:game/settle", requireAdmin, async (req, res):
     if (g === "andar-bahar") return 1.95;
     if (g === "rang" || g === "court-piece") return 1.95;
     if (g === "code-piece") {
-      // result here can be "small", "big", or a digit "0".."9".
       const digit = /^[0-9]$/.test(res2) ? parseInt(res2, 10) : -1;
       if (sel === "small") return digit >= 0 && digit < 5 ? 1.95 : (res2 === "small" ? 1.95 : 0);
       if (sel === "big")   return digit >= 5 ? 1.95 : (res2 === "big" ? 1.95 : 0);
-      return sel === res2 ? 9 : 0; // exact digit match
+      return sel === res2 ? 9 : 0;
     }
+    if (g === "teen-patti") return sel === "pair" ? 11 : 1.95;
+    if (g === "lucky-7")    return sel === "seven" ? 5 : 1.95;
+    if (g === "jhandi-munda") return 6; // 1 symbol on 6-sided die
     return 2;
   }
 
@@ -899,25 +901,78 @@ function generateRoundDetails(game: string, result: string): Record<string, unkn
     return { winner: result };
   }
   if (game === "code-piece") {
-    // Result can be "small" (0-4), "big" (5-9), or a specific digit "0".."9".
     let n: number;
     if (result === "small") n = Math.floor(Math.random() * 5);
     else if (result === "big") n = 5 + Math.floor(Math.random() * 5);
     else { const d = parseInt(result, 10); n = isNaN(d) ? 0 : d; }
     return { number: n, isSmall: n < 5, isBig: n >= 5 };
   }
+  if (game === "teen-patti") {
+    // Deal 3 cards to player and banker; adjust so the chosen side has higher value hand
+    function hand3() { return [randCard(), randCard(), randCard()]; }
+    function handValue(h: ReturnType<typeof hand3>) { return h.reduce((s, c) => s + c.value, 0); }
+    if (result === "pair") {
+      const rank = RANKS[Math.floor(Math.random() * RANKS.length)];
+      const s1 = SUITS[Math.floor(Math.random() * SUITS.length)];
+      const s2 = SUITS.filter(s => s !== s1)[Math.floor(Math.random() * 3)];
+      const playerCards = [card(rank, s1), card(rank, s2), randCard()];
+      const bankerCards = [randCard(), randCard(), randCard()];
+      return { playerCards, bankerCards, result: "pair", winner: "pair" };
+    }
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const pCards = hand3(); const bCards = hand3();
+      const pVal = handValue(pCards); const bVal = handValue(bCards);
+      if (result === "player" && pVal > bVal) return { playerCards: pCards, bankerCards: bCards, playerValue: pVal, bankerValue: bVal, winner: "player" };
+      if (result === "banker" && bVal > pVal) return { playerCards: pCards, bankerCards: bCards, playerValue: pVal, bankerValue: bVal, winner: "banker" };
+    }
+    const pCards = hand3(); const bCards = hand3();
+    return { playerCards: pCards, bankerCards: bCards, winner: result };
+  }
+  if (game === "lucky-7") {
+    if (result === "seven") {
+      const combos: [number,number][] = [[1,6],[2,5],[3,4],[4,3],[5,2],[6,1]];
+      const [a,b] = combos[Math.floor(Math.random()*combos.length)];
+      return { dice1: a, dice2: b, sum: 7, result: "seven" };
+    }
+    if (result === "over7") {
+      const c: [number,number][] = [];
+      for (let a=1;a<=6;a++) for (let b=1;b<=6;b++) if (a+b>7) c.push([a,b]);
+      const [a,b] = c[Math.floor(Math.random()*c.length)];
+      return { dice1: a, dice2: b, sum: a+b, result: "over7" };
+    }
+    if (result === "under7") {
+      const c: [number,number][] = [];
+      for (let a=1;a<=6;a++) for (let b=1;b<=6;b++) if (a+b<7) c.push([a,b]);
+      const [a,b] = c[Math.floor(Math.random()*c.length)];
+      return { dice1: a, dice2: b, sum: a+b, result: "under7" };
+    }
+  }
+  if (game === "jhandi-munda") {
+    const symbols = ["spade","heart","diamond","club","star","moon"];
+    // Roll 6 dice, with the result symbol guaranteed to appear at least once
+    const dice: string[] = [result]; // guarantee one
+    for (let i = 1; i < 6; i++) dice.push(symbols[Math.floor(Math.random() * symbols.length)]);
+    // Shuffle
+    for (let i = dice.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i+1)); [dice[i], dice[j]] = [dice[j], dice[i]]; }
+    const counts: Record<string, number> = {};
+    for (const s of dice) counts[s] = (counts[s] || 0) + 1;
+    return { dice, counts, result };
+  }
   return { result };
 }
 
 function prettyGame(key: string): string {
   return ({
-    "dragon-tiger": "Dragon Tiger",
-    "coin-flip": "Coin Flip",
-    "dice-roll": "Dice Roll",
-    "andar-bahar": "Andar Bahar",
-    "rang": "Rang",
-    "court-piece": "Court Piece",
-    "code-piece": "Code Piece",
+    "dragon-tiger":  "Dragon Tiger",
+    "coin-flip":     "Coin Flip",
+    "dice-roll":     "Dice Roll",
+    "andar-bahar":   "Andar Bahar",
+    "rang":          "Rang",
+    "court-piece":   "Court Piece",
+    "code-piece":    "Code Piece",
+    "teen-patti":    "Teen Patti",
+    "lucky-7":       "Lucky 7",
+    "jhandi-munda":  "Jhandi Munda",
   } as Record<string, string>)[key] ?? key;
 }
 

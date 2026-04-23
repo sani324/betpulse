@@ -21,6 +21,10 @@ import DiceRollGame from "@/pages/DiceRollGame";
 import AndarBaharGame from "@/pages/AndarBaharGame";
 import RangGame from "@/pages/RangGame";
 import CourtPieceGame from "@/pages/CourtPieceGame";
+import CodePieceGame from "@/pages/CodePieceGame";
+import TeenPattiGame from "@/pages/TeenPattiGame";
+import Lucky7Game from "@/pages/Lucky7Game";
+import JhandiMundaGame from "@/pages/JhandiMundaGame";
 
 const queryClient = new QueryClient();
 
@@ -54,12 +58,17 @@ function Router() {
         <ProtectedRoute requireAdmin><AppLayout><Admin /></AppLayout></ProtectedRoute>
       </Route>
 
+      {/* Casino game pages */}
+      <Route path="/play/teen-patti" component={TeenPattiGame} />
       <Route path="/play/dragon-tiger" component={DragonTigerGame} />
       <Route path="/play/coin-flip" component={CoinFlipGame} />
       <Route path="/play/dice-roll" component={DiceRollGame} />
       <Route path="/play/andar-bahar" component={AndarBaharGame} />
       <Route path="/play/rang" component={RangGame} />
       <Route path="/play/court-piece" component={CourtPieceGame} />
+      <Route path="/play/code-piece" component={CodePieceGame} />
+      <Route path="/play/lucky-7" component={Lucky7Game} />
+      <Route path="/play/jhandi-munda" component={JhandiMundaGame} />
 
       <Route component={NotFound} />
     </Switch>

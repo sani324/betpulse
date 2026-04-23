@@ -55,49 +55,53 @@
 
 :root, .dark {
   color-scheme: dark;
-  --background: 224 25% 8%;
-  --foreground: 210 40% 98%;
 
-  --card: 224 25% 10%;
-  --card-foreground: 210 40% 98%;
-  --card-border: 224 25% 15%;
+  /* Deep dark green — casino felt */
+  --background: 146 65% 7%;
+  --foreground: 45 20% 95%;
 
-  --popover: 224 25% 10%;
-  --popover-foreground: 210 40% 98%;
-  --popover-border: 224 25% 15%;
+  /* Card panels — slightly lighter green */
+  --card: 146 60% 9%;
+  --card-foreground: 45 20% 95%;
+  --card-border: 146 45% 15%;
 
-  --primary: 152 100% 48%;
-  --primary-foreground: 224 25% 8%;
+  --popover: 146 55% 10%;
+  --popover-foreground: 45 20% 95%;
+  --popover-border: 146 45% 15%;
 
-  --secondary: 224 25% 15%;
-  --secondary-foreground: 210 40% 98%;
+  /* Gold as primary accent */
+  --primary: 44 90% 60%;
+  --primary-foreground: 146 65% 7%;
 
-  --muted: 224 25% 15%;
-  --muted-foreground: 215 20.2% 65.1%;
+  --secondary: 146 45% 14%;
+  --secondary-foreground: 45 20% 90%;
 
-  --accent: 152 100% 48%;
-  --accent-foreground: 224 25% 8%;
+  --muted: 146 40% 13%;
+  --muted-foreground: 146 20% 55%;
+
+  --accent: 44 90% 60%;
+  --accent-foreground: 146 65% 7%;
 
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 210 40% 98%;
 
-  --border: 224 25% 15%;
-  --input: 224 25% 15%;
-  --ring: 152 100% 48%;
+  --border: 146 40% 14%;
+  --input: 146 45% 13%;
+  --ring: 44 90% 60%;
 
-  --sidebar-background: 224 25% 10%;
-  --sidebar-foreground: 210 40% 98%;
-  --sidebar-primary: 152 100% 48%;
-  --sidebar-primary-foreground: 224 25% 8%;
-  --sidebar-accent: 224 25% 15%;
-  --sidebar-accent-foreground: 210 40% 98%;
-  --sidebar-border: 224 25% 15%;
-  --sidebar-ring: 152 100% 48%;
+  --sidebar-background: 146 60% 8%;
+  --sidebar-foreground: 45 20% 90%;
+  --sidebar-primary: 44 90% 60%;
+  --sidebar-primary-foreground: 146 65% 7%;
+  --sidebar-accent: 146 45% 14%;
+  --sidebar-accent-foreground: 45 20% 90%;
+  --sidebar-border: 146 40% 14%;
+  --sidebar-ring: 44 90% 60%;
 
   --app-font-sans: 'Inter', sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: Menlo, monospace;
-  --radius: .5rem;
+  --radius: .625rem;
 }
 
 @layer base {
@@ -107,5 +111,20 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    background-image:
+      radial-gradient(ellipse at 80% 10%, rgba(245,197,66,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 10% 90%, rgba(26,74,43,0.4) 0%, transparent 50%);
   }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #1a4a2b; border-radius: 2px; }
 }
+
+/* Gold shimmer animation */
+@keyframes gold-shimmer {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.gold-shimmer { animation: gold-shimmer 2s ease-in-out infinite; }
