@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 
 type Side = "andar" | "bahar";
-type Phase = "betting" | "dealing" | "result";
+type Phase = "betting" | "dealing" | "revealing" | "result";
 const CHIP_AMOUNTS = [100, 500, 1000, 5000];
 
 const STYLES = `
@@ -150,13 +150,37 @@ export default function AndarBaharGame() {
   const [customStake, setCustomStake] = useState("");
   const [joker, setJoker] = useState<DCard | null>(null);
   const [jokerRevealed, setJokerRevealed] = useState(false);
+  const [jokerFaceDown, setJokerFaceDown] = useState(false); // show placeholder before real joker arrives
   const [allCards, setAllCards] = useState<Array<{ card: DCard; side: Side; isMatch: boolean }>>([]);
   const [revealedCount, setRevealedCount] = useState(0);
+  const [simulatedCount, setSimulatedCount] = useState(0); // face-down cards dealt during wait
   const [result, setResult] = useState<{ result: Side; won: boolean; winAmount: number; netChange: number; newBalance: number } | null>(null);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const simIvRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const clearTimers = () => { timersRef.current.forEach(clearTimeout); timersRef.current = []; };
   const addTimer = (fn: () => void, delay: number) => { const t = setTimeout(fn, delay); timersRef.current.push(t); return t; };
-  useEffect(() => () => clearTimers(), []);
+  useEffect(() => () => { clearTimers(); if (simIvRef.current) clearInterval(simIvRef.current); }, []);
+
+  // Simulated dealing animation during "dealing" phase (before server result arrives)
+  useEffect(() => {
+    if (phase !== "dealing") { if (simIvRef.current) { clearInterval(simIvRef.current); simIvRef.current = null; } return; }
+    setSimulatedCount(0);
+    setJokerFaceDown(false);
+    // Reveal joker placeholder (face down) after a short pause
+    const t = setTimeout(() => { setJokerFaceDown(true); playCardSound(); }, 600);
+    timersRef.current.push(t);
+    // Then deal face-down cards to alternating sides
+    let count = 0;
+    simIvRef.current = setInterval(() => {
+      count++;
+      setSimulatedCount(count);
+      playCardSound();
+      if (count >= 16) { // max 16 simulated cards while waiting
+        if (simIvRef.current) { clearInterval(simIvRef.current); simIvRef.current = null; }
+      }
+    }, 320);
+    return () => { clearTimeout(t); if (simIvRef.current) { clearInterval(simIvRef.current); simIvRef.current = null; } };
+  }, [phase]);
 
   const handleDeal = async () => {
     if (!selection || stake <= 0) { toast({ title: "Pick Andar or Bahar and enter a stake", variant: "destructive" }); return; }
@@ -194,10 +218,16 @@ export default function AndarBaharGame() {
           const det = d.details as { joker: DCard; dealtCards: Array<{ card: DCard; side: Side; isMatch: boolean }>; winner: Side };
           const won = det.winner === mySel;
           const winAmount = won ? Math.round(myStake * 1.95 * 100) / 100 : 0;
-          setJoker(det.joker); setAllCards(det.dealtCards);
-          addTimer(() => { setJokerRevealed(true); playCardSound(); }, 500);
-          det.dealtCards.forEach((_, i) => addTimer(() => { setRevealedCount(i + 1); playCardSound(); }, 1200 + i * 320));
-          const totalTime = 1200 + det.dealtCards.length * 320 + 600;
+          // Stop simulation immediately — switch to reveal phase
+          if (simIvRef.current) { clearInterval(simIvRef.current); simIvRef.current = null; }
+          setSimulatedCount(0);
+          setJoker(det.joker);
+          setAllCards(det.dealtCards);
+          setPhase("revealing");
+          // Reveal joker first, then flip cards one by one
+          addTimer(() => { setJokerRevealed(true); playCardSound(); }, 400);
+          det.dealtCards.forEach((_, i) => addTimer(() => { setRevealedCount(i + 1); playCardSound(); }, 1100 + i * 300));
+          const totalTime = 1100 + det.dealtCards.length * 300 + 600;
           addTimer(() => {
             setResult({ result: det.winner, won, winAmount, netChange: winAmount - myStake, newBalance: balanceAfterBet + winAmount });
             setPhase("result");
@@ -214,8 +244,11 @@ export default function AndarBaharGame() {
   };
 
   const handlePlayAgain = () => {
-    clearTimers(); setPhase("betting"); setSelection(null); setStake(0); setCustomStake("");
-    setJoker(null); setJokerRevealed(false); setAllCards([]); setRevealedCount(0); setResult(null);
+    clearTimers();
+    if (simIvRef.current) { clearInterval(simIvRef.current); simIvRef.current = null; }
+    setPhase("betting"); setSelection(null); setStake(0); setCustomStake("");
+    setJoker(null); setJokerRevealed(false); setJokerFaceDown(false);
+    setAllCards([]); setRevealedCount(0); setSimulatedCount(0); setResult(null);
   };
 
   const balance = user?.balance ?? 0;
@@ -264,8 +297,20 @@ export default function AndarBaharGame() {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            {[{ side: "andar", cards: andarCards, color: "#3b82f6", label: "ANDAR" }, { side: "bahar", cards: baharCards, color: "#f97316", label: "BAHAR" }].map(col => (
+          {/* Status label during dealing */}
+          {phase === "dealing" && (
+            <div className="text-center mb-2">
+              <span style={{ color: "#fbbf24", fontSize: 11, letterSpacing: 2, fontFamily: "Georgia,serif" }}>
+                DEALING CARDS... {simulatedCount > 0 ? `(${simulatedCount})` : ""}
+              </span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3 mt-2">
+            {([
+              { side: "andar" as Side, cards: andarCards, color: "#3b82f6", label: "ANDAR", simCount: Math.ceil(simulatedCount / 2) },
+              { side: "bahar" as Side, cards: baharCards, color: "#f97316", label: "BAHAR", simCount: Math.floor(simulatedCount / 2) },
+            ]).map(col => (
               <div key={col.side} style={{
                 background: phase === "result" && result?.result === col.side ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.04)",
                 border: `2px solid ${phase === "result" && result?.result === col.side ? "rgba(34,197,94,0.5)" : `${col.color}44`}`,
@@ -276,10 +321,29 @@ export default function AndarBaharGame() {
                   {col.label} {phase === "result" && result?.result === col.side && "✓"}
                 </p>
                 <div className="flex flex-wrap gap-1 justify-center">
-                  {col.cards.map((c, i) => (
+                  {/* During dealing: show simulated face-down cards */}
+                  {phase === "dealing" && Array.from({ length: col.simCount }).map((_, i) => (
+                    <div key={i} style={{
+                      width: 44, height: 62, borderRadius: 6, flexShrink: 0,
+                      background: "linear-gradient(135deg,#1e1b4b,#312e81)",
+                      border: "2px solid rgba(255,255,255,0.2)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                      animation: `cardFlip 0.4s ease-out both`,
+                    }}>
+                      <div style={{ fontSize: 18, opacity: 0.4 }}>🂠</div>
+                    </div>
+                  ))}
+                  {phase === "dealing" && col.simCount === 0 && (
+                    <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 12, textAlign: "center", width: "100%", marginTop: 12 }}>—</div>
+                  )}
+                  {/* After dealing: show actual revealed cards */}
+                  {phase !== "dealing" && col.cards.map((c, i) => (
                     <MiniCard key={i} card={c.card} isMatch={c.isMatch} revealed={true} delay={0} />
                   ))}
-                  {col.cards.length === 0 && <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 12, textAlign: "center", width: "100%", marginTop: 12 }}>Waiting...</div>}
+                  {phase !== "dealing" && col.cards.length === 0 && (
+                    <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 12, textAlign: "center", width: "100%", marginTop: 12 }}>—</div>
+                  )}
                 </div>
               </div>
             ))}
@@ -362,7 +426,7 @@ export default function AndarBaharGame() {
                   cursor: canDeal ? "pointer" : "not-allowed",
                   boxShadow: canDeal ? "0 4px 20px rgba(5,150,105,0.4)" : "none", transition: "all .2s",
                 }}>
-                  {phase !== "betting" ? "🃏 Dealing cards..." : !selection ? "Pick Andar or Bahar" : stake <= 0 ? "Enter your stake" : "🃏 DEAL CARDS"}
+                  {phase === "dealing" ? "🃏 Dealing cards..." : phase === "revealing" ? "🃏 Revealing cards..." : !selection ? "Pick Andar or Bahar" : stake <= 0 ? "Enter your stake" : "🃏 DEAL CARDS"}
                 </button>
               )}
               {isAuthenticated && stake > balance && <p style={{ color: "#f87171", fontSize: 12, textAlign: "center", marginTop: 8 }}>Insufficient balance — max: {formatCurrency(balance)}</p>}
