@@ -724,7 +724,7 @@ function manualPayoutMultiplier(g: string, sel: string, res2: string): number {
   if (g === "jhandi-munda") return 6;
   if (g === "andar-bahar")  return 1.95;
   if (g === "roulette")     return sel === "green" ? 14 : 1.95;
-  if (g === "bingo-777")    return sel === "triple7" ? 20 : sel === "bar" ? 5 : 2;
+  if (g === "bingo-777")    return sel === "triple7" ? 50 : sel === "double7" ? 10 : sel === "lucky7" ? 3 : 1.5;
   if (g === "fruit-line")   return sel === "jackpot" ? 10 : sel === "mix" ? 3 : 1.95;
   if (g === "sweet-bonanza") return sel === "bonanza" ? 8 : sel === "scatter" ? 3 : 1.95;
   if (g === "crash")        return sel === "x10" ? 10 : sel === "x5" ? 5 : 2;
@@ -920,7 +920,7 @@ const GAME_OPTIONS: Record<string, string[]> = {
   "jhandi-munda":   ["spade", "heart", "diamond", "club", "star", "moon"],
   "andar-bahar":    ["andar", "bahar"],
   "roulette":       ["red", "black", "green"],
-  "bingo-777":      ["triple7", "bar", "cherry"],
+  "bingo-777":      ["triple7", "double7", "lucky7", "anywin"],
   "fruit-line":     ["jackpot", "mix", "plain"],
   "sweet-bonanza":  ["bonanza", "scatter", "base"],
   "crash":          ["x2", "x5", "x10"],
@@ -946,7 +946,7 @@ async function settleRoundWith(game: string, result: string): Promise<{ message:
     if (g === "jhandi-munda") return 6;
     if (g === "andar-bahar")  return 1.95;
     if (g === "roulette")     return sel === "green" ? 14 : 1.95;
-    if (g === "bingo-777")    return sel === "triple7" ? 20 : sel === "bar" ? 5 : 2;
+    if (g === "bingo-777")    return sel === "triple7" ? 50 : sel === "double7" ? 10 : sel === "lucky7" ? 3 : 1.5;
     if (g === "fruit-line")   return sel === "jackpot" ? 10 : sel === "mix" ? 3 : 1.95;
     if (g === "sweet-bonanza") return sel === "bonanza" ? 8 : sel === "scatter" ? 3 : 1.95;
     if (g === "crash")        return sel === "x10" ? 10 : sel === "x5" ? 5 : 2;

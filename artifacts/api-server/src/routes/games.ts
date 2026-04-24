@@ -179,7 +179,7 @@ router.post("/games/jhandi-munda",  requireAuth, (req, res) => queueRoundBet(req
 // Catalog games
 router.post("/games/andar-bahar",   requireAuth, (req, res) => queueRoundBet(req, res, "andar-bahar",   ["andar", "bahar"]));
 router.post("/games/roulette",      requireAuth, (req, res) => queueRoundBet(req, res, "roulette",      ["red", "black", "green"]));
-router.post("/games/bingo-777",     requireAuth, (req, res) => queueRoundBet(req, res, "bingo-777",     ["triple7", "bar", "cherry"]));
+router.post("/games/bingo-777",     requireAuth, (req, res) => queueRoundBet(req, res, "bingo-777",     ["triple7", "double7", "lucky7", "anywin"]));
 router.post("/games/fruit-line",    requireAuth, (req, res) => queueRoundBet(req, res, "fruit-line",    ["jackpot", "mix", "plain"]));
 router.post("/games/sweet-bonanza", requireAuth, (req, res) => queueRoundBet(req, res, "sweet-bonanza", ["bonanza", "scatter", "base"]));
 router.post("/games/crash",         requireAuth, (req, res) => queueRoundBet(req, res, "crash",         ["x2", "x5", "x10"]));
