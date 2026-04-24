@@ -1,17 +1,43 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetMeQueryKey, getGetBalanceQueryKey } from "@workspace/api-client-react";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Wallet, RefreshCw } from "lucide-react";
+import { ArrowLeft, Wallet } from "lucide-react";
 
 const CHIP_AMOUNTS = [100, 500, 1000, 5000, 10000];
 const API = import.meta.env.BASE_URL.replace(/\/$/, "");
 type Selection = "under7" | "seven" | "over7";
+type Phase = "betting" | "rolling" | "settling" | "result";
+
+const DICE_FACES: Record<number, string> = { 1:"⚀", 2:"⚁", 3:"⚂", 4:"⚃", 5:"⚄", 6:"⚅" };
 
 function mkCtx() { return new ((window as any).AudioContext || (window as any).webkitAudioContext)(); }
+function playDiceRoll() {
+  try {
+    const c = mkCtx();
+    [180, 220, 200].forEach((freq, i) => {
+      const o = c.createOscillator(); const g = c.createGain();
+      o.connect(g); g.connect(c.destination); o.type = "square"; o.frequency.value = freq;
+      const t = c.currentTime + i * 0.06;
+      g.gain.setValueAtTime(0.06, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+      o.start(t); o.stop(t + 0.07);
+    });
+    setTimeout(() => c.close(), 500);
+  } catch (_) {}
+}
+function playSettle() {
+  try {
+    const c = mkCtx();
+    const o = c.createOscillator(); const g = c.createGain();
+    o.connect(g); g.connect(c.destination); o.type = "sine"; o.frequency.value = 660;
+    g.gain.setValueAtTime(0.18, c.currentTime); g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.18);
+    o.start(c.currentTime); o.stop(c.currentTime + 0.18);
+    setTimeout(() => c.close(), 400);
+  } catch (_) {}
+}
 function playWin() {
   try {
     const c = mkCtx();
@@ -39,13 +65,23 @@ function playLose() {
   } catch (_) {}
 }
 
-const DICE_FACES: Record<number, string> = { 1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅" };
-
-function DiceFace({ value, rolling }: { value?: number; rolling?: boolean }) {
+function Die({ value, rolling, settled }: { value?: number; rolling?: boolean; settled?: boolean }) {
+  const rnd = Math.random() * 10 - 5;
   return (
-    <div className={`w-20 h-20 rounded-2xl flex items-center justify-center text-5xl shadow-2xl transition-all ${rolling ? "animate-bounce" : ""}`}
-      style={{ background: "white", border: "3px solid #e5e7eb", boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }}>
-      {value ? DICE_FACES[value] : <span className="text-gray-300">?</span>}
+    <div
+      className="w-24 h-24 rounded-2xl flex items-center justify-center text-6xl shadow-2xl"
+      style={{
+        background: settled ? "linear-gradient(135deg,#fffde7,#fff9c4)" : "white",
+        border: settled ? "3px solid #f5c542" : "3px solid #e5e7eb",
+        boxShadow: settled
+          ? "0 8px 32px rgba(245,197,66,0.5), 0 0 0 2px rgba(245,197,66,0.3)"
+          : "0 8px 24px rgba(0,0,0,0.4)",
+        animation: rolling && !settled ? "die-roll 0.1s linear infinite" : "none",
+        transition: "all 0.3s cubic-bezier(0.34,1.56,0.64,1)",
+        transform: settled ? "scale(1.08)" : "scale(1)",
+      }}
+    >
+      {value ? DICE_FACES[value] : <span style={{ color: "#d1d5db", fontSize:40 }}>?</span>}
     </div>
   );
 }
@@ -58,26 +94,74 @@ export default function Lucky7Game() {
 
   const [stake, setStake] = useState(500);
   const [selection, setSelection] = useState<Selection | null>(null);
-  const [phase, setPhase] = useState<"betting" | "waiting" | "result">("betting");
+  const [phase, setPhase] = useState<Phase>("betting");
   const [result, setResult] = useState<any>(null);
   const [balance, setBalance] = useState<number>(parseFloat(user?.balance || "0"));
   const [isPlacing, setIsPlacing] = useState(false);
+
+  // Rolling animation state
+  const [rollVal1, setRollVal1] = useState<number | undefined>();
+  const [rollVal2, setRollVal2] = useState<number | undefined>();
+  const [die1Settled, setDie1Settled] = useState(false);
+  const [die2Settled, setDie2Settled] = useState(false);
+  const rollIvRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pendingResultRef = useRef<any>(null);
+
+  useEffect(() => { setBalance(parseFloat(user?.balance || "0")); }, [user?.balance]);
+
+  // Rapid cycling while rolling
+  useEffect(() => {
+    if (phase !== "rolling") return;
+    setDie1Settled(false); setDie2Settled(false);
+    rollIvRef.current = setInterval(() => {
+      setRollVal1(Math.ceil(Math.random() * 6));
+      setRollVal2(Math.ceil(Math.random() * 6));
+    }, 80);
+    return () => { if (rollIvRef.current) clearInterval(rollIvRef.current); };
+  }, [phase]);
+
+  // When settling: stop cycling and lock each die to actual value
+  useEffect(() => {
+    if (phase !== "settling" || !pendingResultRef.current) return;
+    if (rollIvRef.current) { clearInterval(rollIvRef.current); rollIvRef.current = null; }
+    const data = pendingResultRef.current;
+    const d1 = data.details?.dice1;
+    const d2 = data.details?.dice2;
+    // Settle die 1 first
+    setTimeout(() => {
+      setRollVal1(d1);
+      setDie1Settled(true);
+      playSettle();
+    }, 200);
+    // Settle die 2
+    setTimeout(() => {
+      setRollVal2(d2);
+      setDie2Settled(true);
+      playSettle();
+    }, 700);
+    // Show result
+    setTimeout(() => {
+      setPhase("result");
+    }, 1400);
+  }, [phase]);
 
   const pollRound = useCallback(async (rId: string, sel: string) => {
     let attempts = 0;
     const interval = setInterval(async () => {
       attempts++;
-      if (attempts > 120) { clearInterval(interval); setPhase("betting"); return; }
+      if (attempts > 240) { clearInterval(interval); setPhase("betting"); return; }
       try {
         const r = await fetch(`${API}/api/games/casino-round/lucky-7/${rId}`, { credentials: "include" });
         const data = await r.json();
         if (data.status === "settled") {
           clearInterval(interval);
           setResult(data);
-          setPhase("result");
-          if (data.result === sel) playWin(); else playLose();
+          pendingResultRef.current = data;
+          const won = data.result === sel;
+          if (won) playWin(); else playLose();
           queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
+          setPhase("settling");
         }
       } catch (_) {}
     }, 500);
@@ -97,25 +181,34 @@ export default function Lucky7Game() {
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Failed");
       setBalance(data.newBalance);
-      setPhase("waiting");
+      setResult(null); pendingResultRef.current = null;
+      setDie1Settled(false); setDie2Settled(false);
+      setPhase("rolling");
       pollRound(data.roundId, selection);
-      toast({ title: `Bet placed on ${selection}!`, description: "⚡ Auto-Decider is running..." });
+      toast({ title: `Bet on ${selection}!`, description: "Rolling the dice..." });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
+      setPhase("betting");
     } finally {
       setIsPlacing(false);
     }
   };
 
-  const reset = () => { setPhase("betting"); setResult(null); setSelection(null); };
+  const reset = () => {
+    setPhase("betting"); setResult(null); setSelection(null);
+    setDie1Settled(false); setDie2Settled(false);
+    pendingResultRef.current = null;
+  };
 
   const won = result?.result === selection;
   const d1 = result?.details?.dice1;
   const d2 = result?.details?.dice2;
   const sum = result?.details?.sum;
+  const isPlaying = phase === "rolling" || phase === "settling";
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(180deg,#0a2414 0%,#081c0e 100%)" }}>
+      <style>{`@keyframes die-roll { 0%{transform:rotate(0deg) scale(1)} 25%{transform:rotate(-8deg) scale(0.95)} 50%{transform:rotate(0deg) scale(1.05)} 75%{transform:rotate(8deg) scale(0.95)} 100%{transform:rotate(0deg) scale(1)} }`}</style>
       <header className="flex items-center justify-between px-4 py-3" style={{ background: "rgba(13,43,26,0.8)", borderBottom: "1px solid rgba(245,197,66,0.12)" }}>
         <button onClick={() => setLocation("/")} className="flex items-center gap-2 text-sm font-medium" style={{ color: "rgba(255,255,255,0.6)" }}>
           <ArrowLeft size={18} /> Back
@@ -129,55 +222,64 @@ export default function Lucky7Game() {
       <div className="flex-1 flex flex-col items-center p-4 gap-6 max-w-lg mx-auto w-full">
 
         {/* Dice area */}
-        <div className="w-full rounded-3xl relative overflow-hidden flex flex-col items-center justify-center py-12 gap-6" style={{ background: "linear-gradient(135deg,#0d3320,#072010)", border: "2px solid rgba(245,197,66,0.2)", minHeight: 260 }}>
+        <div className="w-full rounded-3xl relative overflow-hidden flex flex-col items-center justify-center py-12 gap-6"
+          style={{ background: "linear-gradient(135deg,#0d3320,#072010)", border: "2px solid rgba(245,197,66,0.2)", minHeight: 280 }}>
           <div className="pointer-events-none absolute inset-0 select-none opacity-[0.03] flex flex-wrap gap-6 p-4 text-6xl">
             {[...Array(12)].map((_,i) => <span key={i}>⚄</span>)}
           </div>
 
           {phase === "betting" && (
-            <div className="relative z-10 flex flex-col items-center gap-4">
-              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "rgba(245,197,66,0.6)" }}>Roll the dice!</p>
-              <div className="flex gap-6">
-                <DiceFace />
-                <div className="flex items-center text-3xl font-black text-white">+</div>
-                <DiceFace />
+            <div className="relative z-10 flex flex-col items-center gap-5">
+              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "rgba(245,197,66,0.6)" }}>Roll two dice!</p>
+              <div className="flex gap-8 items-center">
+                <Die />
+                <div className="text-4xl font-black text-white">+</div>
+                <Die />
               </div>
               <p className="text-sm" style={{ color: "rgba(255,255,255,0.35)" }}>Will the sum be under 7, exactly 7, or over 7?</p>
             </div>
           )}
 
-          {phase === "waiting" && (
-            <div className="relative z-10 flex flex-col items-center gap-4">
-              <div className="flex gap-6">
-                <DiceFace rolling />
-                <div className="flex items-center text-3xl font-black text-white">+</div>
-                <DiceFace rolling />
+          {(phase === "rolling" || phase === "settling") && (
+            <div className="relative z-10 flex flex-col items-center gap-5">
+              <p className="text-xs font-bold uppercase tracking-wider animate-pulse" style={{ color: "#f5c542" }}>
+                {phase === "rolling" ? "🎲 Rolling..." : "Settling..."}
+              </p>
+              <div className="flex gap-8 items-center">
+                <Die value={rollVal1} rolling={phase === "rolling" || !die1Settled} settled={die1Settled} />
+                <div className="text-4xl font-black" style={{ color: die1Settled && die2Settled ? "#f5c542" : "rgba(255,255,255,0.4)" }}>+</div>
+                <Die value={rollVal2} rolling={phase === "rolling" || !die2Settled} settled={die2Settled} />
               </div>
-              <div className="flex items-center gap-2 text-white font-bold">
-                <RefreshCw size={16} className="animate-spin" style={{ color: "#f5c542" }} /> Auto-Decider running...
-              </div>
+              {(die1Settled || die2Settled) && (
+                <div className="text-2xl font-black" style={{ color: "#f5c542" }}>
+                  {die1Settled && die2Settled ? `= ${(rollVal1 ?? 0) + (rollVal2 ?? 0)}` : die1Settled ? `${rollVal1} + ?` : "? + ?"}
+                </div>
+              )}
             </div>
           )}
 
           {phase === "result" && (
-            <div className="relative z-10 flex flex-col items-center gap-4">
-              <div className={`text-center px-6 py-2 rounded-2xl font-bold ${won ? "text-yellow-400" : "text-red-400"}`} style={{ background: won ? "rgba(245,197,66,0.1)" : "rgba(239,68,68,0.1)", border: `1px solid ${won ? "rgba(245,197,66,0.3)" : "rgba(239,68,68,0.3)"}` }}>
+            <div className="relative z-10 flex flex-col items-center gap-5">
+              <div className={`text-center px-6 py-2 rounded-2xl font-bold text-lg ${won ? "text-yellow-400" : "text-red-400"}`}
+                style={{ background: won ? "rgba(245,197,66,0.1)" : "rgba(239,68,68,0.1)", border: `1px solid ${won ? "rgba(245,197,66,0.3)" : "rgba(239,68,68,0.3)"}` }}>
                 {won ? "🏆 You Won!" : "😔 You Lost"} · Sum: {sum}
               </div>
-              <div className="flex gap-6">
-                <DiceFace value={d1} />
-                <div className="flex items-center text-3xl font-black" style={{ color: "#f5c542" }}>+</div>
-                <DiceFace value={d2} />
+              <div className="flex gap-8 items-center">
+                <Die value={d1} settled />
+                <div className="text-4xl font-black" style={{ color: "#f5c542" }}>+</div>
+                <Die value={d2} settled />
               </div>
-              <div className="text-lg font-black text-white">= {sum} → <span style={{ color: "#f5c542" }} className="capitalize">{result?.result}</span></div>
+              <div className="text-2xl font-black text-white">= {sum} → <span style={{ color: "#f5c542" }} className="capitalize">{result?.result?.replace("7","7 🍀")}</span></div>
             </div>
           )}
         </div>
 
-        {phase !== "waiting" && (
+        {/* Controls */}
+        {!isPlaying && (
           <div className="w-full space-y-4">
             {phase === "result" ? (
-              <button onClick={reset} className="w-full py-4 rounded-2xl font-bold text-base transition-all hover:scale-105" style={{ background: "linear-gradient(135deg,#d4a017,#f5c542)", color: "#081c0e", boxShadow: "0 0 20px rgba(245,197,66,0.35)" }}>
+              <button onClick={reset} className="w-full py-4 rounded-2xl font-bold text-base transition-all hover:scale-105"
+                style={{ background: "linear-gradient(135deg,#d4a017,#f5c542)", color: "#081c0e", boxShadow: "0 0 20px rgba(245,197,66,0.35)" }}>
                 Roll Again
               </button>
             ) : (
@@ -197,7 +299,6 @@ export default function Lucky7Game() {
                     </button>
                   ))}
                 </div>
-
                 <div className="flex gap-2 flex-wrap justify-center">
                   {CHIP_AMOUNTS.map(amt => (
                     <button key={amt} onClick={() => setStake(amt)}
@@ -207,20 +308,21 @@ export default function Lucky7Game() {
                     </button>
                   ))}
                 </div>
-
                 <button onClick={placeBet} disabled={isPlacing || !selection}
                   className="w-full py-4 rounded-2xl font-bold text-base transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ background: "linear-gradient(135deg,#d4a017,#f5c542)", color: "#081c0e", boxShadow: "0 0 20px rgba(245,197,66,0.35)" }}>
-                  {isPlacing ? "Placing..." : `Bet ${formatCurrency(stake)}`}
+                  {isPlacing ? "Rolling..." : `Roll Dice · ${formatCurrency(stake)}`}
                 </button>
               </>
             )}
           </div>
         )}
 
-        {phase === "waiting" && (
+        {isPlaying && (
           <div className="text-center text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
-            Bet of {formatCurrency(stake)} on <strong style={{ color: "#f5c542" }}>{selection}</strong> placed. Waiting for roll...
+            {formatCurrency(stake)} bet on <strong style={{ color: "#f5c542" }}>{selection}</strong>
+            {phase === "rolling" && " · Dice rolling..."}
+            {phase === "settling" && " · Dice landing..."}
           </div>
         )}
       </div>

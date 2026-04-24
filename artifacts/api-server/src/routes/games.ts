@@ -73,14 +73,20 @@ async function queueRoundBet(
   // Crash needs a longer delay so the plane animation has time to fly.
   if (autoSettleModeOn) {
     const SETTLE_DELAY: Record<string, number> = {
-      "crash": 4500,   // 4.5s — plane flies before crash
+      "crash":       4500,  // 4.5s — plane flies before crash
+      "teen-patti":  3200,  // 3.2s — card dealing animation
+      "jhandi-munda":3000,  // 3.0s — dice rolling animation
+      "lucky-7":     3000,  // 3.0s — dice rolling animation
+      "dragon-tiger":3000,  // 3.0s — card flip animation
+      "andar-bahar": 3000,  // 3.0s — card dealing animation
+      "coin-flip":   3000,  // 3.0s — coin spinning animation
+      "dice-roll":   3000,  // 3.0s — dice rolling animation
+      "rang":        3000,  // 3.0s — card reveal animation
+      "court-piece": 3000,  // 3.0s — card reveal animation
+      "code-piece":  3000,  // 3.0s — number reveal animation
     };
-    const delay = SETTLE_DELAY[game] ?? 0;
-    if (delay > 0) {
-      setTimeout(() => autoSettleGame(game).catch(() => {}), delay);
-    } else {
-      autoSettleGame(game).catch(() => {});
-    }
+    const delay = SETTLE_DELAY[game] ?? 2500;
+    setTimeout(() => autoSettleGame(game).catch(() => {}), delay);
   }
 }
 

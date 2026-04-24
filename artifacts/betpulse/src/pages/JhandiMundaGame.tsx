@@ -1,11 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetMeQueryKey, getGetBalanceQueryKey } from "@workspace/api-client-react";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Wallet, RefreshCw } from "lucide-react";
+import { ArrowLeft, Wallet } from "lucide-react";
 
 const CHIP_AMOUNTS = [100, 500, 1000, 5000, 10000];
 const API = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -18,8 +18,19 @@ const SYMBOLS: { key: string; icon: string; label: string; color: string }[] = [
   { key: "star",    icon: "★", label: "Flag",     color: "#f5c542" },
   { key: "moon",    icon: "☽", label: "Crown",    color: "#a855f7" },
 ];
+const SYM_KEYS = SYMBOLS.map(s => s.key);
 
 function mkCtx() { return new ((window as any).AudioContext || (window as any).webkitAudioContext)(); }
+function playDiceSound() {
+  try {
+    const c = mkCtx();
+    const o = c.createOscillator(); const g = c.createGain();
+    o.connect(g); g.connect(c.destination); o.type = "square"; o.frequency.value = 200;
+    g.gain.setValueAtTime(0.08, c.currentTime); g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.08);
+    o.start(c.currentTime); o.stop(c.currentTime + 0.08);
+    setTimeout(() => c.close(), 300);
+  } catch (_) {}
+}
 function playWin() {
   try {
     const c = mkCtx();
@@ -47,6 +58,27 @@ function playLose() {
   } catch (_) {}
 }
 
+function Dice({ sym, isRolling, isSelected, settled }: {
+  sym: { key: string; icon: string; color: string; label: string } | undefined;
+  isRolling?: boolean; isSelected?: boolean; settled?: boolean;
+}) {
+  return (
+    <div
+      className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl transition-all"
+      style={{
+        background: isSelected ? `${sym?.color ?? "#f5c542"}22` : "rgba(0,0,0,0.4)",
+        border: `2px solid ${isSelected ? (sym?.color ?? "#f5c542") : settled ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.1)"}`,
+        boxShadow: isSelected ? `0 0 16px ${sym?.color ?? "#f5c542"}66` : settled ? "0 0 8px rgba(255,255,255,0.1)" : "none",
+        transform: isRolling && !settled ? "rotate(var(--r, 0deg))" : "none",
+        animation: isRolling && !settled ? "jm-spin 0.12s linear infinite" : "none",
+        fontSize: 28,
+      }}
+    >
+      <span style={{ color: sym?.color ?? "rgba(255,255,255,0.5)" }}>{sym?.icon ?? "?"}</span>
+    </div>
+  );
+}
+
 export default function JhandiMundaGame() {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated } = useAuth();
@@ -55,26 +87,70 @@ export default function JhandiMundaGame() {
 
   const [stake, setStake] = useState(500);
   const [selection, setSelection] = useState<string | null>(null);
-  const [phase, setPhase] = useState<"betting" | "waiting" | "result">("betting");
+  const [phase, setPhase] = useState<"betting" | "rolling" | "settling" | "result">("betting");
   const [result, setResult] = useState<any>(null);
   const [balance, setBalance] = useState<number>(parseFloat(user?.balance || "0"));
   const [isPlacing, setIsPlacing] = useState(false);
+
+  // Rolling animation: 6 dice showing random symbols
+  const [rollingDisplay, setRollingDisplay] = useState<string[]>(SYM_KEYS.slice(0, 6));
+  const [settledCount, setSettledCount] = useState(0); // 0-6 dice settled on actual value
+  const [finalDice, setFinalDice] = useState<string[]>([]);
+  const rollIvRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => { setBalance(parseFloat(user?.balance || "0")); }, [user?.balance]);
+
+  // Rapid random cycling while rolling
+  useEffect(() => {
+    if (phase !== "rolling") return;
+    setSettledCount(0);
+    rollIvRef.current = setInterval(() => {
+      setRollingDisplay(() => Array.from({ length: 6 }, () => SYM_KEYS[Math.floor(Math.random() * 6)]));
+    }, 90);
+    return () => { if (rollIvRef.current) clearInterval(rollIvRef.current); };
+  }, [phase]);
+
+  // Settle dice one by one when we have the result
+  useEffect(() => {
+    if (phase !== "settling" || finalDice.length !== 6) return;
+    if (rollIvRef.current) { clearInterval(rollIvRef.current); rollIvRef.current = null; }
+    setSettledCount(0);
+    let count = 0;
+    const iv = setInterval(() => {
+      count++;
+      setSettledCount(count);
+      playDiceSound();
+      setRollingDisplay(prev => {
+        const next = [...prev];
+        next[count - 1] = finalDice[count - 1];
+        return next;
+      });
+      if (count >= 6) {
+        clearInterval(iv);
+        setTimeout(() => setPhase("result"), 600);
+      }
+    }, 280);
+    return () => clearInterval(iv);
+  }, [phase, finalDice]);
 
   const pollRound = useCallback(async (rId: string, sel: string) => {
     let attempts = 0;
     const interval = setInterval(async () => {
       attempts++;
-      if (attempts > 120) { clearInterval(interval); setPhase("betting"); return; }
+      if (attempts > 240) { clearInterval(interval); setPhase("betting"); return; }
       try {
         const r = await fetch(`${API}/api/games/casino-round/jhandi-munda/${rId}`, { credentials: "include" });
         const data = await r.json();
         if (data.status === "settled") {
           clearInterval(interval);
           setResult(data);
-          setPhase("result");
-          if (data.result === sel) playWin(); else playLose();
+          const dice: string[] = data.details?.dice ?? [];
+          setFinalDice(dice);
+          const won = data.result === sel;
+          if (won) playWin(); else playLose();
           queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
+          setPhase("settling");
         }
       } catch (_) {}
     }, 500);
@@ -94,24 +170,28 @@ export default function JhandiMundaGame() {
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Failed");
       setBalance(data.newBalance);
-      setPhase("waiting");
+      setResult(null); setFinalDice([]); setSettledCount(0);
+      setPhase("rolling");
       pollRound(data.roundId, selection);
       const sym = SYMBOLS.find(s => s.key === selection);
-      toast({ title: `Bet on ${sym?.icon} ${sym?.label}!`, description: "Waiting for dice roll..." });
+      toast({ title: `Bet on ${sym?.icon} ${sym?.label}!`, description: "Rolling 6 dice..." });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
+      setPhase("betting");
     } finally {
       setIsPlacing(false);
     }
   };
 
-  const reset = () => { setPhase("betting"); setResult(null); setSelection(null); };
+  const reset = () => { setPhase("betting"); setResult(null); setSelection(null); setSettledCount(0); };
   const won = result?.result === selection;
   const resultSym = SYMBOLS.find(s => s.key === result?.result);
   const selSym = SYMBOLS.find(s => s.key === selection);
+  const isPlaying = phase === "rolling" || phase === "settling";
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(180deg,#0a2414 0%,#081c0e 100%)" }}>
+      <style>{`@keyframes jm-spin { 0%{transform:rotate(0deg) scale(1)} 25%{transform:rotate(90deg) scale(0.9)} 50%{transform:rotate(180deg) scale(1)} 75%{transform:rotate(270deg) scale(0.9)} 100%{transform:rotate(360deg) scale(1)} }`}</style>
       <header className="flex items-center justify-between px-4 py-3" style={{ background: "rgba(13,43,26,0.8)", borderBottom: "1px solid rgba(245,197,66,0.12)" }}>
         <button onClick={() => setLocation("/")} className="flex items-center gap-2 text-sm font-medium" style={{ color: "rgba(255,255,255,0.6)" }}>
           <ArrowLeft size={18} /> Back
@@ -124,63 +204,81 @@ export default function JhandiMundaGame() {
 
       <div className="flex-1 flex flex-col items-center p-4 gap-6 max-w-lg mx-auto w-full">
 
-        {/* Dice area */}
+        {/* Dice Area */}
         <div className="w-full rounded-3xl relative overflow-hidden flex flex-col items-center justify-center py-8 gap-5"
-          style={{ background: "linear-gradient(135deg,#0d3320,#072010)", border: "2px solid rgba(245,197,66,0.2)", minHeight: 220 }}>
+          style={{ background: "linear-gradient(135deg,#0d3320,#072010)", border: "2px solid rgba(245,197,66,0.2)", minHeight: 240 }}>
 
           {phase === "betting" && (
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col items-center gap-4">
               <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "rgba(245,197,66,0.6)" }}>6 Dice · Pick your symbol</p>
-              <div className="flex gap-2 flex-wrap justify-center">
+              <div className="grid grid-cols-3 gap-2">
                 {SYMBOLS.map(s => (
-                  <div key={s.key} className="w-12 h-12 rounded-xl flex items-center justify-center text-3xl" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)" }}>{s.icon}</div>
+                  <div key={s.key} className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl"
+                    style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)", color: s.color }}>
+                    {s.icon}
+                  </div>
                 ))}
               </div>
               <p className="text-sm text-center px-6" style={{ color: "rgba(255,255,255,0.3)" }}>Roll 6 dice · If your symbol appears, you win!</p>
             </div>
           )}
 
-          {phase === "waiting" && (
+          {(phase === "rolling" || phase === "settling") && (
             <div className="flex flex-col items-center gap-4">
-              <div className="flex gap-2 flex-wrap justify-center">
-                {SYMBOLS.map(s => (
-                  <div key={s.key} className="w-12 h-12 rounded-xl flex items-center justify-center text-3xl animate-bounce" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)", animationDelay: `${Math.random() * 0.5}s` }}>{s.icon}</div>
-                ))}
+              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "rgba(245,197,66,0.6)" }}>
+                {phase === "rolling" ? "🎲 Rolling 6 dice..." : `Settling... ${settledCount}/6`}
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {rollingDisplay.map((key, i) => {
+                  const sym = SYMBOLS.find(s => s.key === key);
+                  const settled = i < settledCount;
+                  const isSelected = key === selection;
+                  return (
+                    <Dice key={i} sym={sym} isRolling={phase === "rolling" || !settled} isSelected={isSelected && settled} settled={settled} />
+                  );
+                })}
               </div>
-              <div className="flex items-center gap-2 text-white font-bold">
-                <RefreshCw size={16} className="animate-spin" style={{ color: "#f5c542" }} /> Rolling 6 dice...
-              </div>
+              {selSym && (
+                <div className="text-sm font-bold" style={{ color: "rgba(255,255,255,0.5)" }}>
+                  Your pick: <span style={{ color: selSym.color }}>{selSym.icon} {selSym.label}</span>
+                </div>
+              )}
             </div>
           )}
 
           {phase === "result" && (
             <div className="flex flex-col items-center gap-4">
-              <div className={`text-center px-6 py-2 rounded-2xl font-bold ${won ? "text-yellow-400" : "text-red-400"}`} style={{ background: won ? "rgba(245,197,66,0.1)" : "rgba(239,68,68,0.1)", border: `1px solid ${won ? "rgba(245,197,66,0.3)" : "rgba(239,68,68,0.3)"}` }}>
+              <div className={`text-center px-6 py-2 rounded-2xl font-bold text-lg ${won ? "text-yellow-400" : "text-red-400"}`}
+                style={{ background: won ? "rgba(245,197,66,0.1)" : "rgba(239,68,68,0.1)", border: `1px solid ${won ? "rgba(245,197,66,0.3)" : "rgba(239,68,68,0.3)"}` }}>
                 {won ? "🏆 You Won!" : "😔 You Lost"}
               </div>
-              <div className="flex gap-2 flex-wrap justify-center">
-                {(result?.details?.dice || SYMBOLS.map(s => s.key)).map((sym: string, i: number) => {
-                  const s = SYMBOLS.find(x => x.key === sym);
-                  const isSelected = sym === selection;
+              <div className="grid grid-cols-3 gap-2">
+                {(result?.details?.dice ?? []).map((key: string, i: number) => {
+                  const sym = SYMBOLS.find(s => s.key === key);
+                  const isSelected = key === selection;
                   return (
-                    <div key={i} className="w-12 h-12 rounded-xl flex items-center justify-center text-3xl transition-all" style={{ background: isSelected ? "rgba(245,197,66,0.2)" : "rgba(0,0,0,0.3)", border: isSelected ? "2px solid rgba(245,197,66,0.6)" : "1px solid rgba(255,255,255,0.08)", boxShadow: isSelected ? "0 0 12px rgba(245,197,66,0.4)" : "none" }}>
-                      {s?.icon}
+                    <div key={i} className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl transition-all"
+                      style={{ background: isSelected ? `${sym?.color ?? "#f5c542"}22` : "rgba(0,0,0,0.3)", border: `2px solid ${isSelected ? (sym?.color ?? "#f5c542") : "rgba(255,255,255,0.08)"}`, boxShadow: isSelected ? `0 0 16px ${sym?.color}55` : "none", color: sym?.color ?? "white" }}>
+                      {sym?.icon}
                     </div>
                   );
                 })}
               </div>
               <div className="text-sm font-bold" style={{ color: "rgba(255,255,255,0.6)" }}>
-                Result: <span style={{ color: resultSym?.color, fontSize: 20 }}>{resultSym?.icon}</span> <span style={{ color: "#f5c542" }}>{resultSym?.label}</span>
+                Result: <span style={{ color: resultSym?.color, fontSize: 20 }}>{resultSym?.icon}</span>{" "}
+                <span style={{ color: "#f5c542" }}>{resultSym?.label}</span>
               </div>
             </div>
           )}
         </div>
 
-        {phase !== "waiting" && (
+        {/* Controls */}
+        {!isPlaying && (
           <div className="w-full space-y-4">
             {phase === "result" ? (
-              <button onClick={reset} className="w-full py-4 rounded-2xl font-bold text-base transition-all hover:scale-105" style={{ background: "linear-gradient(135deg,#d4a017,#f5c542)", color: "#081c0e" }}>
-                Play Again
+              <button onClick={reset} className="w-full py-4 rounded-2xl font-bold text-base transition-all hover:scale-105"
+                style={{ background: "linear-gradient(135deg,#d4a017,#f5c542)", color: "#081c0e" }}>
+                Roll Again
               </button>
             ) : (
               <>
@@ -197,7 +295,6 @@ export default function JhandiMundaGame() {
                     ))}
                   </div>
                 </div>
-
                 <div className="flex gap-2 flex-wrap justify-center">
                   {CHIP_AMOUNTS.map(amt => (
                     <button key={amt} onClick={() => setStake(amt)}
@@ -207,20 +304,21 @@ export default function JhandiMundaGame() {
                     </button>
                   ))}
                 </div>
-
                 <button onClick={placeBet} disabled={isPlacing || !selection}
                   className="w-full py-4 rounded-2xl font-bold text-base transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ background: "linear-gradient(135deg,#d4a017,#f5c542)", color: "#081c0e", boxShadow: "0 0 20px rgba(245,197,66,0.35)" }}>
-                  {isPlacing ? "Placing..." : `Bet ${formatCurrency(stake)} on ${selSym ? selSym.icon + " " + selSym.label : "..."}`}
+                  {isPlacing ? "Rolling..." : `Roll Dice · ${formatCurrency(stake)}`}
                 </button>
               </>
             )}
           </div>
         )}
 
-        {phase === "waiting" && (
+        {isPlaying && (
           <div className="text-center text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
-            Bet of {formatCurrency(stake)} on <strong style={{ color: selSym?.color }}>{selSym?.icon} {selSym?.label}</strong> placed. Rolling dice...
+            {formatCurrency(stake)} bet on <strong style={{ color: selSym?.color }}>{selSym?.icon} {selSym?.label}</strong>
+            {phase === "rolling" && " · Dice are rolling..."}
+            {phase === "settling" && " · Dice are settling..."}
           </div>
         )}
       </div>
