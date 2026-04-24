@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -7,12 +7,9 @@ import { Link } from "wouter";
 
 const API = import.meta.env.BASE_URL.replace(/\/$/, "") + "/api";
 
-const PERKS = [
-  { icon: "🎁", title: "Welcome Bonus", desc: "PKR 50,000 free credits to start" },
-  { icon: "🏏", title: "Cricket & Casino", desc: "Bet on PSL, IPL, Dragon Tiger & more" },
-  { icon: "🔒", title: "100% Secure", desc: "Your money & data are always safe" },
-  { icon: "📱", title: "Works Everywhere", desc: "Bet from any device, anytime" },
-];
+function formatPKR(amount: number) {
+  return `PKR ${amount.toLocaleString("en-PK")}`;
+}
 
 type Step = "info" | "otp" | "done";
 
@@ -38,6 +35,15 @@ export default function Register() {
 
   const [step, setStep] = useState<Step>("info");
   const [loading, setLoading] = useState(false);
+  const [signupBonus, setSignupBonus] = useState<number | null>(null);
+
+  // Fetch the current signup bonus amount from the server on mount
+  useEffect(() => {
+    fetch(`${API}/auth/signup-bonus`)
+      .then(r => r.json())
+      .then(d => setSignupBonus(d.signupBonus ?? null))
+      .catch(() => {});
+  }, []);
 
   // Step 1 fields
   const [username, setUsername] = useState("");
@@ -155,6 +161,8 @@ export default function Register() {
     });
     const data = await r.json();
     if (!r.ok) { setErrors({ otp: data.error ?? "Could not create account" }); return; }
+    // Update bonus amount from the actual response so the success screen is always accurate
+    if (typeof data.signupBonus === "number") setSignupBonus(data.signupBonus);
     queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
     setStep("done");
     setTimeout(() => setLocation("/"), 2500);
@@ -225,7 +233,12 @@ export default function Register() {
             Create your free account and start winning today. PKR deposits, instant payouts, and the best odds in Pakistan.
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {PERKS.map((p) => (
+            {[
+              { icon: "🎁", title: "Welcome Bonus", desc: signupBonus ? `${formatPKR(signupBonus)} free credits to start` : "Free credits to start playing" },
+              { icon: "🏏", title: "Cricket & Casino", desc: "Bet on PSL, IPL, Dragon Tiger & more" },
+              { icon: "🔒", title: "100% Secure", desc: "Your money & data are always safe" },
+              { icon: "📱", title: "Works Everywhere", desc: "Bet from any device, anytime" },
+            ].map((p) => (
               <div key={p.title} style={{
                 background: "rgba(255,255,255,0.08)", backdropFilter: "blur(10px)",
                 borderRadius: 14, border: "1px solid rgba(255,255,255,0.12)", padding: "16px",
@@ -464,16 +477,18 @@ export default function Register() {
               <p style={{ fontSize: 16, color: "#64748b", marginBottom: 24 }}>
                 Email verified and account created.<br />Taking you to the lobby...
               </p>
-              <div style={{
-                background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 14,
-                padding: "16px 20px", display: "inline-flex", alignItems: "center", gap: 12,
-              }}>
-                <span style={{ fontSize: 28 }}>🎁</span>
-                <div style={{ textAlign: "left" }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#15803d" }}>Welcome Bonus Added!</div>
-                  <div style={{ fontSize: 12, color: "#166534" }}>PKR 50,000 has been credited to your account</div>
+              {signupBonus !== null && signupBonus > 0 && (
+                <div style={{
+                  background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 14,
+                  padding: "16px 20px", display: "inline-flex", alignItems: "center", gap: 12,
+                }}>
+                  <span style={{ fontSize: 28 }}>🎁</span>
+                  <div style={{ textAlign: "left" }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#15803d" }}>Welcome Bonus Added!</div>
+                    <div style={{ fontSize: 12, color: "#166534" }}>{formatPKR(signupBonus)} has been credited to your account</div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>

@@ -256,6 +256,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
       balance: parseFloat(user.balance),
       createdAt: user.createdAt.toISOString(),
     },
+    signupBonus,
   });
 });
 
@@ -303,6 +304,13 @@ router.post("/auth/logout", async (req, res): Promise<void> => {
   req.session.destroy(() => {
     res.json({ message: "Logged out" });
   });
+});
+
+// Public endpoint — returns current signup bonus so the register page shows the correct amount
+router.get("/auth/signup-bonus", async (_req, res): Promise<void> => {
+  const result = await pool.query("SELECT value FROM platform_settings WHERE key = $1", ["signup_bonus"]);
+  const amount = Math.max(0, Math.round(parseFloat(result.rows[0]?.value ?? "0")));
+  res.json({ signupBonus: amount });
 });
 
 router.get("/auth/me", async (req, res): Promise<void> => {
