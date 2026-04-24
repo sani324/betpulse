@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { useQueryClient } from "@tanstack/react-query";
@@ -11,234 +11,279 @@ const API = import.meta.env.BASE_URL.replace(/\/$/, "");
 const BASE = import.meta.env.BASE_URL;
 
 type Selection = "car1" | "car2" | "car3";
-type Phase = "betting" | "racing" | "result";
+type Phase = "betting" | "spinning" | "result";
 
-const CARS = [
-  { key:"car1" as Selection, num:1, icon:"🚗", label:"CAR 1",  color:"#3b82f6", dark:"#1e3a8a", glow:"rgba(59,130,246,0.7)", mult:1.95, bg:"linear-gradient(145deg,#0a1628,#1e3a8a)" },
-  { key:"car2" as Selection, num:2, icon:"🏎️", label:"CAR 2",  color:"#ef4444", dark:"#7f1d1d", glow:"rgba(239,68,68,0.7)",  mult:1.95, bg:"linear-gradient(145deg,#1a0505,#7f1d1d)" },
-  { key:"car3" as Selection, num:3, icon:"⚡", label:"CAR 3",  color:"#f5c542", dark:"#78350f", glow:"rgba(245,197,66,0.8)", mult:5,    bg:"linear-gradient(145deg,#1a0e00,#854d0e)" },
+// ─── Wheel config ─────────────────────────────────────────────────────────────
+const N_SECTORS = 12;
+const SECTOR_ANG = 360 / N_SECTORS;
+
+// 12 sectors: car1=5, car2=5, car3=2
+const WHEEL_MAP: Selection[] = [
+  "car1","car2","car1","car2","car1","car3",
+  "car2","car1","car2","car1","car2","car3",
 ];
 
-const CHIPS = [
-  {amt:100,color:"#3b82f6"},{amt:500,color:"#22c55e"},
-  {amt:1000,color:"#a855f7"},{amt:5000,color:"#f97316"},{amt:10000,color:"#f5c542"},
-];
+const CAR_CFG: Record<Selection,{label:string;icon:string;mult:number;primary:string;alt:string;dark:string;glow:string}> = {
+  car1: { label:"CAR #1", icon:"🔵", mult:1.95, primary:"#3b82f6", alt:"#1d4ed8", dark:"#0a1525", glow:"rgba(59,130,246,0.5)" },
+  car2: { label:"CAR #2", icon:"🔴", mult:1.95, primary:"#ef4444", alt:"#b91c1c", dark:"#1c0505", glow:"rgba(239,68,68,0.5)"  },
+  car3: { label:"CAR #3", icon:"🏆", mult:5,    primary:"#f5c542", alt:"#d97706", dark:"#1c1100", glow:"rgba(245,197,66,0.6)"  },
+};
 
-const TICKER = "🏁 GRAND PRIX CIRCUIT  •  🚗 CAR 1: 1.95×  •  🏎️ CAR 2: 1.95×  •  ⚡ CAR 3: 5× JACKPOT  •  🏆 RACE TO WIN  •  🏁 START YOUR ENGINES  •  🔥 SPEED BETTING  •  ";
+const CHIPS = [{v:100,c:"#22c55e"},{v:500,c:"#3b82f6"},{v:1000,c:"#a855f7"},{v:5000,c:"#f97316"},{v:10000,c:"#f5c542"}];
 
+const TICKER = "🏁 CAR ROULETTE  •  🔵 CAR 1: 1.95×  •  🔴 CAR 2: 1.95×  •  🏆 CAR 3: JACKPOT 5×  •  🎰 SPIN TO WIN  •  🏆 SPEED BETTING  •  ";
+
+// ─── SVG Wheel helpers ────────────────────────────────────────────────────────
+function polar(cx:number,cy:number,r:number,deg:number){
+  const rad=(deg-90)*Math.PI/180;
+  return{x:cx+r*Math.cos(rad),y:cy+r*Math.sin(rad)};
+}
+
+function sectorPath(cx:number,cy:number,r:number,a1:number,a2:number){
+  const s=polar(cx,cy,r,a1), e=polar(cx,cy,r,a2);
+  const large=a2-a1>180?1:0;
+  const si=polar(cx,cy,34,a1), ei=polar(cx,cy,34,a2);
+  return `M ${si.x},${si.y} L ${s.x},${s.y} A ${r},${r} 0 ${large},1 ${e.x},${e.y} L ${ei.x},${ei.y} A 34,34 0 ${large},0 ${si.x},${si.y} Z`;
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const STYLES = `
-  .cr-bg {
-    background: radial-gradient(ellipse at 50% 0%,#0d1b3e 0%,#020415 55%,#000308 100%);
-    min-height:100dvh;
+  .cr2-root {
+    background: radial-gradient(ellipse at 50% -10%, #0e0028 0%, #060010 50%, #020008 100%);
+    min-height: 100dvh;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #fff;
   }
-  .cr-bg::before {
-    content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  .cr2-root::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
     background:
-      repeating-linear-gradient(90deg,rgba(59,130,246,0.015) 0,rgba(59,130,246,0.015) 1px,transparent 1px,transparent 60px);
+      radial-gradient(ellipse 80% 50% at 50% 0%, rgba(139,92,246,0.06) 0%, transparent 60%),
+      repeating-linear-gradient(60deg, rgba(139,92,246,0.015) 0px, rgba(139,92,246,0.015) 1px, transparent 1px, transparent 40px);
+    z-index: 0;
   }
-  @keyframes cr-ticker   {0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-  @keyframes cr-speed-ln {0%{transform:translateX(-100%);opacity:0.8}100%{transform:translateX(200%);opacity:0}}
-  @keyframes cr-vibrate  {0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
-  @keyframes cr-race-out {0%{left:8%}100%{left:82%}}
-  @keyframes cr-winner   {0%{transform:scale(1) rotate(0)}25%{transform:scale(1.4) rotate(-8deg)}50%{transform:scale(1.2) rotate(8deg)}75%{transform:scale(1.35) rotate(-4deg)}100%{transform:scale(1.3) rotate(0)}}
-  @keyframes cr-light-flash{0%,100%{opacity:0.15}50%{opacity:1}}
-  @keyframes cr-burst    {0%{transform:scale(0.1);opacity:0}60%{transform:scale(1.1)}80%{transform:scale(0.95)}100%{transform:scale(1);opacity:1}}
-  @keyframes cr-shimmer  {0%{background-position:-300% 0}100%{background-position:300% 0}}
-  @keyframes cr-glow-trk {0%,100%{box-shadow:0 0 25px rgba(59,130,246,0.12)}50%{box-shadow:0 0 50px rgba(59,130,246,0.22)}}
-  @keyframes cr-dust     {0%{transform:translateY(0) scale(1);opacity:0.8}100%{transform:translateY(-20px) scale(2);opacity:0}}
-  @keyframes cr-trophy   {0%{transform:scale(0) translateY(10px);opacity:0}60%{transform:scale(1.2) translateY(-5px)}100%{transform:scale(1) translateY(0);opacity:1}}
+  @keyframes cr2-ticker    { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+  @keyframes cr2-shimmer   { 0%{background-position:-300% 0} 100%{background-position:300% 0} }
+  @keyframes cr2-pulse-glow{ 0%,100%{opacity:0.6} 50%{opacity:1} }
+  @keyframes cr2-burst     { 0%{transform:scale(0.05);opacity:0} 55%{transform:scale(1.07)} 80%{transform:scale(0.97)} 100%{transform:scale(1);opacity:1} }
+  @keyframes cr2-confetti  { 0%{transform:translateY(-10px) rotate(0deg);opacity:1} 100%{transform:translateY(320px) rotate(720deg);opacity:0} }
+  @keyframes cr2-ring      { 0%{box-shadow:0 0 0 0 rgba(245,197,66,0.6)} 70%{box-shadow:0 0 0 20px rgba(245,197,66,0)} 100%{box-shadow:0 0 0 0 rgba(245,197,66,0)} }
+  @keyframes cr2-ball      { 0%{transform:rotate(0deg) translateX(88px)} 100%{transform:rotate(360deg) translateX(88px)} }
+  @keyframes cr2-ballstop  { 0%{transform:rotate(0deg) translateX(88px)} 100%{transform:rotate(1800deg) translateX(88px)} }
 `;
 
-function RaceTrack({ selection, phase, resultKey }:{
-  selection:Selection|null; phase:Phase; resultKey:Selection|null;
-}) {
-  const [carPositions,setCarPositions]=useState<Record<string,number>>({car1:8,car2:8,car3:8});
-  const [winnerCar,setWinnerCar]=useState<Selection|null>(null);
-  const [lights,setLights]=useState([false,false,false,false,false]);
-  const animRefs=useRef<any[]>([]);
+// ─── Wheel component ──────────────────────────────────────────────────────────
+function SpinWheel({ deg, winSector, phase }:{deg:number;winSector:number|null;phase:Phase}) {
+  const cx=150,cy=150,R=130;
+  const winner = winSector;
 
-  useEffect(()=>{
-    animRefs.current.forEach(clearInterval);animRefs.current=[];
-    if(phase==="betting"){
-      setCarPositions({car1:8,car2:8,car3:8});setWinnerCar(null);
-      setLights([false,false,false,false,false]);
-    }
-    if(phase==="racing"){
-      // Start lights sequence
-      [0,1,2,3,4].forEach((i)=>{
-        setTimeout(()=>setLights(prev=>{const n=[...prev];n[i]=true;return n;}),i*350);
-      });
-      setTimeout(()=>{
-        setLights([false,false,false,false,false]);
-        // Cars vibrate then race
-        const vibId=setInterval(()=>{
-          setCarPositions(prev=>({
-            car1: prev.car1+(Math.random()-0.48)*6,
-            car2: prev.car2+(Math.random()-0.48)*6,
-            car3: prev.car3+(Math.random()-0.48)*6,
-          }));
-        },80);
-        animRefs.current.push(vibId);
-      },5*350+200);
-    }
-    if(phase==="result"&&resultKey){
-      animRefs.current.forEach(clearInterval);animRefs.current=[];
-      // Settle all cars, winner shoots ahead
-      const startPos={car1:12,car2:12,car3:12};
-      let steps=0;
-      const settleId=setInterval(()=>{
-        steps++;
-        const progress=Math.min(steps/25,1);
-        setCarPositions({
-          car1: startPos.car1+(resultKey==="car1"?70:50)*Math.pow(progress,0.8),
-          car2: startPos.car2+(resultKey==="car2"?70:50)*Math.pow(progress,0.8),
-          car3: startPos.car3+(resultKey==="car3"?70:50)*Math.pow(progress,0.8),
-        });
-        if(steps>=25){clearInterval(settleId);setWinnerCar(resultKey);}
-      },55);
-      animRefs.current.push(settleId);
-    }
-    return()=>{animRefs.current.forEach(clearInterval);};
-  },[phase,resultKey]);
+  const sectors = WHEEL_MAP.map((car,i)=>{
+    const a1=i*SECTOR_ANG, a2=(i+1)*SECTOR_ANG;
+    const cfg=CAR_CFG[car];
+    const isAlt=i%2===1;
+    const fill=isAlt?cfg.alt:cfg.primary;
+    const isWin=winner===i&&phase==="result";
+    const mid=polar(cx,cy,R*0.66,a1+SECTOR_ANG/2);
 
-  const raceInProgress=phase==="racing";
+    return {car,a1,a2,fill,isWin,mid,cfg,path:sectorPath(cx,cy,R,a1,a2)};
+  });
 
   return (
-    <div style={{position:"relative"}}>
-      {/* Start lights */}
-      {(phase==="racing"&&lights.some(Boolean))&&(
-        <div style={{display:"flex",gap:8,justifyContent:"center",marginBottom:10}}>
-          {lights.map((on,i)=>(
-            <div key={i} style={{width:18,height:18,borderRadius:"50%",
-              background:on?"#ef4444":"rgba(239,68,68,0.15)",
-              boxShadow:on?"0 0 14px #ef4444,0 0 28px #ef444488":undefined,
-              transition:"all 0.2s"}}/>
-          ))}
-        </div>
-      )}
-
-      {/* Track */}
+    <div style={{position:"relative",width:300,height:300}}>
+      {/* Outer ring glow */}
       <div style={{
-        background:"linear-gradient(180deg,#0a0f1e,#111827,#0a0f1e)",
-        border:"2px solid rgba(59,130,246,0.25)",borderRadius:18,
-        padding:"12px 10px",position:"relative",overflow:"hidden",
-        animation:"cr-glow-trk 3s ease-in-out infinite",
+        position:"absolute",inset:-6,borderRadius:"50%",
+        background:`conic-gradient(from 0deg, #3b82f6, #ef4444, #f5c542, #3b82f6)`,
+        opacity:phase==="spinning"?0.5:0.2,
+        filter:"blur(8px)",
+        transition:"opacity 0.5s",
+        animation:phase==="result"?"cr2-ring 1s ease-out":undefined,
+      }}/>
+
+      <svg viewBox="0 0 300 300" style={{
+        width:300,height:300,
+        transform:`rotate(${deg}deg)`,
+        transition:"none",
+        filter:phase==="result"?"drop-shadow(0 0 18px rgba(245,197,66,0.5))":undefined,
       }}>
-        {/* Checkered pattern left */}
-        <div style={{position:"absolute",left:0,top:0,bottom:0,width:16,borderRadius:"16px 0 0 16px",
-          background:"repeating-linear-gradient(180deg,#fff 0,#fff 8px,#111 8px,#111 16px)",opacity:0.4}}/>
-        {/* Checkered pattern right */}
-        <div style={{position:"absolute",right:0,top:0,bottom:0,width:16,borderRadius:"0 16px 16px 0",
-          background:"repeating-linear-gradient(180deg,#fff 0,#fff 8px,#111 8px,#111 16px)",opacity:0.4}}/>
+        <defs>
+          <filter id="sect-glow">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          {sectors.map((s,i)=>(
+            <radialGradient key={i} id={`sg${i}`} cx="50%" cy="30%" r="70%">
+              <stop offset="0%" stopColor={s.fill} stopOpacity="0.9"/>
+              <stop offset="100%" stopColor={s.fill} stopOpacity="0.6"/>
+            </radialGradient>
+          ))}
+        </defs>
 
-        {/* Speed lines when racing */}
-        {raceInProgress&&[...Array(6)].map((_,i)=>(
-          <div key={i} style={{position:"absolute",height:2,width:"40%",
-            background:`linear-gradient(90deg,transparent,${CARS[i%3].color}66,transparent)`,
-            top:`${15+i*14}%`,
-            animation:`cr-speed-ln ${0.5+i*0.1}s ${i*0.08}s linear infinite`}}/>
+        {/* Sectors */}
+        {sectors.map((s,i)=>(
+          <path key={i} d={s.path}
+            fill={s.isWin?`#ffffff22`:s.fill}
+            stroke={s.isWin?"rgba(245,197,66,0.8)":"rgba(0,0,0,0.4)"}
+            strokeWidth={s.isWin?2:1}
+            filter={s.isWin?"url(#sect-glow)":undefined}
+            opacity={winner!==null&&!s.isWin&&phase==="result"?0.45:1}
+          />
         ))}
 
-        {/* Lane dividers */}
-        {[33,66].map(p=>(
-          <div key={p} style={{position:"absolute",left:"8%",right:"8%",top:`${p}%`,height:1,
-            background:"rgba(255,255,255,0.06)",borderTop:"1px dashed rgba(255,255,255,0.06)"}}/>
-        ))}
+        {/* Spoke lines */}
+        {sectors.map((s,i)=>{
+          const p1=polar(cx,cy,34,s.a1);
+          const p2=polar(cx,cy,R,s.a1);
+          return <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
+            stroke="rgba(0,0,0,0.6)" strokeWidth={1.5}/>;
+        })}
 
-        {/* The 3 car lanes */}
-        {CARS.map((car,i)=>{
-          const pos=carPositions[car.key]??8;
-          const isWinner=winnerCar===car.key;
-          const isSelected=selection===car.key;
+        {/* Sector labels */}
+        {sectors.map((s,i)=>{
+          const isWin=winner===i&&phase==="result";
           return (
-            <div key={car.key} style={{height:52,position:"relative",marginBottom:i<2?8:0,
-              background:isSelected?"rgba(255,255,255,0.025)":"transparent",
-              borderRadius:8,border:isSelected?`1px solid ${car.color}22`:"1px solid transparent"}}>
-              {/* Car number label */}
-              <div style={{position:"absolute",left:20,top:"50%",transform:"translateY(-50%)",
-                fontSize:9,fontWeight:900,letterSpacing:1,color:`${car.color}88`}}>#{car.num}</div>
-
-              {/* Car */}
-              <div style={{
-                position:"absolute",
-                left:`${Math.max(8,Math.min(pos,82))}%`,
-                top:"50%",
-                transform:"translateY(-50%)",
-                fontSize:28,
-                transition:raceInProgress?"none":"left 0.5s cubic-bezier(.34,1.56,.64,1)",
-                animation:raceInProgress?"cr-vibrate 0.15s linear infinite":
-                  isWinner?"cr-winner 0.6s ease-in-out forwards":undefined,
-                filter:isWinner?`drop-shadow(0 0 12px ${car.color})`:`drop-shadow(0 2px 4px rgba(0,0,0,0.5))`,
-                zIndex:2,
-              }}>{car.icon}</div>
-
-              {/* Winner trophy */}
-              {isWinner&&(
-                <div style={{position:"absolute",left:"85%",top:"10%",fontSize:20,
-                  animation:"cr-trophy 0.5s cubic-bezier(.34,1.56,.64,1) forwards"}}>🏆</div>
-              )}
-
-              {/* Dust/exhaust particles */}
-              {raceInProgress&&[...Array(3)].map((_,p)=>(
-                <div key={p} style={{position:"absolute",
-                  left:`${Math.max(8,Math.min(pos-4,78))}%`,
-                  top:`${30+p*15}%`,
-                  fontSize:8,opacity:0.4,
-                  animation:`cr-dust ${0.4+p*0.1}s ${p*0.05}s ease-out infinite`}}>
-                  💨
-                </div>
-              ))}
-            </div>
+            <g key={i}>
+              <text
+                x={s.mid.x} y={s.mid.y-5}
+                textAnchor="middle" dominantBaseline="middle"
+                fontSize={15}
+                fill={isWin?"#fff":"rgba(255,255,255,0.9)"}
+                fontWeight={isWin?900:700}
+                transform={`rotate(${s.a1+SECTOR_ANG/2},${s.mid.x},${s.mid.y})`}
+              >
+                {s.car==="car1"?"🚗":s.car==="car2"?"🏎":"⭐"}
+              </text>
+              <text
+                x={s.mid.x} y={s.mid.y+10}
+                textAnchor="middle" dominantBaseline="middle"
+                fontSize={8} fontWeight={900}
+                fill={isWin?"#fff":"rgba(255,255,255,0.65)"}
+                letterSpacing={0}
+                transform={`rotate(${s.a1+SECTOR_ANG/2},${s.mid.x},${s.mid.y})`}
+              >
+                {s.car==="car3"?"5×":"1.95×"}
+              </text>
+            </g>
           );
         })}
-      </div>
+
+        {/* Center hub */}
+        <circle cx={cx} cy={cy} r={34} fill="#0a0018" stroke="rgba(245,197,66,0.5)" strokeWidth={2}/>
+        <circle cx={cx} cy={cy} r={28} fill="#100020" stroke="rgba(245,197,66,0.2)" strokeWidth={1}/>
+        <text x={cx} y={cy+1} textAnchor="middle" dominantBaseline="middle" fontSize={18}>🎰</text>
+      </svg>
+
+      {/* Pointer / needle */}
+      <div style={{
+        position:"absolute",top:-2,left:"50%",transform:"translateX(-50%)",
+        width:0,height:0,
+        borderLeft:"12px solid transparent",borderRight:"12px solid transparent",
+        borderTop:"28px solid #f5c542",
+        filter:"drop-shadow(0 4px 8px rgba(245,197,66,0.8))",
+        zIndex:10,
+      }}/>
     </div>
   );
 }
 
-export default function CarRouletteGame(){
-  const [,nav]=useLocation();
-  const {user}=useAuth();
-  const qc=useQueryClient();
-  const {toast}=useToast();
+// ─── Main component ───────────────────────────────────────────────────────────
+export default function CarRouletteGame() {
+  const [,nav]    = useLocation();
+  const {user}    = useAuth();
+  const qc        = useQueryClient();
+  const {toast}   = useToast();
 
-  const [phase,setPhase]=useState<Phase>("betting");
-  const [selection,setSelection]=useState<Selection|null>(null);
-  const [bet,setBet]=useState(0);
-  const [win,setWin]=useState(0);
-  const [resultKey,setResultKey]=useState<Selection|null>(null);
-  const [lapTime,setLapTime]=useState("00:00.000");
+  const [phase,setPhase]     = useState<Phase>("betting");
+  const [selection,setSel]   = useState<Selection|null>(null);
+  const [bet,setBet]         = useState(0);
+  const [win,setWin]         = useState(0);
+  const [resultKey,setRes]   = useState<Selection|null>(null);
+  const [winSector,setWinSec]= useState<number|null>(null);
+  const [confetti,setConf]   = useState<{x:number;id:number;icon:string}[]>([]);
 
-  const pollTimer=useRef<any>(null);
-  const lapInterval=useRef<any>(null);
-  const lapStart=useRef<number>(0);
-  const balance=(user as any)?.balance??0;
+  const wheelDegRef  = useRef(0);
+  const [wheelDeg,setWheelDeg] = useState(0);
+  const intervalRef  = useRef<any>(null);
+  const pollRef      = useRef<any>(null);
+  const decelRef     = useRef<{startDeg:number;target:number;startMs:number}|null>(null);
+  const resultReadyRef = useRef<Selection|null>(null);
+  const phaseComplRef  = useRef(false);
+  const balance = (user as any)?.balance ?? 0;
 
   useEffect(()=>{
     const s=document.createElement("style");s.textContent=STYLES;document.head.appendChild(s);
     return()=>{try{document.head.removeChild(s)}catch{}};
   },[]);
-  useEffect(()=>()=>{if(pollTimer.current)clearInterval(pollTimer.current);},[]);
 
+  // Wheel tick loop
   useEffect(()=>{
-    if(phase==="racing"){
-      lapStart.current=Date.now();
-      lapInterval.current=setInterval(()=>{
-        const ms=Date.now()-lapStart.current;
-        const s=Math.floor(ms/1000)%60;
-        const m=Math.floor(ms/60000);
-        setLapTime(`${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}.${String(ms%1000).padStart(3,"0")}`);
-      },33);
-    } else {
-      if(lapInterval.current)clearInterval(lapInterval.current);
-    }
-    return()=>{if(lapInterval.current)clearInterval(lapInterval.current);};
-  },[phase]);
+    if(intervalRef.current)clearInterval(intervalRef.current);
+    intervalRef.current=setInterval(()=>{
+      const d=decelRef.current;
+      if(d){
+        const elapsed=Date.now()-d.startMs;
+        const dur=4200;
+        const t=Math.min(elapsed/dur,1);
+        const eased=1-Math.pow(1-t,3);
+        const deg=d.startDeg+(d.target-d.startDeg)*eased;
+        wheelDegRef.current=deg;
+        setWheelDeg(deg);
+        if(t>=1&&!phaseComplRef.current){
+          phaseComplRef.current=true;
+          clearInterval(intervalRef.current);
+          // find winning sector from final deg
+          const norm=((deg%360)+360)%360;
+          // pointer at top=0° → wheel angle 0° means sector 0 is at top
+          // sectorIndex at top = floor((-norm+360)%360 / SECTOR_ANG)
+          const atTop=(((-norm)%360)+360)%360;
+          const secIdx=Math.floor(atTop/SECTOR_ANG)%N_SECTORS;
+          setWinSec(secIdx);
+          const srv=resultReadyRef.current!;
+          setRes(srv);
+          const won=srv===resultReadyRef.current&&resultReadyRef.current!==null;
+          const cfg=CAR_CFG[srv];
+          // already stored the selection that placed the bet in ref
+          setTimeout(()=>{setPhase("result");},300);
+        }
+      } else {
+        wheelDegRef.current += 9;
+        setWheelDeg(wheelDegRef.current);
+      }
+    },16);
+    return()=>clearInterval(intervalRef.current);
+  },[]);
 
-  async function placeBet(){
+  useEffect(()=>()=>{if(pollRef.current)clearInterval(pollRef.current);},[]);
+
+  function fireConfetti(){
+    const icons=["🏎","🚗","🏆","💰","⭐","🎉","🏁","💎"];
+    setConf(Array.from({length:18},(_,i)=>({x:Math.random()*90,id:i,icon:icons[i%icons.length]})));
+    setTimeout(()=>setConf([]),2800);
+  }
+
+  function getWheelTarget(result:Selection):number{
+    const validSectors=WHEEL_MAP
+      .map((c,i)=>({c,i}))
+      .filter(x=>x.c===result)
+      .map(x=>x.i);
+    const si=validSectors[Math.floor(Math.random()*validSectors.length)];
+    // center of sector si in degrees
+    const sectorCenterDeg=si*SECTOR_ANG+SECTOR_ANG/2;
+    // to land at top, wheel must rotate so sector center maps to 0°
+    const neededWheelRot=(360-sectorCenterDeg+360)%360;
+    const currentNorm=((wheelDegRef.current%360)+360)%360;
+    let diff=(neededWheelRot-currentNorm+360)%360;
+    if(diff<180) diff+=360; // ensure at least half rotation in decel
+    return wheelDegRef.current+diff+1080; // 3 extra spins
+  }
+
+  const placeBet=useCallback(async()=>{
     if(!selection||bet<=0||phase!=="betting")return;
     const lockedSel=selection,lockedBet=bet;
-    setPhase("racing");setResultKey(null);
+    setPhase("spinning");decelRef.current=null;resultReadyRef.current=null;phaseComplRef.current=false;
+    setWinSec(null);setRes(null);setWin(0);
 
     try{
       const r=await fetch(`${API}/api/games/car-roulette`,{
@@ -250,161 +295,215 @@ export default function CarRouletteGame(){
       qc.invalidateQueries({queryKey:getGetBalanceQueryKey()});
       qc.invalidateQueries({queryKey:getGetMeQueryKey()});
 
-      if(pollTimer.current)clearInterval(pollTimer.current);
-      pollTimer.current=setInterval(async()=>{
+      if(pollRef.current)clearInterval(pollRef.current);
+      pollRef.current=setInterval(async()=>{
         try{
           const pr=await fetch(`${API}/api/games/casino-round/car-roulette/${roundId}`,{credentials:"include"});
           if(!pr.ok)return;
-          const data=await pr.json();
-          if(data.status==="settled"){
-            clearInterval(pollTimer.current);
-            const serverResult=(data.result??"").trim().toLowerCase() as Selection;
-            setTimeout(()=>{
-              setResultKey(serverResult);
-              setTimeout(()=>{
-                const won=serverResult===lockedSel;
-                setWin(won?lockedBet*(CARS.find(c=>c.key===lockedSel)?.mult??1.95):0);
-                setPhase("result");
-                if(won){qc.invalidateQueries({queryKey:getGetBalanceQueryKey()});qc.invalidateQueries({queryKey:getGetMeQueryKey()});}
-              },1200);
-            },500);
+          const d=await pr.json();
+          if(d.status==="settled"){
+            clearInterval(pollRef.current);
+            const srv=(d.result??"").trim().toLowerCase() as Selection;
+            const target=getWheelTarget(srv);
+            resultReadyRef.current=srv;
+            const won=srv===lockedSel;
+            setWin(won?lockedBet*CAR_CFG[srv].mult:0);
+            if(won){qc.invalidateQueries({queryKey:getGetBalanceQueryKey()});qc.invalidateQueries({queryKey:getGetMeQueryKey()});}
+            decelRef.current={startDeg:wheelDegRef.current,target,startMs:Date.now()};
+            if(won) setTimeout(()=>fireConfetti(),4400);
           }
         }catch{}
       },600);
-      setTimeout(()=>{if(pollTimer.current)clearInterval(pollTimer.current);},30000);
+      setTimeout(()=>{if(pollRef.current)clearInterval(pollRef.current);},35000);
     }catch(e:any){
       setPhase("betting");
       toast({title:"Error",description:(e as any).message,variant:"destructive"});
     }
+  },[selection,bet,phase,qc,toast]);
+
+  function collect(){
+    setPhase("betting");setWin(0);setRes(null);setSel(null);setBet(0);
+    setWinSec(null);decelRef.current=null;resultReadyRef.current=null;phaseComplRef.current=false;
   }
+  function chip(v:number){if(phase!=="betting")return;setBet(b=>Math.min(b+v,balance));}
 
-  function collect(){setPhase("betting");setWin(0);setResultKey(null);setSelection(null);setBet(0);setLapTime("00:00.000");}
-  function addChip(a:number){if(phase!=="betting")return;setBet(b=>Math.min(b+a,balance));}
-
-  const selCar=CARS.find(c=>c.key===selection);
-  const resCar=CARS.find(c=>c.key===resultKey);
-  const busy=phase==="racing";
+  const busy=phase==="spinning";
+  const selCfg=selection?CAR_CFG[selection]:null;
+  const resCfg=resultKey?CAR_CFG[resultKey]:null;
+  const won=win>0;
 
   return (
-    <div className="cr-bg" style={{fontFamily:"'Segoe UI',system-ui,sans-serif",color:"#fff",position:"relative"}}>
-      <div style={{position:"relative",zIndex:10,maxWidth:480,margin:"0 auto",paddingBottom:32}}>
+    <div className="cr2-root">
+      {/* Confetti */}
+      <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:60,overflow:"hidden"}}>
+        {confetti.map(c=>(
+          <div key={c.id} style={{position:"absolute",top:-20,left:`${c.x}%`,fontSize:18,
+            animation:`cr2-confetti ${1.4+Math.random()*0.8}s ease-in forwards`}}>{c.icon}</div>
+        ))}
+      </div>
 
+      <div style={{position:"relative",zIndex:10,maxWidth:480,margin:"0 auto",paddingBottom:32}}>
         {/* Header */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px",
-          background:"rgba(2,4,21,0.92)",borderBottom:"1px solid rgba(59,130,246,0.2)",backdropFilter:"blur(14px)"}}>
-          <button onClick={()=>nav("/")} style={{background:"rgba(59,130,246,0.1)",border:"1px solid rgba(59,130,246,0.3)",
-            borderRadius:10,padding:"7px 12px",color:"#93c5fd",cursor:"pointer",
-            display:"flex",alignItems:"center",gap:6,fontSize:14}}>
-            <ArrowLeft size={16}/>Back
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+          padding:"13px 16px",background:"rgba(2,0,10,0.95)",
+          borderBottom:"1px solid rgba(139,92,246,0.2)",backdropFilter:"blur(14px)",
+          position:"sticky",top:0,zIndex:30}}>
+          <button onClick={()=>nav("/")} style={{
+            display:"flex",alignItems:"center",gap:6,padding:"7px 13px",
+            background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.09)",
+            borderRadius:10,color:"rgba(255,255,255,0.6)",cursor:"pointer",fontSize:14,
+          }}>
+            <ArrowLeft size={15}/>Back
           </button>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <img src={`${BASE}car-roulette-logo.jpg`} alt="" style={{height:36,width:36,borderRadius:8,objectFit:"cover"}}
+          <div style={{display:"flex",alignItems:"center",gap:9}}>
+            <img src={`${BASE}car-roulette-logo.jpg`} alt="" style={{height:34,width:34,borderRadius:8,objectFit:"cover"}}
               onError={e=>(e.currentTarget.style.display="none")}/>
-            <div style={{textAlign:"center"}}>
+            <div>
               <div style={{fontSize:15,fontWeight:900,letterSpacing:2,
-                background:"linear-gradient(90deg,#3b82f6,#fff,#ef4444)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>
+                background:"linear-gradient(90deg,#3b82f6,#fff,#ef4444)",
+                WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>
                 🏁 CAR ROULETTE
               </div>
-              <div style={{fontSize:9,color:"rgba(59,130,246,0.6)",letterSpacing:2}}>GRAND PRIX CIRCUIT</div>
+              <div style={{fontSize:9,color:"rgba(139,92,246,0.6)",letterSpacing:2}}>GRAND PRIX SPIN</div>
             </div>
           </div>
-          <div style={{background:"rgba(59,130,246,0.1)",border:"1px solid rgba(59,130,246,0.25)",
+          <div style={{background:"rgba(139,92,246,0.08)",border:"1px solid rgba(139,92,246,0.22)",
             borderRadius:10,padding:"6px 12px",textAlign:"right"}}>
-            <div style={{fontSize:9,color:"rgba(255,255,255,0.4)",letterSpacing:1}}>BALANCE</div>
-            <div style={{fontSize:13,fontWeight:700,color:"#93c5fd"}}>{formatCurrency(balance)}</div>
+            <div style={{fontSize:8,color:"rgba(255,255,255,0.3)",letterSpacing:1}}>BALANCE</div>
+            <div style={{fontSize:12,fontWeight:800,color:"#a78bfa"}}>{formatCurrency(balance)}</div>
           </div>
         </div>
 
         {/* Ticker */}
-        <div style={{background:"rgba(2,4,21,0.9)",borderBottom:"1px solid rgba(59,130,246,0.12)",
-          overflow:"hidden",height:26,display:"flex",alignItems:"center"}}>
-          <div style={{whiteSpace:"nowrap",fontSize:11,color:"rgba(59,130,246,0.75)",letterSpacing:0.5,
-            animation:"cr-ticker 20s linear infinite"}}>{TICKER}{TICKER}</div>
+        <div style={{height:26,overflow:"hidden",display:"flex",alignItems:"center",
+          background:"rgba(2,0,10,0.9)",borderBottom:"1px solid rgba(139,92,246,0.12)"}}>
+          <div style={{whiteSpace:"nowrap",fontSize:11,color:"rgba(139,92,246,0.55)",letterSpacing:0.5,
+            animation:"cr2-ticker 22s linear infinite"}}>{TICKER}{TICKER}</div>
         </div>
 
-        <div style={{padding:"14px 12px 10px"}}>
-          <div style={{textAlign:"center",marginBottom:10}}>
-            <div style={{fontSize:10,letterSpacing:4,color:"rgba(59,130,246,0.6)",fontWeight:700}}>
-              🏁 GRAND PRIX RACE 🏁
-            </div>
+        <div style={{padding:"14px 12px 8px"}}>
+          <div style={{textAlign:"center",marginBottom:12,fontSize:10,letterSpacing:3,
+            color:"rgba(139,92,246,0.4)",fontWeight:700}}>🏁 SPIN THE WHEEL — PICK YOUR WINNER 🏁</div>
+
+          {/* ═══ Wheel ═══ */}
+          <div style={{
+            display:"flex",flexDirection:"column",alignItems:"center",
+            background:"radial-gradient(ellipse at 50% 30%,rgba(30,10,70,0.95),rgba(4,0,15,0.98))",
+            border:"2px solid rgba(139,92,246,0.3)",borderRadius:24,
+            padding:"24px 14px 20px",position:"relative",overflow:"hidden",
+          }}>
+            {/* Background speed lines */}
+            {busy&&Array.from({length:6},(_,i)=>(
+              <div key={i} style={{
+                position:"absolute",
+                top:`${10+i*15}%`,left:0,right:0,height:1,
+                background:`linear-gradient(90deg,transparent,rgba(139,92,246,${0.05+i*0.02}),transparent)`,
+                animation:`cr2-shimmer ${1.2+i*0.2}s linear infinite`,backgroundSize:"200% 100%",
+              }}/>
+            ))}
+
+            <SpinWheel deg={wheelDeg} winSector={winSector} phase={phase}/>
+
+            {/* Result panel — overlaid on wheel area */}
+            {phase==="result"&&resCfg&&(
+              <div style={{
+                marginTop:18,width:"100%",
+                background:won
+                  ?"linear-gradient(135deg,rgba(10,25,5,0.95),rgba(20,60,20,0.95))"
+                  :"linear-gradient(135deg,rgba(20,5,5,0.95),rgba(80,15,15,0.95))",
+                border:`2px solid ${won?"rgba(245,197,66,0.55)":"rgba(239,68,68,0.35)"}`,
+                borderRadius:18,padding:"18px 14px",textAlign:"center",
+                animation:"cr2-burst 0.5s cubic-bezier(.34,1.56,.64,1) both",
+                backdropFilter:"blur(8px)",
+              }}>
+                <div style={{fontSize:36,marginBottom:4}}>
+                  {won?"🏆":"💨"}
+                </div>
+                <div style={{fontSize:16,fontWeight:900,letterSpacing:2,marginBottom:4,
+                  color:won?"#f5c542":"#fca5a5"}}>
+                  {won?"WINNER WINNER!":"BETTER LUCK NEXT SPIN"}
+                </div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.45)",marginBottom:won?10:14}}>
+                  <span style={{color:resCfg.primary,fontWeight:700}}>{resCfg.label}</span> takes the race · {resCfg.mult}×
+                </div>
+                {won&&(
+                  <div style={{fontSize:28,fontWeight:900,color:"#f5c542",letterSpacing:1,
+                    textShadow:"0 0 24px rgba(245,197,66,0.6)",marginBottom:14}}>
+                    +{formatCurrency(win)}
+                  </div>
+                )}
+                <button onClick={collect} style={{
+                  padding:"12px 32px",borderRadius:14,border:"none",cursor:"pointer",
+                  fontWeight:900,fontSize:14,letterSpacing:1,
+                  background:won?"linear-gradient(90deg,#d97706,#f5c542,#d97706)":"linear-gradient(90deg,#7f1d1d,#dc2626)",
+                  color:won?"#020c05":"#fff",
+                  boxShadow:won?"0 0 20px rgba(245,197,66,0.4)":undefined,
+                }}>
+                  {won?"💰 COLLECT":"🏁 SPIN AGAIN"}
+                </button>
+              </div>
+            )}
+
+            {busy&&(
+              <div style={{marginTop:12,display:"flex",alignItems:"center",gap:6,
+                color:"rgba(139,92,246,0.7)",fontSize:11,letterSpacing:2}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:"#8b5cf6",
+                  animation:"cr2-pulse-glow 0.6s ease-in-out infinite"}}/>
+                WHEEL IS SPINNING...
+              </div>
+            )}
           </div>
 
-          {/* Race Track */}
-          <div style={{position:"relative"}}>
-            <RaceTrack selection={selection} phase={phase} resultKey={resultKey}/>
-
-            {/* Lap Timer */}
-            <div style={{display:"flex",justifyContent:"center",marginTop:10}}>
-              <div style={{
-                background:"rgba(0,0,0,0.7)",border:"1px solid rgba(59,130,246,0.3)",
-                borderRadius:8,padding:"5px 16px",fontFamily:"'Courier New',monospace",
-                fontSize:14,fontWeight:900,color:phase==="racing"?"#22d3ee":"rgba(255,255,255,0.3)",
-                letterSpacing:2,
-              }}>⏱ {lapTime}</div>
-            </div>
-
-            {/* Inline result panel */}
-            {phase==="result"&&resultKey&&(()=>{
-              const won=win>0;
+          {/* Bet cards */}
+          <div style={{marginTop:14,display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+            {(Object.entries(CAR_CFG) as [Selection,typeof CAR_CFG[Selection]][]).map(([key,cfg])=>{
+              const sel=selection===key;
+              const isJack=key==="car3";
               return (
-                <div style={{marginTop:14,
-                  background:won?`linear-gradient(135deg,${resCar?.dark??"#0a1628"},${resCar?.dark??"#1e3a8a"})`:
-                    "linear-gradient(135deg,#0f0515,#1e0028)",
-                  border:`2px solid ${won?resCar?.color??"#3b82f6":"#7c3aed"}`,
-                  borderRadius:16,padding:"16px 14px",textAlign:"center",
-                  animation:"cr-burst 0.5s cubic-bezier(.34,1.56,.64,1) forwards",
-                  boxShadow:`0 0 32px ${won?resCar?.glow??"rgba(59,130,246,0.5)":"rgba(124,58,237,0.35)"}`}}>
-                  <div style={{fontSize:38,marginBottom:4}}>{won?"🏆":"💨"}</div>
-                  <div style={{fontSize:16,fontWeight:900,letterSpacing:2,
-                    color:won?resCar?.color??"#3b82f6":"#c4b5fd",marginBottom:4}}>
-                    {won?"WINNER! PODIUM FINISH!":"BETTER LUCK NEXT RACE!"}
+                <div key={key} onClick={()=>{if(phase!=="betting")return;setSel(key);}}
+                  style={{
+                    background:sel?`linear-gradient(145deg,${cfg.dark},rgba(0,0,0,0.8))`:"rgba(0,0,0,0.5)",
+                    border:`2px solid ${sel?cfg.glow:"rgba(255,255,255,0.07)"}`,
+                    borderRadius:16,padding:"14px 6px",textAlign:"center",cursor:"pointer",
+                    transition:"all 0.2s",position:"relative",overflow:"hidden",
+                    boxShadow:sel?`0 0 24px ${cfg.glow}`:undefined,
+                  }}>
+                  {isJack&&(
+                    <div style={{
+                      position:"absolute",top:5,left:"50%",transform:"translateX(-50%)",
+                      background:"linear-gradient(90deg,#d97706,#f5c542)",
+                      borderRadius:8,padding:"2px 8px",fontSize:7,fontWeight:900,
+                      color:"#020c05",letterSpacing:1,whiteSpace:"nowrap",
+                    }}>JACKPOT</div>
+                  )}
+                  <div style={{fontSize:22,marginBottom:4,marginTop:isJack?12:0}}>
+                    {cfg.icon}
                   </div>
-                  <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginBottom:won?8:12}}>
-                    {resCar?.icon} <strong style={{color:resCar?.color??""}}>{resCar?.label}</strong> wins · {resCar?.mult}×
-                  </div>
-                  {won&&<div style={{fontSize:28,fontWeight:900,color:"#f5c542",
-                    textShadow:"0 0 16px rgba(245,197,66,0.6)",marginBottom:12}}>+{formatCurrency(win)}</div>}
-                  <button onClick={collect} style={{padding:"10px 28px",borderRadius:12,border:"none",cursor:"pointer",
-                    fontWeight:900,fontSize:14,
-                    background:won?`linear-gradient(90deg,${resCar?.dark},${resCar?.color})`:"linear-gradient(90deg,#6d28d9,#7c3aed)",
-                    color:"#fff"}}>
-                    {won?"🏆 COLLECT PRIZE":"🏁 RACE AGAIN"}
-                  </button>
+                  <div style={{fontSize:9,fontWeight:900,letterSpacing:2,
+                    color:sel?cfg.primary:"rgba(255,255,255,0.4)"}}>{cfg.label}</div>
+                  <div style={{fontSize:20,fontWeight:900,marginTop:4,
+                    color:sel?cfg.primary:"rgba(255,255,255,0.2)",
+                    textShadow:sel?`0 0 14px ${cfg.glow}`:undefined}}>{cfg.mult}×</div>
                 </div>
               );
-            })()}
-          </div>
-
-          {/* Car bet cards */}
-          <div style={{marginTop:14,display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-            {CARS.map(car=>(
-              <div key={car.key} onClick={()=>{if(phase!=="betting")return;setSelection(car.key);}}
-                style={{background:selection===car.key?car.bg:"rgba(0,0,0,0.5)",
-                  border:`2px solid ${selection===car.key?car.color:"rgba(255,255,255,0.08)"}`,
-                  borderRadius:16,padding:"13px 6px",textAlign:"center",cursor:"pointer",transition:"all 0.25s",
-                  boxShadow:selection===car.key?`0 0 20px ${car.glow}`:undefined}}>
-                <div style={{fontSize:28,marginBottom:4}}>{car.icon}</div>
-                <div style={{fontSize:9,fontWeight:900,letterSpacing:2,
-                  color:selection===car.key?car.color:"rgba(255,255,255,0.5)"}}>#{car.num} {car.label}</div>
-                <div style={{fontSize:18,fontWeight:900,marginTop:4,
-                  color:selection===car.key?car.color:"rgba(255,255,255,0.3)"}}>{car.mult}×</div>
-                {car.mult===5&&<div style={{fontSize:8,color:"rgba(245,197,66,0.6)",marginTop:2,letterSpacing:1}}>DARK HORSE</div>}
-              </div>
-            ))}
+            })}
           </div>
 
           {/* Chips */}
           <div style={{marginTop:14}}>
-            <div style={{fontSize:9,letterSpacing:3,color:"rgba(255,255,255,0.3)",marginBottom:8,textAlign:"center"}}>BET AMOUNT</div>
+            <div style={{fontSize:9,letterSpacing:3,color:"rgba(255,255,255,0.2)",marginBottom:8,textAlign:"center"}}>
+              PLACE CHIPS
+            </div>
             <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
-              {CHIPS.map(c=>(
-                <button key={c.amt} onClick={()=>addChip(c.amt)} disabled={busy} style={{
-                  width:52,height:52,borderRadius:"50%",border:`3px solid ${c.color}`,cursor:"pointer",
-                  background:`radial-gradient(circle at 35% 30%,${c.color}bb,${c.color}55)`,
+              {CHIPS.map(({v,c})=>(
+                <button key={v} onClick={()=>chip(v)} disabled={busy} style={{
+                  width:52,height:52,borderRadius:"50%",border:`3px solid ${c}`,cursor:"pointer",
+                  background:`radial-gradient(circle at 35% 30%,${c}cc,${c}55)`,
                   color:"#fff",fontSize:10,fontWeight:900,
-                  boxShadow:`0 4px 12px ${c.color}44`,opacity:busy?0.5:1,
+                  boxShadow:`0 4px 14px ${c}44,inset 0 1px 0 rgba(255,255,255,0.3)`,
+                  opacity:busy?0.4:1,
                 }}>
-                  {c.amt>=1000?`${c.amt/1000}K`:c.amt}
+                  {v>=1000?`${v/1000}K`:v}
                 </button>
               ))}
             </div>
@@ -412,38 +511,47 @@ export default function CarRouletteGame(){
 
           {/* Info bar */}
           <div style={{marginTop:14,display:"grid",gridTemplateColumns:"repeat(3,1fr)",
-            background:"rgba(0,0,0,0.5)",border:"1px solid rgba(59,130,246,0.1)",borderRadius:14,overflow:"hidden"}}>
-            {[{label:"WIN",value:formatCurrency(win),color:win>0?"#22d3ee":"rgba(255,255,255,0.3)"},
-              {label:"BET",value:formatCurrency(bet),color:bet>0?"#f5c542":"rgba(255,255,255,0.3)"},
-              {label:"BALANCE",value:formatCurrency(balance),color:"rgba(255,255,255,0.5)"},
+            background:"rgba(0,0,0,0.5)",border:"1px solid rgba(139,92,246,0.1)",
+            borderRadius:14,overflow:"hidden"}}>
+            {[
+              {l:"WIN",    v:formatCurrency(win),    c:win>0?"#f5c542":"rgba(255,255,255,0.2)"},
+              {l:"BET",    v:formatCurrency(bet),    c:bet>0?"#22c55e":"rgba(255,255,255,0.2)"},
+              {l:"BALANCE",v:formatCurrency(balance),c:"rgba(255,255,255,0.35)"},
             ].map((item,i)=>(
               <div key={i} style={{padding:"10px 0",textAlign:"center",
-                borderRight:i<2?"1px solid rgba(59,130,246,0.08)":undefined}}>
-                <div style={{fontSize:8,letterSpacing:2,color:"rgba(255,255,255,0.3)",marginBottom:3}}>{item.label}</div>
-                <div style={{fontSize:13,fontWeight:700,color:item.color}}>{item.value}</div>
+                borderRight:i<2?"1px solid rgba(139,92,246,0.08)":undefined}}>
+                <div style={{fontSize:8,letterSpacing:2,color:"rgba(255,255,255,0.2)",marginBottom:2}}>{item.l}</div>
+                <div style={{fontSize:12,fontWeight:700,color:item.c}}>{item.v}</div>
               </div>
             ))}
           </div>
 
-          {/* Race button */}
+          {/* Spin button */}
           {phase!=="result"&&(
             <button onClick={placeBet} disabled={busy||!selection||bet<=0}
-              style={{marginTop:14,width:"100%",padding:"17px 0",borderRadius:18,border:"none",cursor:"pointer",
+              style={{
+                marginTop:14,width:"100%",padding:"17px 0",borderRadius:18,border:"none",cursor:"pointer",
                 fontSize:16,fontWeight:900,letterSpacing:2,
-                background:busy?"linear-gradient(90deg,#1e3a8a,#1d4ed8)":(!selection||bet<=0)?"rgba(255,255,255,0.06)":"linear-gradient(90deg,#1d4ed8,#3b82f6,#60a5fa,#3b82f6,#1d4ed8)",
+                background:busy
+                  ?"linear-gradient(90deg,#1e1035,#2d1a5c)"
+                  :(!selection||bet<=0)
+                  ?"rgba(255,255,255,0.04)"
+                  :"linear-gradient(90deg,#3b82f6,#8b5cf6,#ef4444,#8b5cf6,#3b82f6)",
                 backgroundSize:"200% 100%",
-                color:(!selection||bet<=0)&&!busy?"rgba(255,255,255,0.25)":"#fff",
-                boxShadow:(!busy&&selection&&bet>0)?"0 0 28px rgba(59,130,246,0.5)":undefined,
-                animation:(!busy&&selection&&bet>0)?"cr-shimmer 2.2s linear infinite":undefined,
-                opacity:(!selection||bet<=0)&&!busy?0.5:1}}>
-              {busy?"🏁 RACE IN PROGRESS...":"🚗 START THE RACE!"}
+                color:(!selection||bet<=0)&&!busy?"rgba(255,255,255,0.2)":"#fff",
+                boxShadow:(!busy&&selection&&bet>0)?"0 0 30px rgba(139,92,246,0.5),0 4px 20px rgba(0,0,0,0.5)":undefined,
+                animation:(!busy&&selection&&bet>0)?"cr2-shimmer 2.5s linear infinite":undefined,
+                opacity:(!selection||bet<=0)&&!busy?0.35:1,
+              }}>
+              {busy?"🎰 SPINNING THE WHEEL...":"🏁 SPIN THE WHEEL 🏁"}
             </button>
           )}
-          <div style={{marginTop:8,textAlign:"center",fontSize:11,color:"rgba(255,255,255,0.25)",letterSpacing:1}}>
-            {!selection&&phase==="betting"&&"Pick a car to back and place your bet"}
-            {selection&&bet<=0&&phase==="betting"&&`${selCar?.icon} ${selCar?.label} selected — add chips!`}
-            {selection&&bet>0&&phase==="betting"&&`${selCar?.mult}× payout if ${selCar?.label} wins!`}
-            {busy&&"🏎️ Cars are racing — hang tight!"}
+
+          <div style={{marginTop:8,textAlign:"center",fontSize:11,color:"rgba(255,255,255,0.18)",letterSpacing:1}}>
+            {!selection&&phase==="betting"&&"Pick Car #1 · Car #2 · or Jackpot Car #3"}
+            {selection&&bet<=0&&phase==="betting"&&`${selCfg?.icon} ${selCfg?.label} selected — add chips`}
+            {selection&&bet>0&&phase==="betting"&&`${selCfg?.mult}× payout if ${selCfg?.label} wins`}
+            {busy&&"Wheel is spinning — results incoming..."}
           </div>
         </div>
       </div>
