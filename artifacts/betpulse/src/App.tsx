@@ -26,6 +26,7 @@ import JhandiMundaGame from "@/pages/JhandiMundaGame";
 import CatalogGame from "@/pages/CatalogGame";
 import CrashGame from "@/pages/CrashGame";
 import AndarBaharGame from "@/pages/AndarBaharGame";
+import RouletteGame from "@/pages/RouletteGame";
 
 const queryClient = new QueryClient();
 
@@ -70,6 +71,7 @@ function Router() {
       <Route path="/play/jhandi-munda" component={JhandiMundaGame} />
       <Route path="/play/crash" component={CrashGame} />
       <Route path="/play/andar-bahar" component={AndarBaharGame} />
+      <Route path="/play/roulette" component={RouletteGame} />
       <Route path="/play/:slug" component={CatalogGame} />
 
       <Route component={NotFound} />
