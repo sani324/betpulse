@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
 
 const API = import.meta.env.BASE_URL.replace(/\/$/, "");
+const BASE = import.meta.env.BASE_URL;
 
 type Selection = "car1" | "car2" | "car3";
 type Phase = "betting" | "racing" | "result";
@@ -296,12 +297,16 @@ export default function CarRouletteGame(){
             display:"flex",alignItems:"center",gap:6,fontSize:14}}>
             <ArrowLeft size={16}/>Back
           </button>
-          <div style={{textAlign:"center"}}>
-            <div style={{fontSize:15,fontWeight:900,letterSpacing:2,
-              background:"linear-gradient(90deg,#3b82f6,#fff,#ef4444)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>
-              🏁 CAR ROULETTE
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <img src={`${BASE}car-roulette-logo.jpg`} alt="" style={{height:36,width:36,borderRadius:8,objectFit:"cover"}}
+              onError={e=>(e.currentTarget.style.display="none")}/>
+            <div style={{textAlign:"center"}}>
+              <div style={{fontSize:15,fontWeight:900,letterSpacing:2,
+                background:"linear-gradient(90deg,#3b82f6,#fff,#ef4444)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>
+                🏁 CAR ROULETTE
+              </div>
+              <div style={{fontSize:9,color:"rgba(59,130,246,0.6)",letterSpacing:2}}>GRAND PRIX CIRCUIT</div>
             </div>
-            <div style={{fontSize:9,color:"rgba(59,130,246,0.6)",letterSpacing:2}}>GRAND PRIX CIRCUIT</div>
           </div>
           <div style={{background:"rgba(59,130,246,0.1)",border:"1px solid rgba(59,130,246,0.25)",
             borderRadius:10,padding:"6px 12px",textAlign:"right"}}>

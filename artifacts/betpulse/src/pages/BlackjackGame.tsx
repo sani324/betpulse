@@ -257,9 +257,13 @@ export default function BlackjackGame(){
             display:"flex",alignItems:"center",gap:6,fontSize:14}}>
             <ArrowLeft size={16}/>Back
           </button>
-          <div style={{textAlign:"center"}}>
-            <div className="bj-title-text" style={{fontSize:16,fontWeight:900,letterSpacing:2}}>♠ BLACKJACK ♠</div>
-            <div style={{fontSize:9,color:"rgba(245,197,66,0.5)",letterSpacing:2}}>ROYAL TABLE</div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <img src={`${BASE}blackjack-logo.jpg`} alt="" style={{height:36,width:36,borderRadius:8,objectFit:"cover"}}
+              onError={e=>(e.currentTarget.style.display="none")}/>
+            <div style={{textAlign:"center"}}>
+              <div className="bj-title-text" style={{fontSize:16,fontWeight:900,letterSpacing:2}}>♠ BLACKJACK ♠</div>
+              <div style={{fontSize:9,color:"rgba(245,197,66,0.5)",letterSpacing:2}}>ROYAL TABLE</div>
+            </div>
           </div>
           <div style={{background:"rgba(245,197,66,0.1)",border:"1px solid rgba(245,197,66,0.25)",
             borderRadius:10,padding:"6px 12px",textAlign:"right"}}>

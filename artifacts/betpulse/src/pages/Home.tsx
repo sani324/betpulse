@@ -108,21 +108,24 @@ const CASINO_GAMES = [
     category: "Casino", tag: "NEW", tagColor: "#22c55e",
     bg: "linear-gradient(135deg,#020c02 0%,#0a2e0a 50%,#166534 100%)",
     accent: "#4ade80",
-    desc: "Player • Dealer • Tie 8×"
+    desc: "Player • Dealer • Tie 8×",
+    thumbnail: `${BASE_URL}blackjack-logo.jpg`,
   },
   {
     slug: "car-roulette", label: "Car Roulette",   emoji: "🏎️", players: "2.2K",
     category: "Casino",
     bg: "linear-gradient(135deg,#0d0600 0%,#431407 50%,#c2410c 100%)",
     accent: "#fb923c",
-    desc: "Car 1 • Car 2 • Car 3 (5×)"
+    desc: "Car 1 • Car 2 • Car 3 (5×)",
+    thumbnail: `${BASE_URL}car-roulette-logo.jpg`,
   },
   {
     slug: "god-of-fortune", label: "God of Fortune", emoji: "🐲", players: "3.5K",
     category: "Casino", tag: "GRAND", tagColor: "#f5c542",
     bg: "linear-gradient(135deg,#1a0500 0%,#7c1a00 50%,#dc2626 100%)",
     accent: "#f5c542",
-    desc: "Fortune • Grand (5×) • Supreme (10×)"
+    desc: "Fortune • Grand (5×) • Supreme (10×)",
+    thumbnail: `${BASE_URL}god-of-fortune-logo.jpg`,
   },
   // Real Cash
   {

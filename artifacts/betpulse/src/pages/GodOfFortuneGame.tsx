@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
 
 const API = import.meta.env.BASE_URL.replace(/\/$/, "");
+const BASE = import.meta.env.BASE_URL;
 
 type Selection = "fortune" | "grand" | "supreme";
 type Phase = "betting" | "spinning" | "result";
@@ -226,11 +227,15 @@ export default function GodOfFortuneGame(){
             display:"flex",alignItems:"center",gap:6,fontSize:14}}>
             <ArrowLeft size={16}/>Back
           </button>
-          <div style={{textAlign:"center"}}>
-            <div className="gof-title-glow" style={{fontSize:15,fontWeight:900,letterSpacing:2,color:"#f5c542"}}>
-              🐉 GOD OF FORTUNE
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <img src={`${BASE}god-of-fortune-logo.jpg`} alt="" style={{height:36,width:36,borderRadius:8,objectFit:"cover"}}
+              onError={e=>(e.currentTarget.style.display="none")}/>
+            <div style={{textAlign:"center"}}>
+              <div className="gof-title-glow" style={{fontSize:15,fontWeight:900,letterSpacing:2,color:"#f5c542"}}>
+                🐉 GOD OF FORTUNE
+              </div>
+              <div style={{fontSize:9,color:"rgba(245,197,66,0.5)",letterSpacing:2}}>神仙财神宫殿</div>
             </div>
-            <div style={{fontSize:9,color:"rgba(245,197,66,0.5)",letterSpacing:2}}>神仙财神宫殿</div>
           </div>
           <div style={{background:"rgba(245,197,66,0.08)",border:"1px solid rgba(245,197,66,0.25)",
             borderRadius:10,padding:"6px 12px",textAlign:"right"}}>
