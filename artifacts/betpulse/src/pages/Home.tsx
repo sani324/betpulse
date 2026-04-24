@@ -8,6 +8,8 @@ import { CASINO_SPORTS } from "@/lib/casino-config";
 
 const CATEGORIES = ["All", "Table Games", "Teen Patti", "Slot Games", "Casino", "Real Cash"];
 
+const BASE_URL = import.meta.env.BASE_URL;
+
 const CASINO_GAMES = [
   // Table Games
   {
@@ -22,7 +24,8 @@ const CASINO_GAMES = [
     category: "Table Games", tag: "TRENDING", tagColor: "#f97316",
     bg: "linear-gradient(135deg,#1c0a00 0%,#7c1d00 50%,#c2410c 100%)",
     accent: "#fb923c",
-    desc: "Dragon • Tiger • Tie"
+    desc: "Dragon • Tiger • Tie",
+    thumbnail: `${BASE_URL}dragon-tiger-banner.jpg`,
   },
   {
     slug: "andar-bahar",  label: "Andar Bahar",    emoji: "🃏", players: "6.5K",
@@ -196,16 +199,31 @@ function GameCard({ game, onClick }: { game: typeof CASINO_GAMES[0]; onClick: ()
         <span className="text-[9px] font-bold" style={{ color: game.accent }}>{game.players}</span>
       </div>
 
-      {/* Big emoji */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 pt-2">
-        <div className="text-5xl mb-1" style={{ filter: `drop-shadow(0 4px 8px ${game.accent}88)` }}>
-          {game.emoji}
+      {/* Thumbnail image (if provided) or big emoji */}
+      {'thumbnail' in game && game.thumbnail ? (
+        <div className="absolute inset-0">
+          <img
+            src={game.thumbnail as string}
+            alt={game.label}
+            style={{ width: "100%", height: "72%", objectFit: "cover", objectPosition: "center 25%", display: "block" }}
+          />
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "72%", background: "linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.7) 100%)" }} />
+          <div className="absolute bottom-10 left-0 right-0 text-center px-2">
+            <div className="text-white font-black text-sm leading-tight">{game.label}</div>
+            <div className="text-[10px] mt-0.5 leading-tight" style={{ color: `${game.accent}cc` }}>{game.desc}</div>
+          </div>
         </div>
-        <div className="text-center px-2">
-          <div className="text-white font-black text-sm leading-tight">{game.label}</div>
-          <div className="text-[10px] mt-0.5 leading-tight" style={{ color: `${game.accent}cc` }}>{game.desc}</div>
+      ) : (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 pt-2">
+          <div className="text-5xl mb-1" style={{ filter: `drop-shadow(0 4px 8px ${game.accent}88)` }}>
+            {game.emoji}
+          </div>
+          <div className="text-center px-2">
+            <div className="text-white font-black text-sm leading-tight">{game.label}</div>
+            <div className="text-[10px] mt-0.5 leading-tight" style={{ color: `${game.accent}cc` }}>{game.desc}</div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Play button overlay */}
       <div className="absolute inset-x-3 bottom-3">

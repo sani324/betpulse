@@ -463,21 +463,31 @@ export default function DragonTigerGame() {
     <div className="min-h-screen" style={{ background: "radial-gradient(ellipse at top, #0c0c2e 0%, #050510 60%, #0c0c2e 100%)" }}>
       <style>{STYLES}</style>
 
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", borderBottom: "1px solid rgba(255,255,255,.08)", background: "rgba(0,0,0,.4)", backdropFilter: "blur(10px)" }}>
-        <button onClick={() => setLocation("/")} style={{ display: "flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,.5)", cursor: "pointer", background: "none", border: "none" }}>
-          <ArrowLeft size={18} /><span style={{ fontSize: 13 }}>Back</span>
+      {/* Header — full-width banner image */}
+      <div style={{ position: "relative", overflow: "hidden", height: 150, borderBottom: "2px solid rgba(200,149,42,0.3)" }}>
+        <img
+          src={`${import.meta.env.BASE_URL}dragon-tiger-banner.jpg`}
+          alt="Dragon Tiger"
+          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 30%", display: "block" }}
+        />
+        {/* Dark gradient overlay */}
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.7) 100%)" }} />
+        {/* Back button — top left */}
+        <button onClick={() => setLocation("/")} style={{ position: "absolute", top: 12, left: 14, display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 20, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.8)", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>
+          <ArrowLeft size={14} /> Back
         </button>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: 4, color: "white", fontFamily: "Georgia,serif" }}>🐲 DRAGON vs TIGER 🐯</div>
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,.4)", letterSpacing: 2 }}>ONE CARD EACH · HIGHEST WINS</div>
-        </div>
-        <div style={{ textAlign: "right" }}>
+        {/* Balance — top right */}
+        <div style={{ position: "absolute", top: 12, right: 14, textAlign: "right", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", borderRadius: 10, padding: "4px 10px", border: "1px solid rgba(255,255,255,0.12)" }}>
           {isAuthenticated ? (
-            <><div style={{ fontSize: 10, color: "rgba(255,255,255,.4)" }}>BALANCE</div><div style={{ fontWeight: 900, color: "#4ade80", fontFamily: "monospace", fontSize: 15 }}>{formatCurrency(result?.newBalance ?? balance)}</div></>
+            <><div style={{ fontSize: 9, color: "rgba(255,255,255,.5)", letterSpacing: 1 }}>BALANCE</div>
+            <div style={{ fontWeight: 900, color: "#4ade80", fontFamily: "monospace", fontSize: 14 }}>{formatCurrency(result?.newBalance ?? balance)}</div></>
           ) : (
-            <button onClick={() => setLocation("/login")} style={{ color: "#60a5fa", fontSize: 13, background: "none", border: "none", cursor: "pointer" }}>Login to Play</button>
+            <button onClick={() => setLocation("/login")} style={{ color: "#60a5fa", fontSize: 12, background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}>Login to Play</button>
           )}
+        </div>
+        {/* Bottom: subtitle */}
+        <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, textAlign: "center" }}>
+          <div style={{ fontSize: 10, color: "rgba(255,220,100,0.8)", letterSpacing: 3, fontWeight: 700, textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>✦ ONE CARD EACH · HIGHEST WINS ✦</div>
         </div>
       </div>
 
