@@ -69,10 +69,18 @@ async function queueRoundBet(
 
   res.json({ status: "pending", roundId: round.id, selection, stake, newBalance });
 
-  // If auto-settle is enabled, settle this game's round immediately after the bet is queued.
-  // This gives players instant results without waiting for the timer interval.
+  // If auto-settle is enabled, settle after a game-specific delay.
+  // Crash needs a longer delay so the plane animation has time to fly.
   if (autoSettleModeOn) {
-    autoSettleGame(game).catch(() => {});
+    const SETTLE_DELAY: Record<string, number> = {
+      "crash": 4500,   // 4.5s — plane flies before crash
+    };
+    const delay = SETTLE_DELAY[game] ?? 0;
+    if (delay > 0) {
+      setTimeout(() => autoSettleGame(game).catch(() => {}), delay);
+    } else {
+      autoSettleGame(game).catch(() => {});
+    }
   }
 }
 

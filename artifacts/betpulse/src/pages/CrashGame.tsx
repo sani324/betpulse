@@ -125,11 +125,20 @@ export default function CrashGame() {
   const startTimeRef = useRef(0);
   const resultRef = useRef<any>(null);
   const selectionRef = useRef<string | null>(null);
+  const resultArrivedAtRef = useRef<number | null>(null);
+  const multAtResultRef = useRef<number>(1);
 
   useEffect(() => { setBalance(parseFloat(user?.balance || "0")); }, [user?.balance]);
 
   // Store result in ref so animation loop can read it
-  useEffect(() => { resultRef.current = result; }, [result]);
+  useEffect(() => {
+    resultRef.current = result;
+    if (result && resultArrivedAtRef.current === null) {
+      // Capture when result first arrives and what the multiplier was at that moment
+      resultArrivedAtRef.current = Date.now();
+      multAtResultRef.current = displayMult;
+    }
+  }, [result, displayMult]);
   useEffect(() => { selectionRef.current = selection; }, [selection]);
 
   // ── Animation tick ──────────────────────────────────────────────────────────
@@ -140,6 +149,8 @@ export default function CrashGame() {
   const startFlyingAnim = useCallback(() => {
     stopAnim();
     startTimeRef.current = Date.now();
+    resultArrivedAtRef.current = null;
+    multAtResultRef.current = 1;
     setDisplayMult(1.00);
     setPathPoints([[ORIGIN_X, ORIGIN_Y]]);
     setCrashed(false);
@@ -147,30 +158,41 @@ export default function CrashGame() {
     setAnimPhase("flying");
 
     animRef.current = setInterval(() => {
-      const elapsed = (Date.now() - startTimeRef.current) / 1000;
       const currentResult = resultRef.current;
       const sel = selectionRef.current;
 
-      if (currentResult && animRef.current) {
-        // Result known — race toward target or crash over 2s
+      if (currentResult && resultArrivedAtRef.current !== null) {
+        // Result known — smoothly finish to the crash/cashout point over 2s
+        const sinceResult = (Date.now() - resultArrivedAtRef.current) / 1000;
         const won = currentResult.result === sel;
-        const opt = OPTIONS.find(o => o.key === currentResult.result);
-        const targetMult = won ? (OPTIONS.find(o => o.key === sel)?.mult ?? 2) : (opt?.mult ?? 2);
-        const endElapsed = (Date.now() - startTimeRef.current) / 1000;
-        // Spend 1.8s rising to target
-        const progress = Math.min(endElapsed / 2.0, 1);
-        const m = 1 + (targetMult - 1) * Math.pow(progress, 0.6);
+        const crashOpt = OPTIONS.find(o => o.key === currentResult.result);
+        const targetMult = crashOpt?.mult ?? 2;
+        const startMult = multAtResultRef.current;
+
+        let m: number;
+        if (startMult >= targetMult) {
+          // Already past crash point — hold and explode immediately
+          m = startMult;
+        } else {
+          // Smoothly rise from where we were to the crash/cashout point
+          const progress = Math.min(sinceResult / 1.6, 1);
+          m = startMult + (targetMult - startMult) * Math.pow(progress, 0.7);
+        }
 
         setDisplayMult(m);
         const pt = multToPoint(m);
         setPathPoints(prev => {
           const last = prev[prev.length - 1];
-          const ang = angleForPoints(last, pt);
+          const ang = last ? angleForPoints(last, pt) : 25;
           setPlaneAngle(ang);
           return [...prev, pt];
         });
 
-        if (progress >= 1) {
+        const done = startMult >= targetMult
+          ? sinceResult >= 0.2
+          : sinceResult >= 1.6;
+
+        if (done) {
           stopAnim();
           setAnimPhase("done");
           if (won) setCashedOut(true); else setCrashed(true);
@@ -178,13 +200,14 @@ export default function CrashGame() {
         return;
       }
 
-      // No result yet — fly at increasing speed
-      const m = 1 + elapsed * 0.7 + elapsed * elapsed * 0.15;
-      setDisplayMult(Math.min(m, 12));
-      const pt = multToPoint(Math.min(m, 12));
+      // No result yet — slow steady rise (reaches ~2.8× in 4.5s)
+      const elapsed = (Date.now() - startTimeRef.current) / 1000;
+      const m = Math.min(1 + elapsed * 0.28 + elapsed * elapsed * 0.018, 9.5);
+      setDisplayMult(m);
+      const pt = multToPoint(m);
       setPathPoints(prev => {
         const last = prev[prev.length - 1];
-        const ang = angleForPoints(last, pt);
+        const ang = last ? angleForPoints(last, pt) : 25;
         setPlaneAngle(ang);
         return [...prev, pt];
       });
