@@ -12,7 +12,15 @@ const API = import.meta.env.BASE_URL.replace(/\/$/, "");
 type Selection = "under7" | "seven" | "over7";
 type Phase = "betting" | "rolling" | "settling" | "result";
 
-const DICE_FACES: Record<number, string> = { 1:"⚀", 2:"⚁", 3:"⚂", 4:"⚃", 5:"⚄", 6:"⚅" };
+// Pip layout for each face (9 positions in a 3×3 grid, reading order)
+const PIP_MAP: Record<number, number[]> = {
+  1: [0,0,0, 0,1,0, 0,0,0],
+  2: [0,0,1, 0,0,0, 1,0,0],
+  3: [0,0,1, 0,1,0, 1,0,0],
+  4: [1,0,1, 0,0,0, 1,0,1],
+  5: [1,0,1, 0,1,0, 1,0,1],
+  6: [1,0,1, 1,0,1, 1,0,1],
+};
 
 function mkCtx() { return new ((window as any).AudioContext || (window as any).webkitAudioContext)(); }
 function playDiceRoll() {
@@ -66,22 +74,42 @@ function playLose() {
 }
 
 function Die({ value, rolling, settled }: { value?: number; rolling?: boolean; settled?: boolean }) {
-  const rnd = Math.random() * 10 - 5;
+  const pips = value ? PIP_MAP[value] : Array(9).fill(0);
+  const dotColor = settled ? "#c0392b" : "#1c1c1c";
   return (
-    <div
-      className="w-24 h-24 rounded-2xl flex items-center justify-center text-6xl shadow-2xl"
-      style={{
-        background: settled ? "linear-gradient(135deg,#fffde7,#fff9c4)" : "white",
-        border: settled ? "3px solid #f5c542" : "3px solid #e5e7eb",
-        boxShadow: settled
-          ? "0 8px 32px rgba(245,197,66,0.5), 0 0 0 2px rgba(245,197,66,0.3)"
-          : "0 8px 24px rgba(0,0,0,0.4)",
-        animation: rolling && !settled ? "die-roll 0.1s linear infinite" : "none",
-        transition: "all 0.3s cubic-bezier(0.34,1.56,0.64,1)",
-        transform: settled ? "scale(1.08)" : "scale(1)",
-      }}
-    >
-      {value ? DICE_FACES[value] : <span style={{ color: "#d1d5db", fontSize:40 }}>?</span>}
+    <div style={{
+      width: 110, height: 110, flexShrink: 0,
+      background: settled
+        ? "linear-gradient(145deg, #fffde7 0%, #fff8c4 60%, #ffe97a 100%)"
+        : rolling
+        ? "linear-gradient(145deg, #ffffff 0%, #f5f5f5 100%)"
+        : "linear-gradient(145deg, #f0f0f0 0%, #e0e0e0 100%)",
+      borderRadius: 20,
+      border: `4px solid ${settled ? "#f5c542" : rolling ? "#aaa" : "#bbb"}`,
+      boxShadow: settled
+        ? "0 10px 36px rgba(245,197,66,0.55), inset 0 2px 0 rgba(255,255,255,0.9), 0 0 0 2px rgba(245,197,66,0.4)"
+        : rolling
+        ? "0 6px 24px rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.7)"
+        : "0 4px 16px rgba(0,0,0,0.45), inset 0 2px 0 rgba(255,255,255,0.6)",
+      padding: 12,
+      display: "grid",
+      gridTemplateColumns: "repeat(3, 1fr)",
+      gridTemplateRows: "repeat(3, 1fr)",
+      gap: 4,
+      animation: rolling && !settled ? "die-roll 0.12s linear infinite" : settled ? "dieSettle 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards" : "none",
+      transition: "border-color 0.3s, box-shadow 0.3s",
+    }}>
+      {pips.map((filled, i) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {filled ? (
+            <div style={{
+              width: "78%", height: "78%", borderRadius: "50%",
+              background: dotColor,
+              boxShadow: `inset 0 1px 3px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.15)`,
+            }} />
+          ) : null}
+        </div>
+      ))}
     </div>
   );
 }
@@ -208,7 +236,26 @@ export default function Lucky7Game() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(180deg,#0a2414 0%,#081c0e 100%)" }}>
-      <style>{`@keyframes die-roll { 0%{transform:rotate(0deg) scale(1)} 25%{transform:rotate(-8deg) scale(0.95)} 50%{transform:rotate(0deg) scale(1.05)} 75%{transform:rotate(8deg) scale(0.95)} 100%{transform:rotate(0deg) scale(1)} }`}</style>
+      <style>{`
+        @keyframes die-roll {
+          0%  { transform: rotate(-12deg) scale(0.93) translateY(0px); }
+          25% { transform: rotate(10deg)  scale(1.07) translateY(-8px); }
+          50% { transform: rotate(-8deg)  scale(0.95) translateY(2px); }
+          75% { transform: rotate(12deg)  scale(1.05) translateY(-5px); }
+          100%{ transform: rotate(-12deg) scale(0.93) translateY(0px); }
+        }
+        @keyframes dieSettle {
+          0%  { transform: scale(0.85) rotate(-6deg); }
+          55% { transform: scale(1.18) rotate(3deg); }
+          75% { transform: scale(0.96) rotate(-1deg); }
+          100%{ transform: scale(1.08) rotate(0deg); }
+        }
+        @keyframes sumPop {
+          0%  { transform: scale(0.5); opacity: 0; }
+          70% { transform: scale(1.15); opacity: 1; }
+          100%{ transform: scale(1);   opacity: 1; }
+        }
+      `}</style>
       <header className="flex items-center justify-between px-4 py-3" style={{ background: "rgba(13,43,26,0.8)", borderBottom: "1px solid rgba(245,197,66,0.12)" }}>
         <button onClick={() => setLocation("/")} className="flex items-center gap-2 text-sm font-medium" style={{ color: "rgba(255,255,255,0.6)" }}>
           <ArrowLeft size={18} /> Back
@@ -224,19 +271,19 @@ export default function Lucky7Game() {
         {/* Dice area */}
         <div className="w-full rounded-3xl relative overflow-hidden flex flex-col items-center justify-center py-12 gap-6"
           style={{ background: "linear-gradient(135deg,#0d3320,#072010)", border: "2px solid rgba(245,197,66,0.2)", minHeight: 280 }}>
-          <div className="pointer-events-none absolute inset-0 select-none opacity-[0.03] flex flex-wrap gap-6 p-4 text-6xl">
-            {[...Array(12)].map((_,i) => <span key={i}>⚄</span>)}
+          <div className="pointer-events-none absolute inset-0 select-none opacity-[0.04] flex flex-wrap gap-6 p-4 text-5xl">
+            {[...Array(12)].map((_,i) => <span key={i}>🎲</span>)}
           </div>
 
           {phase === "betting" && (
             <div className="relative z-10 flex flex-col items-center gap-5">
               <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "rgba(245,197,66,0.6)" }}>Roll two dice!</p>
-              <div className="flex gap-8 items-center">
-                <Die />
-                <div className="text-4xl font-black text-white">+</div>
-                <Die />
+              <div className="flex gap-8 items-center" style={{ opacity: 0.65 }}>
+                <Die value={4} />
+                <div className="text-4xl font-black" style={{ color: "rgba(255,255,255,0.5)" }}>+</div>
+                <Die value={3} />
               </div>
-              <p className="text-sm" style={{ color: "rgba(255,255,255,0.35)" }}>Will the sum be under 7, exactly 7, or over 7?</p>
+              <p className="text-sm font-semibold" style={{ color: "rgba(245,197,66,0.55)", letterSpacing: 1 }}>Will the sum be under 7, exactly 7, or over 7?</p>
             </div>
           )}
 
@@ -251,7 +298,7 @@ export default function Lucky7Game() {
                 <Die value={rollVal2} rolling={phase === "rolling" || !die2Settled} settled={die2Settled} />
               </div>
               {(die1Settled || die2Settled) && (
-                <div className="text-2xl font-black" style={{ color: "#f5c542" }}>
+                <div className="text-3xl font-black" style={{ color: "#f5c542", animation: die1Settled && die2Settled ? "sumPop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards" : "none", textShadow: "0 0 20px rgba(245,197,66,0.7)" }}>
                   {die1Settled && die2Settled ? `= ${(rollVal1 ?? 0) + (rollVal2 ?? 0)}` : die1Settled ? `${rollVal1} + ?` : "? + ?"}
                 </div>
               )}
