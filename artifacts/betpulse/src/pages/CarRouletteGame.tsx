@@ -141,6 +141,7 @@ function RaceLane({
             objectFit:"contain",
             objectPosition:"center",
             display:"block",
+            transform:"scaleX(-1)",
             filter:won
               ?`drop-shadow(0 0 12px ${cfg.glow}) brightness(1.1)`
               :moving
