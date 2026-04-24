@@ -119,6 +119,9 @@ function CoinParticles({ active }: { active: boolean }) {
   );
 }
 
+// ─── Banner image URL (left = dragon, right = tiger) ──────────────────
+const BANNER_URL = `${import.meta.env.BASE_URL}dragon-tiger-banner.jpg`;
+
 // ─── Dragon character ─────────────────────────────────────────────────
 const STYLES = `
 @keyframes dragonHover { 0%,100%{transform:translateY(0) scale(1) rotate(-2deg)} 50%{transform:translateY(-16px) scale(1.06) rotate(2deg)} }
@@ -139,46 +142,56 @@ const STYLES = `
 
 function DragonChar({ state }: { state: "idle" | "win" | "lose" }) {
   const flames = [
-    { l: -24, w: 12, h: 32, d: 0, hue: 190 },
-    { l: -10, w: 15, h: 42, d: 0.1, hue: 200 },
-    { l: 4, w: 18, h: 50, d: 0.05, hue: 210 },
-    { l: 18, w: 14, h: 38, d: 0.15, hue: 185 },
-    { l: 30, w: 11, h: 28, d: 0.08, hue: 205 },
+    { l: -24, w: 12, h: 32, d: 0,    hue: 5  },
+    { l: -10, w: 15, h: 42, d: 0.1,  hue: 15 },
+    { l:   4, w: 18, h: 50, d: 0.05, hue: 10 },
+    { l:  18, w: 14, h: 38, d: 0.15, hue: 20 },
+    { l:  30, w: 11, h: 28, d: 0.08, hue: 8  },
   ];
   return (
     <div style={{ position: "relative", width: 160, height: 160, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      {/* Aura */}
+      {/* Red aura */}
       <div style={{
         position: "absolute", inset: -28, borderRadius: "50%",
         background: state === "win"
-          ? "radial-gradient(circle, rgba(96,165,250,0.7) 0%, rgba(59,130,246,0.4) 40%, transparent 70%)"
-          : "radial-gradient(circle, rgba(96,165,250,0.25) 0%, transparent 70%)",
+          ? "radial-gradient(circle, rgba(239,68,68,0.75) 0%, rgba(185,28,28,0.45) 40%, transparent 70%)"
+          : "radial-gradient(circle, rgba(239,68,68,0.22) 0%, transparent 70%)",
         animation: "auraGlow 0.5s ease-in-out infinite alternate",
         transition: "background 0.4s",
       }} />
-      {/* Frost sparks */}
+      {/* Fire sparks */}
       {state !== "lose" && flames.map((f, i) => (
         <div key={i} style={{
-          position: "absolute", bottom: 8, left: `calc(50% + ${f.l}px)`,
+          position: "absolute", bottom: 4, left: `calc(50% + ${f.l}px)`,
           width: f.w, height: f.h, borderRadius: "50% 50% 30% 30%",
-          background: `linear-gradient(to top, hsl(${f.hue},90%,60%), hsl(${f.hue + 15},80%,80%), transparent)`,
-          animation: `frostPart ${0.65 + i * 0.1}s ease-out ${f.d}s infinite`,
-          opacity: 0.85,
+          background: `linear-gradient(to top, hsl(${f.hue},100%,50%), hsl(${f.hue + 15},90%,65%), transparent)`,
+          animation: `firePart ${0.65 + i * 0.1}s ease-out ${f.d}s infinite`,
+          opacity: 0.9,
         }} />
       ))}
-      {/* Character */}
+      {/* Dragon image — left portion of banner */}
       <div style={{
-        fontSize: 110, lineHeight: 1, display: "inline-block", transformOrigin: "center bottom",
+        width: 148, height: 148,
+        backgroundImage: `url(${BANNER_URL})`,
+        backgroundSize: "290% auto",
+        backgroundPosition: "2% 28%",
+        backgroundRepeat: "no-repeat",
+        borderRadius: 14,
+        transformOrigin: "center bottom",
         animation: state === "idle" ? "dragonHover 2.8s ease-in-out infinite" : state === "win" ? "dragonWin 0.65s cubic-bezier(.36,.07,.19,.97) forwards" : "loseFade .55s ease-out forwards",
-        filter: state === "win" ? "drop-shadow(0 0 28px rgba(96,165,250,1)) drop-shadow(0 0 60px rgba(59,130,246,0.6))" : state === "lose" ? "grayscale(1) brightness(0.4)" : "drop-shadow(0 0 18px rgba(96,165,250,0.6))",
+        filter: state === "win"
+          ? "drop-shadow(0 0 22px rgba(239,68,68,1)) drop-shadow(0 0 50px rgba(185,28,28,0.7)) brightness(1.1)"
+          : state === "lose"
+          ? "grayscale(1) brightness(0.35)"
+          : "drop-shadow(0 0 14px rgba(239,68,68,0.55))",
         cursor: "default", userSelect: "none",
-      }}>🐲</div>
+      }} />
       {state === "win" && (
         <div style={{
-          position: "absolute", top: "35%", left: "50%",
-          fontSize: 22, fontWeight: 900, color: "#93c5fd",
+          position: "absolute", top: "38%", left: "50%",
+          fontSize: 20, fontWeight: 900, color: "#fca5a5",
           animation: "roarText .5s cubic-bezier(.36,.07,.19,.97) forwards",
-          whiteSpace: "nowrap", textShadow: "0 0 30px rgba(59,130,246,1)", pointerEvents: "none", zIndex: 10,
+          whiteSpace: "nowrap", textShadow: "0 0 28px rgba(239,68,68,1)", pointerEvents: "none", zIndex: 10,
           fontFamily: "Georgia,serif", letterSpacing: 5,
         }}>ROAR!</div>
       )}
@@ -188,43 +201,56 @@ function DragonChar({ state }: { state: "idle" | "win" | "lose" }) {
 
 function TigerChar({ state }: { state: "idle" | "win" | "lose" }) {
   const flames = [
-    { l: -24, w: 11, h: 28, d: 0, hue: 20 },
-    { l: -10, w: 14, h: 38, d: 0.12, hue: 30 },
-    { l: 4, w: 16, h: 46, d: 0.05, hue: 15 },
-    { l: 18, w: 13, h: 34, d: 0.18, hue: 40 },
-    { l: 30, w: 10, h: 26, d: 0.09, hue: 25 },
+    { l: -24, w: 11, h: 28, d: 0,    hue: 30 },
+    { l: -10, w: 14, h: 38, d: 0.12, hue: 40 },
+    { l:   4, w: 16, h: 46, d: 0.05, hue: 25 },
+    { l:  18, w: 13, h: 34, d: 0.18, hue: 45 },
+    { l:  30, w: 10, h: 26, d: 0.09, hue: 35 },
   ];
   return (
     <div style={{ position: "relative", width: 160, height: 160, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      {/* Orange aura */}
       <div style={{
         position: "absolute", inset: -28, borderRadius: "50%",
         background: state === "win"
-          ? "radial-gradient(circle, rgba(251,146,60,0.7) 0%, rgba(249,115,22,0.4) 40%, transparent 70%)"
-          : "radial-gradient(circle, rgba(251,146,60,0.25) 0%, transparent 70%)",
+          ? "radial-gradient(circle, rgba(251,146,60,0.75) 0%, rgba(249,115,22,0.45) 40%, transparent 70%)"
+          : "radial-gradient(circle, rgba(251,146,60,0.22) 0%, transparent 70%)",
         animation: "auraGlow 0.5s ease-in-out infinite alternate",
         transition: "background 0.4s",
       }} />
+      {/* Fire sparks */}
       {state !== "lose" && flames.map((f, i) => (
         <div key={i} style={{
-          position: "absolute", bottom: 8, left: `calc(50% + ${f.l}px)`,
+          position: "absolute", bottom: 4, left: `calc(50% + ${f.l}px)`,
           width: f.w, height: f.h, borderRadius: "50% 50% 30% 30%",
           background: `linear-gradient(to top, hsl(${f.hue},100%,50%), hsl(${f.hue + 20},100%,65%), transparent)`,
           animation: `firePart ${0.65 + i * 0.1}s ease-out ${f.d}s infinite`,
           opacity: 0.9,
         }} />
       ))}
+      {/* Tiger image — right portion of banner */}
       <div style={{
-        fontSize: 110, lineHeight: 1, display: "inline-block", transformOrigin: "center bottom",
+        width: 148, height: 148,
+        backgroundImage: `url(${BANNER_URL})`,
+        backgroundSize: "290% auto",
+        backgroundPosition: "98% 28%",
+        backgroundRepeat: "no-repeat",
+        borderRadius: 14,
+        transformOrigin: "center bottom",
         animation: state === "idle" ? "tigerHover 2.4s ease-in-out infinite" : state === "win" ? "tigerWin 0.65s cubic-bezier(.36,.07,.19,.97) forwards" : "loseFade .55s ease-out forwards",
-        filter: state === "win" ? "drop-shadow(0 0 28px rgba(251,146,60,1)) drop-shadow(0 0 60px rgba(249,115,22,0.6))" : state === "lose" ? "grayscale(1) brightness(0.4)" : "drop-shadow(0 0 18px rgba(251,146,60,0.6))",
+        filter: state === "win"
+          ? "drop-shadow(0 0 28px rgba(251,146,60,1)) drop-shadow(0 0 60px rgba(249,115,22,0.65)) brightness(1.1)"
+          : state === "lose"
+          ? "grayscale(1) brightness(0.35)"
+          : "drop-shadow(0 0 14px rgba(251,146,60,0.55))",
         cursor: "default", userSelect: "none",
-      }}>🐯</div>
+      }} />
       {state === "win" && (
         <div style={{
-          position: "absolute", top: "35%", left: "50%",
-          fontSize: 22, fontWeight: 900, color: "#fb923c",
+          position: "absolute", top: "38%", left: "50%",
+          fontSize: 20, fontWeight: 900, color: "#fb923c",
           animation: "roarText .5s cubic-bezier(.36,.07,.19,.97) forwards",
-          whiteSpace: "nowrap", textShadow: "0 0 30px rgba(249,115,22,1)", pointerEvents: "none", zIndex: 10,
+          whiteSpace: "nowrap", textShadow: "0 0 28px rgba(249,115,22,1)", pointerEvents: "none", zIndex: 10,
           fontFamily: "Georgia,serif", letterSpacing: 5,
         }}>ROAR!</div>
       )}
