@@ -33,6 +33,9 @@ import AndarBaharGame from "@/pages/AndarBaharGame";
 import RouletteGame from "@/pages/RouletteGame";
 import FruitLineGame from "@/pages/FruitLineGame";
 import SweetBonanzaGame from "@/pages/SweetBonanzaGame";
+import BlackjackGame from "@/pages/BlackjackGame";
+import CarRouletteGame from "@/pages/CarRouletteGame";
+import GodOfFortuneGame from "@/pages/GodOfFortuneGame";
 
 const queryClient = new QueryClient();
 
@@ -84,6 +87,9 @@ function Router() {
       <Route path="/play/roulette" component={RouletteGame} />
       <Route path="/play/fruit-line" component={FruitLineGame} />
       <Route path="/play/sweet-bonanza" component={SweetBonanzaGame} />
+      <Route path="/play/blackjack" component={BlackjackGame} />
+      <Route path="/play/car-roulette" component={CarRouletteGame} />
+      <Route path="/play/god-of-fortune" component={GodOfFortuneGame} />
       <Route path="/play/:slug" component={CatalogGame} />
 
       <Route component={NotFound} />
