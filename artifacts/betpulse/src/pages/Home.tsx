@@ -99,7 +99,8 @@ const CASINO_GAMES = [
     category: "Slot Games", tag: "HOT", tagColor: "#ef4444",
     bg: "linear-gradient(135deg,#0a0000 0%,#450a00 50%,#b91c1c 100%)",
     accent: "#f87171",
-    desc: "Cash at 2× • 5× • 10×"
+    desc: "Cash at 2× • 5× • 10×",
+    thumbnail: `${BASE_URL}crash-logo.jpg`,
   },
   // Casino
   {
