@@ -1203,6 +1203,34 @@ function generateRoundDetails(game: string, result: string): Record<string, unkn
     }
     return { winner: result };
   }
+  if (game === "rummy") {
+    const RR = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
+    const VV: Record<string, number> = { "2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":10,J:11,Q:12,K:13,A:14 };
+    const COURT_R2 = ["J","Q","K","A"];
+    function buildDeck2() {
+      const d: { rank: string; suit: string; value: number }[] = [];
+      for (const s of SUITS) for (const r of RR) d.push({ rank: r, suit: s, value: VV[r] });
+      for (let i = d.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [d[i], d[j]] = [d[j], d[i]]; }
+      return d;
+    }
+    for (let attempt = 0; attempt < 200; attempt++) {
+      const d = buildDeck2();
+      const playerHand = [d[0], d[2], d[4], d[6], d[8]];
+      const houseHand  = [d[1], d[3], d[5], d[7], d[9]];
+      const playerTotal = playerHand.reduce((s, c) => s + c.value, 0);
+      const houseTotal  = houseHand.reduce((s, c) => s + c.value, 0);
+      const playerCourt = playerHand.filter(c => COURT_R2.includes(c.rank)).length;
+      const houseCourt  = houseHand.filter(c => COURT_R2.includes(c.rank)).length;
+      let natural: "player" | "house";
+      if (playerTotal > houseTotal) natural = "player";
+      else if (houseTotal > playerTotal) natural = "house";
+      else natural = playerCourt >= houseCourt ? "player" : "house";
+      if (natural === result) {
+        return { playerHand, houseHand, playerTotal, houseTotal, playerCourt, houseCourt, winner: result };
+      }
+    }
+    return { winner: result };
+  }
   if (game === "code-piece") {
     let n: number;
     if (result === "small") n = Math.floor(Math.random() * 5);
