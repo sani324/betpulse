@@ -291,7 +291,7 @@ export default function FruitLineGame() {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         credentials:"include",
-        body:JSON.stringify({selection,amount:bet}),
+        body:JSON.stringify({selection,stake:bet}),
       });
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.error||"Bet failed"); }
       const {roundId} = await r.json();
