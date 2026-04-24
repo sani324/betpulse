@@ -31,6 +31,7 @@ import CatalogGame from "@/pages/CatalogGame";
 import CrashGame from "@/pages/CrashGame";
 import AndarBaharGame from "@/pages/AndarBaharGame";
 import RouletteGame from "@/pages/RouletteGame";
+import FruitLineGame from "@/pages/FruitLineGame";
 
 const queryClient = new QueryClient();
 
@@ -80,6 +81,7 @@ function Router() {
       <Route path="/play/crash" component={CrashGame} />
       <Route path="/play/andar-bahar" component={AndarBaharGame} />
       <Route path="/play/roulette" component={RouletteGame} />
+      <Route path="/play/fruit-line" component={FruitLineGame} />
       <Route path="/play/:slug" component={CatalogGame} />
 
       <Route component={NotFound} />
