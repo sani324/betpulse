@@ -31,16 +31,18 @@ const CASINO_GAMES = [
   {
     slug: "andar-bahar",  label: "Andar Bahar",    emoji: "🃏", players: "6.5K",
     category: "Table Games", tag: "HOT", tagColor: "#ef4444",
-    bg: "linear-gradient(135deg,#030f1c 0%,#0c2d5e 50%,#1d4ed8 100%)",
-    accent: "#60a5fa",
-    desc: "Andar • Bahar"
+    bg: "linear-gradient(135deg,#1a0028 0%,#6b21a8 50%,#9333ea 100%)",
+    accent: "#c084fc",
+    desc: "Andar • Bahar",
+    thumbnail: `${BASE_URL}andar-bahar-logo.jpg`,
   },
   {
     slug: "roulette",     label: "Roulette",       emoji: "🎡", players: "5.2K",
     category: "Table Games", tag: "NEW", tagColor: "#22c55e",
-    bg: "linear-gradient(135deg,#0c0000 0%,#4a0000 50%,#991b1b 100%)",
-    accent: "#f87171",
-    desc: "Red • Black • Green 14×"
+    bg: "linear-gradient(135deg,#1a0a00 0%,#78350f 50%,#92400e 100%)",
+    accent: "#fbbf24",
+    desc: "Red • Black • Green 14×",
+    thumbnail: `${BASE_URL}roulette-logo.jpg`,
   },
   // Teen Patti
   {
@@ -79,16 +81,18 @@ const CASINO_GAMES = [
   {
     slug: "fruit-line",   label: "Fruit Line",     emoji: "🍉", players: "2.0K",
     category: "Slot Games",
-    bg: "linear-gradient(135deg,#002208 0%,#065f32 50%,#15803d 100%)",
+    bg: "linear-gradient(135deg,#0a1f00 0%,#166534 50%,#4ade80 100%)",
     accent: "#4ade80",
-    desc: "Jackpot (10×) • Mix • Single"
+    desc: "Jackpot (10×) • Mix • Single",
+    thumbnail: `${BASE_URL}fruit-line-logo.jpg`,
   },
   {
     slug: "sweet-bonanza", label: "Sweet Bonanza", emoji: "🍭", players: "3.0K",
     category: "Slot Games", tag: "SWEET", tagColor: "#ec4899",
-    bg: "linear-gradient(135deg,#1f0020 0%,#6b1070 50%,#be185d 100%)",
-    accent: "#f472b6",
-    desc: "Bonanza (8×) • Scatter • Base"
+    bg: "linear-gradient(135deg,#001428 0%,#164e63 50%,#0891b2 100%)",
+    accent: "#67e8f9",
+    desc: "Bonanza (8×) • Scatter • Base",
+    thumbnail: `${BASE_URL}sweet-bonanza-logo.jpg`,
   },
   {
     slug: "crash",        label: "Crash",          emoji: "🚀", players: "3.8K",
@@ -131,16 +135,18 @@ const CASINO_GAMES = [
   {
     slug: "lucky-7",      label: "Lucky 7",        emoji: "🎲", players: "5.1K",
     category: "Table Games",
-    bg: "linear-gradient(135deg,#0a0800 0%,#3d2e00 50%,#a16207 100%)",
+    bg: "linear-gradient(135deg,#1a1200 0%,#78350f 50%,#d97706 100%)",
     accent: "#fbbf24",
-    desc: "Under 7 • Seven (5×) • Over 7"
+    desc: "Under 7 • Seven (5×) • Over 7",
+    thumbnail: `${BASE_URL}lucky7-logo.jpg`,
   },
   {
     slug: "jhandi-munda", label: "Jhandi Munda",   emoji: "🎴", players: "4.3K",
     category: "Table Games", tag: "DESI", tagColor: "#06b6d4",
     bg: "linear-gradient(135deg,#001a1a 0%,#005a5a 50%,#0e7490 100%)",
     accent: "#22d3ee",
-    desc: "6 Dice • 6 Symbols (6×)"
+    desc: "6 Dice • 6 Symbols (6×)",
+    thumbnail: `${BASE_URL}jhandi-munda-logo.svg`,
   },
   {
     slug: "coin-flip",    label: "Coin Flip",      emoji: "🪙", players: "1.9K",
