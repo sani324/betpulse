@@ -303,7 +303,7 @@ export default function FruitLineGame() {
       if(pollTimer.current) clearInterval(pollTimer.current);
       pollTimer.current = setInterval(async()=>{
         try {
-          const pr = await fetch(`${API}/api/games/fruit-line/round/${roundId}`,{credentials:"include"});
+          const pr = await fetch(`${API}/api/games/casino-round/fruit-line/${roundId}`,{credentials:"include"});
           if(!pr.ok) return;
           const data = await pr.json();
           if(data.status==="settled"){
