@@ -393,6 +393,7 @@ export default function DragonTigerGame() {
         setPhase("betting"); setIsDealing(false); return;
       }
       const placed = await resp.json();
+      const balanceAfterBet = placed.newBalance as number;
       // Stake was deducted server-side; refresh balance.
       queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
       queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
@@ -416,7 +417,7 @@ export default function DragonTigerGame() {
           const winAmount = won ? (mySelection === "tie" ? myStake * 9 : myStake * 2) : 0;
           const netChange = winAmount - myStake;
           setDragonCard(dCard); setTigerCard(tCard);
-          setResult({ result: settledResult, won, winAmount, netChange, newBalance: 0 });
+          setResult({ result: settledResult, won, winAmount, netChange, newBalance: balanceAfterBet + winAmount });
           addTimer(() => { setDragonFlipped(true); playCardFlip(); }, 200);
           addTimer(() => { setTigerFlipped(true); playCardFlip(); }, 1100);
           addTimer(() => {

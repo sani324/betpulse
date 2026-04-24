@@ -176,6 +176,7 @@ export default function AndarBaharGame() {
         setPhase("betting"); return;
       }
       const placed = await resp.json();
+      const balanceAfterBet = placed.newBalance as number;
       const roundId = placed.roundId as string;
       const myStake = stake, mySel = selection;
       queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
@@ -198,7 +199,7 @@ export default function AndarBaharGame() {
           det.dealtCards.forEach((_, i) => addTimer(() => { setRevealedCount(i + 1); playCardSound(); }, 1200 + i * 320));
           const totalTime = 1200 + det.dealtCards.length * 320 + 600;
           addTimer(() => {
-            setResult({ result: det.winner, won, winAmount, netChange: winAmount - myStake, newBalance: 0 });
+            setResult({ result: det.winner, won, winAmount, netChange: winAmount - myStake, newBalance: balanceAfterBet + winAmount });
             setPhase("result");
             queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
             queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });

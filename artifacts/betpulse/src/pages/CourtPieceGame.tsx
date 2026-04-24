@@ -207,6 +207,7 @@ export default function CourtPieceGame() {
         setPhase("betting"); return;
       }
       const placed = await resp.json();
+      const balanceAfterBet = placed.newBalance as number;
       const roundId = placed.roundId as string;
       const myStake = stake, mySel = selection;
       qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
@@ -238,7 +239,7 @@ export default function CourtPieceGame() {
             }, 400 + idx * 350 + 180);
           }
           addTmr(() => {
-            setResult({ playerHand: data.playerHand, houseHand: data.houseHand, playerCourt: data.playerCourt, houseCourt: data.houseCourt, winner: data.winner, won, winAmount, newBalance: 0 });
+            setResult({ playerHand: data.playerHand, houseHand: data.houseHand, playerCourt: data.playerCourt, houseCourt: data.houseCourt, winner: data.winner, won, winAmount, newBalance: balanceAfterBet + winAmount });
             setPhase("result"); setHistory(h => [...h, data.winner]);
             qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
             qc.invalidateQueries({ queryKey: getGetBalanceQueryKey() });

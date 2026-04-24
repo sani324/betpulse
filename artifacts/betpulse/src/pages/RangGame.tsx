@@ -212,6 +212,7 @@ export default function RangGame() {
         setPhase("betting"); return;
       }
       const placed = await resp.json();
+      const balanceAfterBet = placed.newBalance as number;
       const roundId = placed.roundId as string;
       const myStake = stake, mySel = selection;
       qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
@@ -229,7 +230,7 @@ export default function RangGame() {
           const data = { ...dd.details, winner: dd.result } as { trumpSuit: string; trumpCard: { rank: string; suit: string; isTrump?: boolean }; playerHand: { rank: string; suit: string; isTrump: boolean }[]; houseHand: { rank: string; suit: string; isTrump: boolean }[]; tricks: { playerCard: { rank: string; suit: string; isTrump?: boolean }; houseCard: { rank: string; suit: string; isTrump?: boolean }; winner: Side | "draw" }[]; playerTricks: number; houseTricks: number; winner: Side };
           const won = data.winner === mySel;
           const winAmount = won ? Math.round(myStake * 1.95 * 100) / 100 : 0;
-          setResult({ ...data, won, winAmount, netChange: winAmount - myStake, newBalance: 0 });
+          setResult({ ...data, won, winAmount, netChange: winAmount - myStake, newBalance: balanceAfterBet + winAmount });
 
           addTmr(() => { setShowTrump(true); playTrumpReveal(); }, 400);
           for (let i = 0; i < 5; i++) {

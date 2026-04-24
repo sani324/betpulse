@@ -222,6 +222,7 @@ export default function CoinFlipGame() {
         setPhase("betting"); setSpinning(false); return;
       }
       const placed = await resp.json();
+      const balanceAfterBet = placed.newBalance as number;
       const roundId = placed.roundId as string;
       const myStake = stake, mySel = selection;
       queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
@@ -241,7 +242,7 @@ export default function CoinFlipGame() {
           const winAmount = won ? Math.round(myStake * 1.95 * 100) / 100 : 0;
           addTimer(() => {
             setSpinning(false); setCoinResult(settled);
-            setResult({ result: settled, won, winAmount, netChange: winAmount - myStake, newBalance: 0 });
+            setResult({ result: settled, won, winAmount, netChange: winAmount - myStake, newBalance: balanceAfterBet + winAmount });
             setPhase("result"); setHistory(h => [...h, settled]);
             queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
             queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });

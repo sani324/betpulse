@@ -254,6 +254,7 @@ export default function DiceRollGame() {
         clearTimers(); setPhase("betting"); return;
       }
       const placed = await resp.json();
+      const balanceAfterBet = placed.newBalance as number;
       const roundId = placed.roundId as string;
       const myStake = stake, mySel = selection;
       queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
@@ -277,7 +278,7 @@ export default function DiceRollGame() {
             if (rollInterval.current) { clearInterval(rollInterval.current); rollInterval.current = null; }
             setDice1(det.dice1); setDice2(det.dice2); setPhase("landing"); playLandSound();
             addTimer(() => {
-              setResult({ ...det, result: settled, won, winAmount, netChange: winAmount - myStake, newBalance: 0 });
+              setResult({ ...det, result: settled, won, winAmount, netChange: winAmount - myStake, newBalance: balanceAfterBet + winAmount });
               setPhase("result");
               queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
               queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });

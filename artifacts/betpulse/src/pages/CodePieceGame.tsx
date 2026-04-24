@@ -258,6 +258,7 @@ export default function CodePieceGame() {
         setPhase("betting"); setRevealing(false); return;
       }
       const placed = await resp.json();
+      const balanceAfterBet = placed.newBalance as number;
       const roundId = placed.roundId as string;
       const myStake = stake, mySel = selection;
       queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
@@ -280,7 +281,7 @@ export default function CodePieceGame() {
           const winAmount = won ? Math.round(myStake * mult * 100) / 100 : 0;
           addTimer(() => {
             setRevealing(false); setFinalNum(det.number);
-            setResult({ number: det.number, isSmall: det.isSmall, isBig: det.isBig, won, winAmount, netChange: winAmount - myStake, newBalance: 0 });
+            setResult({ number: det.number, isSmall: det.isSmall, isBig: det.isBig, won, winAmount, netChange: winAmount - myStake, newBalance: balanceAfterBet + winAmount });
             setPhase("result"); setHistory(h => [...h, det.number]);
             queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
             queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
