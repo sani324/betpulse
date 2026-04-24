@@ -1,0 +1,20 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "mgLgg56aL6BhNM3D_o_7d"
+uri = "file://artifacts/betpulse/public/car1-bmw.png"
+type = "image"
+title = "bmw m8 blue side profile"
+
+[[generated]]
+id = "F-hsw-egiDIewJlwgZQRZ"
+uri = "file://artifacts/betpulse/public/car2-ferrari.png"
+type = "image"
+title = "ferrari f8 red side profile"
+
+[[generated]]
+id = "-vZcl_CiEiRyuc2B62A-t"
+uri = "file://artifacts/betpulse/public/car3-lambo.png"
+type = "image"
+title = "lamborghini urus gold side profile"
