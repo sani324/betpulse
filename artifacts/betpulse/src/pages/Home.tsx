@@ -62,9 +62,10 @@ const CASINO_GAMES = [
   {
     slug: "muflis",       label: "Muflis",         emoji: "♟️", players: "2.5K",
     category: "Teen Patti",
-    bg: "linear-gradient(135deg,#0a0e1a 0%,#1e3a5f 50%,#1e40af 100%)",
-    accent: "#93c5fd",
-    desc: "Lowest Hand Wins!"
+    bg: "linear-gradient(135deg,#0d001a 0%,#2e1065 50%,#1e0a4a 100%)",
+    accent: "#a78bfa",
+    desc: "Lowest Hand Wins!",
+    thumbnail: `${BASE_URL}muflis-logo.svg`,
   },
   // Slots
   {
