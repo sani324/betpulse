@@ -71,9 +71,10 @@ const CASINO_GAMES = [
   {
     slug: "bingo-777",    label: "777 Bingo",      emoji: "🎰", players: "3.2K",
     category: "Slot Games", tag: "JACKPOT", tagColor: "#f5c542",
-    bg: "linear-gradient(135deg,#0a0500 0%,#451a00 50%,#b45309 100%)",
+    bg: "linear-gradient(135deg,#150000 0%,#7f1d1d 50%,#450000 100%)",
     accent: "#fbbf24",
-    desc: "Triple 7 (20×) • BAR • Cherry"
+    desc: "Triple 7 (50×) • Lucky 7 • Any Win",
+    thumbnail: `${BASE_URL}bingo777-logo.jpg`,
   },
   {
     slug: "fruit-line",   label: "Fruit Line",     emoji: "🍉", players: "2.0K",
