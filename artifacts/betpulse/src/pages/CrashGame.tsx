@@ -61,23 +61,84 @@ function playLose() {
   } catch (_) {}
 }
 
-// Flying plane SVG element
-function PlaneSVG({ x, y, angle, crashed, cashedOut }: { x: number; y: number; angle: number; crashed: boolean; cashedOut: boolean }) {
+// Flying plane SVG element — Aviator-style red propeller plane
+function PlaneSVG({ x, y, angle, crashed, cashedOut, propAngle = 0 }: {
+  x: number; y: number; angle: number; crashed: boolean; cashedOut: boolean; propAngle?: number;
+}) {
   if (crashed) {
-    return <text x={x - 14} y={y + 12} fontSize="26">💥</text>;
-  }
-  if (cashedOut) {
     return (
-      <>
-        <text x={x - 14} y={y + 12} fontSize="22"
-          style={{ transformOrigin: `${x}px ${y}px`, transform: `rotate(${-angle}deg)` }}>✈️</text>
-        <text x={x + 4} y={y - 8} fontSize="14">💰</text>
-      </>
+      <g>
+        <text x={x - 14} y={y + 12} fontSize="28">💥</text>
+        <text x={x + 10} y={y - 6} fontSize="16">💥</text>
+      </g>
     );
   }
+
+  const tilt = -angle;
   return (
-    <g transform={`translate(${x},${y}) rotate(${-angle})`}>
-      <text x="-14" y="12" fontSize="22">✈️</text>
+    <g transform={`translate(${x},${y}) rotate(${tilt})`}>
+      {/* Engine glow trail */}
+      <ellipse cx="-22" cy="0" rx="10" ry="5" fill="url(#engineGlow)" opacity="0.6" />
+
+      {/* Main fuselage */}
+      <ellipse cx="0" cy="0" rx="20" ry="7" fill="#dc2626" />
+      {/* Fuselage sheen */}
+      <ellipse cx="2" cy="-2" rx="14" ry="3.5" fill="#ef4444" opacity="0.6" />
+
+      {/* Nose cone */}
+      <ellipse cx="19" cy="0" rx="6" ry="5" fill="#991b1b" />
+      <ellipse cx="22" cy="-1" rx="3" ry="2" fill="#b91c1b" opacity="0.7" />
+
+      {/* Cockpit / canopy */}
+      <ellipse cx="6" cy="-5.5" rx="5.5" ry="4.5" fill="#93c5fd" opacity="0.9" />
+      <ellipse cx="6" cy="-6" rx="4" ry="3" fill="#bfdbfe" opacity="0.5" />
+
+      {/* Main wing (upper) */}
+      <polygon points="-2,-22 10,-22 15,0 -8,0" fill="#dc2626" />
+      <polygon points="-2,-22 10,-22 10,-18 -1,-18" fill="#ef4444" opacity="0.5" />
+
+      {/* Lower wing stub */}
+      <polygon points="-2,8 8,8 10,0 -5,0" fill="#b91c1c" />
+
+      {/* Tail vertical fin */}
+      <polygon points="-17,-14 -12,0 -9,0" fill="#dc2626" />
+      <polygon points="-17,-14 -14,-14 -12,0 -15,0" fill="#ef4444" opacity="0.4" />
+
+      {/* Tail horizontal stabilizer */}
+      <rect x="-17" y="-2" width="8" height="3" rx="1" fill="#b91c1c" />
+
+      {/* Fuselage stripe */}
+      <line x1="-8" y1="-1" x2="12" y2="-1" stroke="#fca5a5" strokeWidth="1" opacity="0.5" />
+
+      {/* Red star decal */}
+      <polygon points="2,-2 2.8,-0.5 4.3,-0.5 3.2,0.5 3.6,2 2,1 0.4,2 0.8,0.5 -0.3,-0.5 1.2,-0.5"
+        fill="#fbbf24" opacity="0.9" transform="scale(0.7)" />
+
+      {/* Propeller hub */}
+      <circle cx="25" cy="0" r="3" fill="#374151" />
+      <circle cx="25" cy="0" r="1.5" fill="#6b7280" />
+
+      {/* Spinning propeller blades */}
+      <g transform={`rotate(${propAngle}, 25, 0)`}>
+        <ellipse cx="25" cy="0" rx="1.8" ry="11" fill="#1f2937" opacity="0.88" />
+        <ellipse cx="25" cy="0" rx="1.8" ry="11" fill="#374151" opacity="0.7"
+          transform="rotate(90,25,0)" />
+      </g>
+
+      {/* Engine exhaust glow */}
+      <ellipse cx="-20" cy="0" rx="4" ry="2.5" fill="#f97316" opacity="0.5" />
+
+      {/* Cashout money bag */}
+      {cashedOut && (
+        <text x="4" y="-16" fontSize="14" style={{ animation: "none" }}>💰</text>
+      )}
+
+      <defs>
+        <radialGradient id="engineGlow" cx="100%" cy="50%" r="100%">
+          <stop offset="0%" stopColor="#f97316" stopOpacity="0.8" />
+          <stop offset="100%" stopColor="#dc2626" stopOpacity="0" />
+        </radialGradient>
+      </defs>
     </g>
   );
 }
@@ -120,6 +181,7 @@ export default function CrashGame() {
   const [planeAngle, setPlaneAngle] = useState(25);
   const [crashed, setCrashed] = useState(false);
   const [cashedOut, setCashedOut] = useState(false);
+  const [propAngle, setPropAngle] = useState(0);
 
   const animRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef(0);
@@ -161,6 +223,9 @@ export default function CrashGame() {
       const currentResult = resultRef.current;
       const sel = selectionRef.current;
 
+      // Spin propeller continuously
+      setPropAngle(a => (a + 22) % 360);
+
       if (currentResult && resultArrivedAtRef.current !== null) {
         // Result known — smoothly finish to the crash/cashout point over 2s
         const sinceResult = (Date.now() - resultArrivedAtRef.current) / 1000;
@@ -171,27 +236,27 @@ export default function CrashGame() {
 
         let m: number;
         if (startMult >= targetMult) {
-          // Already past crash point — hold and explode immediately
           m = startMult;
         } else {
-          // Smoothly rise from where we were to the crash/cashout point
           const progress = Math.min(sinceResult / 1.6, 1);
           m = startMult + (targetMult - startMult) * Math.pow(progress, 0.7);
         }
 
         setDisplayMult(m);
         const pt = multToPoint(m);
+        // Damped wave as we approach crash
+        const totalElapsed = (Date.now() - startTimeRef.current) / 1000;
+        const damping = Math.max(0, 1 - sinceResult / 1.2);
+        const wave = Math.sin(totalElapsed * 3.2) * 9 * damping;
+        const wavePt: [number, number] = [pt[0], pt[1] + wave];
         setPathPoints(prev => {
           const last = prev[prev.length - 1];
-          const ang = last ? angleForPoints(last, pt) : 25;
+          const ang = last ? angleForPoints(last, wavePt) : 25;
           setPlaneAngle(ang);
-          return [...prev, pt];
+          return [...prev, wavePt];
         });
 
-        const done = startMult >= targetMult
-          ? sinceResult >= 0.2
-          : sinceResult >= 1.6;
-
+        const done = startMult >= targetMult ? sinceResult >= 0.2 : sinceResult >= 1.6;
         if (done) {
           stopAnim();
           setAnimPhase("done");
@@ -200,16 +265,21 @@ export default function CrashGame() {
         return;
       }
 
-      // No result yet — slow steady rise (reaches ~2.8× in 4.5s)
+      // No result yet — steady rise with sinusoidal wave overlay
       const elapsed = (Date.now() - startTimeRef.current) / 1000;
       const m = Math.min(1 + elapsed * 0.28 + elapsed * elapsed * 0.018, 9.5);
       setDisplayMult(m);
       const pt = multToPoint(m);
+
+      // Wave: amplitude 10px, frequency 3.2 rad/s — creates realistic turbulence
+      const wave = Math.sin(elapsed * 3.2) * 10 + Math.sin(elapsed * 1.7) * 5;
+      const wavePt: [number, number] = [pt[0], pt[1] + wave];
+
       setPathPoints(prev => {
         const last = prev[prev.length - 1];
-        const ang = last ? angleForPoints(last, pt) : 25;
+        const ang = last ? angleForPoints(last, wavePt) : 25;
         setPlaneAngle(ang);
-        return [...prev, pt];
+        return [...prev, wavePt];
       });
     }, 40);
   }, [stopAnim]);
@@ -224,6 +294,7 @@ export default function CrashGame() {
       setCrashed(false);
       setCashedOut(false);
       setPlaneAngle(25);
+      setPropAngle(0);
     } else if (phase === "waiting") {
       startFlyingAnim();
     }
@@ -405,7 +476,7 @@ export default function CrashGame() {
             {/* Plane */}
             {phase !== "betting" && (
               <PlaneSVG x={currentPt[0]} y={currentPt[1]} angle={planeAngle}
-                crashed={crashed} cashedOut={cashedOut} />
+                crashed={crashed} cashedOut={cashedOut} propAngle={propAngle} />
             )}
 
             {/* Starting rocket for idle */}
