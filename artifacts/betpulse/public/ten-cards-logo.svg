@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="320" height="200">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00061a"/>
+      <stop offset="40%" stop-color="#0a1a5c"/>
+      <stop offset="70%" stop-color="#0c1a3d"/>
+      <stop offset="100%" stop-color="#00061a"/>
+    </linearGradient>
+    <linearGradient id="card1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="50%" stop-color="#1e40af"/>
+      <stop offset="100%" stop-color="#1e3a8a"/>
+    </linearGradient>
+    <linearGradient id="card2" x1="10%" y1="10%" x2="90%" y2="90%">
+      <stop offset="0%" stop-color="#fffef5"/>
+      <stop offset="50%" stop-color="#fff9e0"/>
+      <stop offset="100%" stop-color="#fef3c7"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#d4a017"/>
+      <stop offset="30%" stop-color="#f5c542"/>
+      <stop offset="60%" stop-color="#ffeba1"/>
+      <stop offset="100%" stop-color="#f5c542"/>
+    </linearGradient>
+    <linearGradient id="gold2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f5c542"/>
+      <stop offset="50%" stop-color="#ffeba1"/>
+      <stop offset="100%" stop-color="#d4a017"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="cardshadow">
+      <feDropShadow dx="3" dy="3" stdDeviation="6" flood-color="#000" flood-opacity="0.7"/>
+    </filter>
+    <pattern id="dots" x="0" y="0" width="16" height="16" patternUnits="userSpaceOnUse">
+      <circle cx="8" cy="8" r="1" fill="rgba(59,130,246,0.18)"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="320" height="200" fill="url(#bg)"/>
+  <rect width="320" height="200" fill="url(#dots)"/>
+
+  <!-- Ambient glow -->
+  <ellipse cx="160" cy="100" rx="130" ry="80" fill="rgba(29,78,216,0.12)" filter="url(#glow)"/>
+  <ellipse cx="160" cy="100" rx="70" ry="45" fill="rgba(245,197,66,0.06)" filter="url(#glow)"/>
+
+  <!-- Back card 1 (dark blue card back, angled left) -->
+  <g transform="rotate(-18, 100, 110)" filter="url(#cardshadow)">
+    <rect x="30" y="48" width="82" height="115" rx="9" fill="url(#card1)" opacity="0.9"/>
+    <rect x="34" y="52" width="74" height="107" rx="7" fill="none" stroke="rgba(245,197,66,0.4)" stroke-width="1.5"/>
+    <!-- Card back diamond pattern -->
+    <line x1="30" y1="105" x2="112" y2="105" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+    <line x1="71" y1="48" x2="71" y2="163" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+    <text x="71" y="115" text-anchor="middle" font-size="28" fill="rgba(255,255,255,0.12)" font-family="serif">♠</text>
+  </g>
+
+  <!-- Back card 2 (dark blue, angled right) -->
+  <g transform="rotate(14, 220, 110)" filter="url(#cardshadow)">
+    <rect x="178" y="48" width="82" height="115" rx="9" fill="url(#card1)" opacity="0.85"/>
+    <rect x="182" y="52" width="74" height="107" rx="7" fill="none" stroke="rgba(245,197,66,0.35)" stroke-width="1.5"/>
+    <text x="219" y="115" text-anchor="middle" font-size="28" fill="rgba(255,255,255,0.1)" font-family="serif">♥</text>
+  </g>
+
+  <!-- Main front card (white/cream) -->
+  <g filter="url(#cardshadow)">
+    <rect x="100" y="28" width="120" height="155" rx="12" fill="url(#card2)"/>
+    <rect x="104" y="32" width="112" height="147" rx="10" fill="none" stroke="url(#gold)" stroke-width="2.5"/>
+
+    <!-- Top-left corner: 10♠ -->
+    <text x="116" y="57" font-family="Arial Black, sans-serif" font-weight="900" font-size="17" fill="#1e3a8a">10</text>
+    <text x="118" y="71" font-family="Arial, sans-serif" font-weight="900" font-size="14" fill="#1e3a8a">♠</text>
+
+    <!-- Bottom-right corner: 10♠ rotated -->
+    <g transform="rotate(180, 204, 155)">
+      <text x="190" y="142" font-family="Arial Black, sans-serif" font-weight="900" font-size="17" fill="#1e3a8a">10</text>
+      <text x="192" y="156" font-family="Arial, sans-serif" font-weight="900" font-size="14" fill="#1e3a8a">♠</text>
+    </g>
+
+    <!-- Center large spade -->
+    <text x="160" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-size="68" fill="#1e3a8a" opacity="0.85">♠</text>
+  </g>
+
+  <!-- Gold "10 CARDS" title at bottom -->
+  <rect x="70" y="163" width="180" height="28" rx="8" fill="rgba(0,0,0,0.55)"/>
+  <text x="160" y="182" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="15" font-weight="900" letter-spacing="4" fill="url(#gold2)">10 CARDS</text>
+
+  <!-- Gold sparkles/dots decoration -->
+  <circle cx="58" cy="40" r="2.5" fill="#f5c542" opacity="0.7"/>
+  <circle cx="262" cy="38" r="2"   fill="#f5c542" opacity="0.6"/>
+  <circle cx="48" cy="160" r="1.8" fill="#f5c542" opacity="0.5"/>
+  <circle cx="272" cy="155" r="2.2" fill="#f5c542" opacity="0.65"/>
+  <circle cx="160" cy="22" r="2"   fill="#f5c542" opacity="0.5"/>
+
+  <!-- Suit corner decorations -->
+  <text x="22" y="55"  font-size="18" fill="rgba(245,197,66,0.35)" font-family="serif">♣</text>
+  <text x="285" y="52" font-size="16" fill="rgba(245,197,66,0.3)"  font-family="serif">♥</text>
+  <text x="18" y="175" font-size="16" fill="rgba(245,197,66,0.3)"  font-family="serif">♦</text>
+  <text x="283" y="178" font-size="18" fill="rgba(245,197,66,0.35)" font-family="serif">♠</text>
+</svg>

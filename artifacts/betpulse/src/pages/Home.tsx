@@ -54,9 +54,10 @@ const CASINO_GAMES = [
   {
     slug: "ten-cards",    label: "10 Cards",       emoji: "🔟", players: "2.8K",
     category: "Teen Patti",
-    bg: "linear-gradient(135deg,#012030 0%,#065a8e 50%,#0284c7 100%)",
-    accent: "#38bdf8",
-    desc: "Player • Banker"
+    bg: "linear-gradient(135deg,#00061a 0%,#0a1a5c 50%,#0c1a3d 100%)",
+    accent: "#60a5fa",
+    desc: "Player • Banker",
+    thumbnail: `${BASE_URL}ten-cards-logo.svg`,
   },
   {
     slug: "muflis",       label: "Muflis",         emoji: "♟️", players: "2.5K",
