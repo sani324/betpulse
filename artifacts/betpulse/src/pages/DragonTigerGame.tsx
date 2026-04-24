@@ -140,118 +140,86 @@ const STYLES = `
 @keyframes tableShine  { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 `;
 
-function DragonChar({ state }: { state: "idle" | "win" | "lose" }) {
-  const flames = [
-    { l: -24, w: 12, h: 32, d: 0,    hue: 5  },
-    { l: -10, w: 15, h: 42, d: 0.1,  hue: 15 },
-    { l:   4, w: 18, h: 50, d: 0.05, hue: 10 },
-    { l:  18, w: 14, h: 38, d: 0.15, hue: 20 },
-    { l:  30, w: 11, h: 28, d: 0.08, hue: 8  },
-  ];
+function DragonChar({ state, compact }: { state: "idle" | "win" | "lose"; compact?: boolean }) {
+  const sz = compact ? 95 : 148;
+  const outer = compact ? 110 : 160;
+  const auraInset = compact ? -14 : -28;
+  const flames = compact
+    ? [{ l: -14, w: 8, h: 20, d: 0, hue: 5 }, { l: -4, w: 10, h: 26, d: 0.1, hue: 15 }, { l: 6, w: 11, h: 30, d: 0.05, hue: 10 }, { l: 16, w: 8, h: 22, d: 0.15, hue: 20 }]
+    : [{ l: -24, w: 12, h: 32, d: 0, hue: 5 }, { l: -10, w: 15, h: 42, d: 0.1, hue: 15 }, { l: 4, w: 18, h: 50, d: 0.05, hue: 10 }, { l: 18, w: 14, h: 38, d: 0.15, hue: 20 }, { l: 30, w: 11, h: 28, d: 0.08, hue: 8 }];
   return (
-    <div style={{ position: "relative", width: 160, height: 160, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      {/* Red aura */}
+    <div style={{ position: "relative", width: outer, height: outer, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{
-        position: "absolute", inset: -28, borderRadius: "50%",
+        position: "absolute", inset: auraInset, borderRadius: "50%",
         background: state === "win"
           ? "radial-gradient(circle, rgba(239,68,68,0.75) 0%, rgba(185,28,28,0.45) 40%, transparent 70%)"
           : "radial-gradient(circle, rgba(239,68,68,0.22) 0%, transparent 70%)",
-        animation: "auraGlow 0.5s ease-in-out infinite alternate",
-        transition: "background 0.4s",
+        animation: "auraGlow 0.5s ease-in-out infinite alternate", transition: "background 0.4s",
       }} />
-      {/* Fire sparks */}
       {state !== "lose" && flames.map((f, i) => (
         <div key={i} style={{
           position: "absolute", bottom: 4, left: `calc(50% + ${f.l}px)`,
           width: f.w, height: f.h, borderRadius: "50% 50% 30% 30%",
           background: `linear-gradient(to top, hsl(${f.hue},100%,50%), hsl(${f.hue + 15},90%,65%), transparent)`,
-          animation: `firePart ${0.65 + i * 0.1}s ease-out ${f.d}s infinite`,
-          opacity: 0.9,
+          animation: `firePart ${0.65 + i * 0.1}s ease-out ${f.d}s infinite`, opacity: 0.9,
         }} />
       ))}
-      {/* Dragon image — left portion of banner */}
       <div style={{
-        width: 148, height: 148,
-        backgroundImage: `url(${BANNER_URL})`,
-        backgroundSize: "290% auto",
-        backgroundPosition: "2% 28%",
-        backgroundRepeat: "no-repeat",
-        borderRadius: 14,
-        transformOrigin: "center bottom",
+        width: sz, height: sz,
+        backgroundImage: `url(${BANNER_URL})`, backgroundSize: "290% auto", backgroundPosition: "2% 28%", backgroundRepeat: "no-repeat",
+        borderRadius: 12, transformOrigin: "center bottom",
         animation: state === "idle" ? "dragonHover 2.8s ease-in-out infinite" : state === "win" ? "dragonWin 0.65s cubic-bezier(.36,.07,.19,.97) forwards" : "loseFade .55s ease-out forwards",
-        filter: state === "win"
-          ? "drop-shadow(0 0 22px rgba(239,68,68,1)) drop-shadow(0 0 50px rgba(185,28,28,0.7)) brightness(1.1)"
-          : state === "lose"
-          ? "grayscale(1) brightness(0.35)"
-          : "drop-shadow(0 0 14px rgba(239,68,68,0.55))",
+        filter: state === "win" ? "drop-shadow(0 0 22px rgba(239,68,68,1)) drop-shadow(0 0 50px rgba(185,28,28,0.7)) brightness(1.1)" : state === "lose" ? "grayscale(1) brightness(0.35)" : "drop-shadow(0 0 14px rgba(239,68,68,0.55))",
         cursor: "default", userSelect: "none",
       }} />
       {state === "win" && (
         <div style={{
-          position: "absolute", top: "38%", left: "50%",
-          fontSize: 20, fontWeight: 900, color: "#fca5a5",
-          animation: "roarText .5s cubic-bezier(.36,.07,.19,.97) forwards",
-          whiteSpace: "nowrap", textShadow: "0 0 28px rgba(239,68,68,1)", pointerEvents: "none", zIndex: 10,
-          fontFamily: "Georgia,serif", letterSpacing: 5,
+          position: "absolute", top: "38%", left: "50%", fontSize: compact ? 14 : 20, fontWeight: 900, color: "#fca5a5",
+          animation: "roarText .5s cubic-bezier(.36,.07,.19,.97) forwards", whiteSpace: "nowrap",
+          textShadow: "0 0 28px rgba(239,68,68,1)", pointerEvents: "none", zIndex: 10, fontFamily: "Georgia,serif", letterSpacing: 4,
         }}>ROAR!</div>
       )}
     </div>
   );
 }
 
-function TigerChar({ state }: { state: "idle" | "win" | "lose" }) {
-  const flames = [
-    { l: -24, w: 11, h: 28, d: 0,    hue: 30 },
-    { l: -10, w: 14, h: 38, d: 0.12, hue: 40 },
-    { l:   4, w: 16, h: 46, d: 0.05, hue: 25 },
-    { l:  18, w: 13, h: 34, d: 0.18, hue: 45 },
-    { l:  30, w: 10, h: 26, d: 0.09, hue: 35 },
-  ];
+function TigerChar({ state, compact }: { state: "idle" | "win" | "lose"; compact?: boolean }) {
+  const sz = compact ? 95 : 148;
+  const outer = compact ? 110 : 160;
+  const auraInset = compact ? -14 : -28;
+  const flames = compact
+    ? [{ l: -14, w: 7, h: 18, d: 0, hue: 30 }, { l: -4, w: 9, h: 24, d: 0.12, hue: 40 }, { l: 6, w: 10, h: 28, d: 0.05, hue: 25 }, { l: 16, w: 8, h: 20, d: 0.18, hue: 35 }]
+    : [{ l: -24, w: 11, h: 28, d: 0, hue: 30 }, { l: -10, w: 14, h: 38, d: 0.12, hue: 40 }, { l: 4, w: 16, h: 46, d: 0.05, hue: 25 }, { l: 18, w: 13, h: 34, d: 0.18, hue: 45 }, { l: 30, w: 10, h: 26, d: 0.09, hue: 35 }];
   return (
-    <div style={{ position: "relative", width: 160, height: 160, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      {/* Orange aura */}
+    <div style={{ position: "relative", width: outer, height: outer, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{
-        position: "absolute", inset: -28, borderRadius: "50%",
+        position: "absolute", inset: auraInset, borderRadius: "50%",
         background: state === "win"
           ? "radial-gradient(circle, rgba(251,146,60,0.75) 0%, rgba(249,115,22,0.45) 40%, transparent 70%)"
           : "radial-gradient(circle, rgba(251,146,60,0.22) 0%, transparent 70%)",
-        animation: "auraGlow 0.5s ease-in-out infinite alternate",
-        transition: "background 0.4s",
+        animation: "auraGlow 0.5s ease-in-out infinite alternate", transition: "background 0.4s",
       }} />
-      {/* Fire sparks */}
       {state !== "lose" && flames.map((f, i) => (
         <div key={i} style={{
           position: "absolute", bottom: 4, left: `calc(50% + ${f.l}px)`,
           width: f.w, height: f.h, borderRadius: "50% 50% 30% 30%",
           background: `linear-gradient(to top, hsl(${f.hue},100%,50%), hsl(${f.hue + 20},100%,65%), transparent)`,
-          animation: `firePart ${0.65 + i * 0.1}s ease-out ${f.d}s infinite`,
-          opacity: 0.9,
+          animation: `firePart ${0.65 + i * 0.1}s ease-out ${f.d}s infinite`, opacity: 0.9,
         }} />
       ))}
-      {/* Tiger image — right portion of banner */}
       <div style={{
-        width: 148, height: 148,
-        backgroundImage: `url(${BANNER_URL})`,
-        backgroundSize: "290% auto",
-        backgroundPosition: "98% 28%",
-        backgroundRepeat: "no-repeat",
-        borderRadius: 14,
-        transformOrigin: "center bottom",
+        width: sz, height: sz,
+        backgroundImage: `url(${BANNER_URL})`, backgroundSize: "290% auto", backgroundPosition: "98% 28%", backgroundRepeat: "no-repeat",
+        borderRadius: 12, transformOrigin: "center bottom",
         animation: state === "idle" ? "tigerHover 2.4s ease-in-out infinite" : state === "win" ? "tigerWin 0.65s cubic-bezier(.36,.07,.19,.97) forwards" : "loseFade .55s ease-out forwards",
-        filter: state === "win"
-          ? "drop-shadow(0 0 28px rgba(251,146,60,1)) drop-shadow(0 0 60px rgba(249,115,22,0.65)) brightness(1.1)"
-          : state === "lose"
-          ? "grayscale(1) brightness(0.35)"
-          : "drop-shadow(0 0 14px rgba(251,146,60,0.55))",
+        filter: state === "win" ? "drop-shadow(0 0 28px rgba(251,146,60,1)) drop-shadow(0 0 60px rgba(249,115,22,0.65)) brightness(1.1)" : state === "lose" ? "grayscale(1) brightness(0.35)" : "drop-shadow(0 0 14px rgba(251,146,60,0.55))",
         cursor: "default", userSelect: "none",
       }} />
       {state === "win" && (
         <div style={{
-          position: "absolute", top: "38%", left: "50%",
-          fontSize: 20, fontWeight: 900, color: "#fb923c",
-          animation: "roarText .5s cubic-bezier(.36,.07,.19,.97) forwards",
-          whiteSpace: "nowrap", textShadow: "0 0 28px rgba(249,115,22,1)", pointerEvents: "none", zIndex: 10,
-          fontFamily: "Georgia,serif", letterSpacing: 5,
+          position: "absolute", top: "38%", left: "50%", fontSize: compact ? 14 : 20, fontWeight: 900, color: "#fb923c",
+          animation: "roarText .5s cubic-bezier(.36,.07,.19,.97) forwards", whiteSpace: "nowrap",
+          textShadow: "0 0 28px rgba(249,115,22,1)", pointerEvents: "none", zIndex: 10, fontFamily: "Georgia,serif", letterSpacing: 4,
         }}>ROAR!</div>
       )}
     </div>
@@ -532,54 +500,60 @@ export default function DragonTigerGame() {
         }}>
           <CoinParticles active={showCoins} />
 
-          {/* Payout labels */}
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, padding: "0 16px" }}>
-            {[{ label: "DRAGON", pay: "1:1", color: "#60a5fa" }, { label: "TIE", pay: "8:1", color: "#fbbf24" }, { label: "TIGER", pay: "1:1", color: "#fb923c" }].map(x => (
-              <div key={x.label} style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 3, color: x.color, fontFamily: "Georgia,serif" }}>{x.label}</div>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,.4)" }}>Pays {x.pay}</div>
-              </div>
-            ))}
-          </div>
+          {/* 3-column layout: Dragon | Cards | Tiger */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 4, padding: "0 4px" }}>
 
-          {/* Characters + cards */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, position: "relative" }}>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-              <DragonChar state={dragonState} />
+            {/* Dragon column */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+              <DragonChar state={dragonState} compact />
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#60a5fa", fontFamily: "Georgia,serif" }}>DRAGON</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,.4)" }}>Pays 1:1</div>
+              </div>
               <PlayingCard card={dragonCard} flipped={dragonFlipped} glow={dragonGlow} />
             </div>
 
-            {/* Center VS + countdown + win amount */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, flex: 1 }}>
+            {/* Center column: countdown / VS / win amount */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, minWidth: 64, position: "relative" }}>
               {phase === "betting" && <Countdown seconds={countdown} />}
               {isDealing && !dragonFlipped && (
-                <div style={{ fontSize: 30, animation: "auraGlow 0.4s ease-in-out infinite alternate" }}>🃏</div>
+                <div style={{ fontSize: 26, animation: "auraGlow 0.4s ease-in-out infinite alternate" }}>🃏</div>
               )}
               {!isDealing && !showResult && (
-                <div style={{ fontSize: 16, fontWeight: 900, color: "#fbbf24", fontFamily: "Georgia,serif", letterSpacing: 4 }}>VS</div>
+                <div style={{ fontSize: 15, fontWeight: 900, color: "#fbbf24", fontFamily: "Georgia,serif", letterSpacing: 3 }}>VS</div>
+              )}
+              {/* TIE payout */}
+              <div style={{ textAlign: "center", marginTop: 4 }}>
+                <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 2, color: "#fbbf24" }}>TIE</div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,.4)" }}>Pays 8:1</div>
+              </div>
+              {showResult && result && !result.won && (
+                <div style={{ textAlign: "center", marginTop: 4 }}>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: "#f87171", letterSpacing: 1 }}>-{formatCurrency(stake)}</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,.35)", marginTop: 2 }}>Try again</div>
+                </div>
               )}
               {showWinNum && result && result.won && (
                 <div style={{
-                  position: "absolute", top: "45%", left: "50%",
+                  position: "absolute", top: "10%",
                   animation: "winNumPop .55s cubic-bezier(.36,.07,.19,.97) forwards",
                   zIndex: 20, textAlign: "center", whiteSpace: "nowrap", pointerEvents: "none",
                 }}>
-                  <div style={{ fontSize: 42, fontWeight: 900, color: "#fbbf24", textShadow: "0 0 30px #f59e0b, 0 0 60px rgba(245,158,11,.5)", fontFamily: "Georgia,serif", letterSpacing: 2 }}>
+                  <div style={{ fontSize: 32, fontWeight: 900, color: "#fbbf24", textShadow: "0 0 28px #f59e0b", fontFamily: "Georgia,serif" }}>
                     +{formatCurrency(result.winAmount)}
                   </div>
-                  <div style={{ fontSize: 14, color: "#4ade80", letterSpacing: 3, marginTop: 4 }}>YOU WIN! 🎉</div>
-                </div>
-              )}
-              {showResult && result && !result.won && (
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: 16, fontWeight: 900, color: "#f87171", letterSpacing: 2 }}>-{formatCurrency(stake)}</div>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,.4)", marginTop: 2 }}>Try again</div>
+                  <div style={{ fontSize: 13, color: "#4ade80", letterSpacing: 3, marginTop: 4 }}>YOU WIN! 🎉</div>
                 </div>
               )}
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-              <TigerChar state={tigerState} />
+            {/* Tiger column */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+              <TigerChar state={tigerState} compact />
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#fb923c", fontFamily: "Georgia,serif" }}>TIGER</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,.4)" }}>Pays 1:1</div>
+              </div>
               <PlayingCard card={tigerCard} flipped={tigerFlipped} glow={tigerGlow} />
             </div>
           </div>
@@ -587,11 +561,11 @@ export default function DragonTigerGame() {
           {/* Result banner */}
           {showResult && result && (
             <div style={{
-              marginTop: 14, borderRadius: 14, padding: "10px 16px", textAlign: "center",
+              marginTop: 12, borderRadius: 14, padding: "8px 16px", textAlign: "center",
               background: result.won ? "linear-gradient(135deg,rgba(34,197,94,.25),rgba(5,150,105,.15))" : "linear-gradient(135deg,rgba(239,68,68,.2),rgba(185,28,28,.1))",
               border: `1px solid ${result.won ? "rgba(34,197,94,.5)" : "rgba(239,68,68,.35)"}`,
             }}>
-              <span style={{ fontSize: 20, fontWeight: 900, letterSpacing: 4, fontFamily: "Georgia,serif", color: result.won ? "#4ade80" : "#fca5a5" }}>
+              <span style={{ fontSize: 18, fontWeight: 900, letterSpacing: 4, fontFamily: "Georgia,serif", color: result.won ? "#4ade80" : "#fca5a5" }}>
                 {result.result === "dragon" ? "🐲 DRAGON WINS!" : result.result === "tiger" ? "🐯 TIGER WINS!" : "🤝 TIE!"}
               </span>
             </div>
