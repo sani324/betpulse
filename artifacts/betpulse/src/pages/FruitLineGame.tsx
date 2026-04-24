@@ -213,6 +213,7 @@ export default function FruitLineGame() {
   const pollTimer     = useRef<ReturnType<typeof setInterval>|null>(null);
   const spinIntervals = useRef<ReturnType<typeof setInterval>[]>([]);
   const leafTimer     = useRef<ReturnType<typeof setInterval>|null>(null);
+  const betSnapshot   = useRef<{selection:Selection;amount:number}|null>(null);
 
   const balance = (user as any)?.balance ?? 0;
 
@@ -281,6 +282,12 @@ export default function FruitLineGame() {
   /* Place bet → poll result */
   async function placeBet() {
     if(!selection || bet<=0 || phase!=="betting") return;
+
+    /* Snapshot selection + amount NOW — before any async / re-render */
+    const lockedSelection: Selection = selection;
+    const lockedBet: number = bet;
+    betSnapshot.current = {selection: lockedSelection, amount: lockedBet};
+
     setPhase("spinning");
     startSpinGrid();
     startLeaves();
@@ -291,7 +298,7 @@ export default function FruitLineGame() {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         credentials:"include",
-        body:JSON.stringify({selection,stake:bet}),
+        body:JSON.stringify({selection:lockedSelection, stake:lockedBet}),
       });
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.error||"Bet failed"); }
       const {roundId} = await r.json();
@@ -299,7 +306,7 @@ export default function FruitLineGame() {
       qc.invalidateQueries({queryKey:getGetBalanceQueryKey()});
       qc.invalidateQueries({queryKey:getGetMeQueryKey()});
 
-      /* Poll for settlement */
+      /* Poll for settlement — use lockedSelection / lockedBet (never stale) */
       if(pollTimer.current) clearInterval(pollTimer.current);
       pollTimer.current = setInterval(async()=>{
         try {
@@ -308,20 +315,20 @@ export default function FruitLineGame() {
           const data = await pr.json();
           if(data.status==="settled"){
             clearInterval(pollTimer.current!);
-            const bt=BET_TYPES.find(b=>b.key===selection)!;
-            const won = data.result===selection;
-            const resultFruits = won ? [...bt.fruits] : (() => {
-              const loser = BET_TYPES.find(b=>b.key!==selection)!;
-              return [...loser.fruits];
-            })();
+            const serverResult: string = (data.result ?? "").trim().toLowerCase();
+            const bt = BET_TYPES.find(b=>b.key===lockedSelection)!;
+            const won = serverResult === lockedSelection;
+            const resultFruits = won
+              ? [...bt.fruits]
+              : [...(BET_TYPES.find(b=>b.key===serverResult)?.fruits ?? BET_TYPES.find(b=>b.key!==lockedSelection)!.fruits)];
             setPhase("settling");
             settleGrid(resultFruits);
             setTimeout(()=>{
               setPhase("result");
               if(won){
-                const payout = bet * bt.mult;
+                const payout = lockedBet * bt.mult;
                 setWin(payout);
-                setResultKey(data.result);
+                setResultKey(serverResult);
                 setShowOverlay(true);
                 playWin();
                 startLeaves();
@@ -329,8 +336,12 @@ export default function FruitLineGame() {
                 qc.invalidateQueries({queryKey:getGetMeQueryKey()});
               } else {
                 setWin(0);
-                setResultKey(data.result);
-                toast({title:"No Harvest",description:`Result: ${data.result.toUpperCase()}. Better luck next round!`,variant:"destructive"});
+                setResultKey(serverResult);
+                toast({
+                  title:"No Harvest 🍂",
+                  description:`Result was ${serverResult.toUpperCase()}. You bet ${lockedSelection.toUpperCase()}. Try again!`,
+                  variant:"destructive",
+                });
               }
             }, 9*140+400);
           }
