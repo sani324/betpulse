@@ -307,12 +307,7 @@ export default function MuflisGame() {
         </button>
 
         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-          <div style={{ width:36, height:36, borderRadius:10, background:"linear-gradient(135deg,#4c1d95,#6d28d9)", border:"2px solid #a78bfa", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:900, color:"#c4b5fd", boxShadow:"0 0 14px rgba(167,139,250,0.45)" }}>
-            ♟
-          </div>
-          <span style={{ fontWeight:900, fontSize:18, letterSpacing:2, animation:"muf-title 2.5s ease-in-out infinite", background:"linear-gradient(90deg,#a78bfa,#c4b5fd,#f472b6,#a78bfa)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
-            MUFLIS
-          </span>
+          <img src={`${import.meta.env.BASE_URL}muflis-logo.jpg`} alt="Muflis" style={{ height:38, width:"auto", borderRadius:8, objectFit:"contain", filter:"drop-shadow(0 0 8px rgba(167,139,250,0.6))" }}/>
           <span style={{ fontSize:12, letterSpacing:1, color:"rgba(196,181,253,0.5)", fontStyle:"italic" }}>Lowest Wins</span>
         </div>
 

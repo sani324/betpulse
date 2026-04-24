@@ -65,7 +65,7 @@ const CASINO_GAMES = [
     bg: "linear-gradient(135deg,#0d001a 0%,#2e1065 50%,#1e0a4a 100%)",
     accent: "#a78bfa",
     desc: "Lowest Hand Wins!",
-    thumbnail: `${BASE_URL}muflis-logo.svg`,
+    thumbnail: `${BASE_URL}muflis-logo.jpg`,
   },
   // Slots
   {
