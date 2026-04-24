@@ -204,19 +204,27 @@ export default function TeenPattiGame() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(180deg,#0a2414 0%,#081c0e 100%)" }}>
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3" style={{ background: "rgba(13,43,26,0.8)", borderBottom: "1px solid rgba(245,197,66,0.12)" }}>
-        <button onClick={() => setLocation("/")} className="flex items-center gap-2 text-sm font-medium" style={{ color: "rgba(255,255,255,0.6)" }}>
-          <ArrowLeft size={18} /> Back
+      {/* Banner Header */}
+      <div style={{ position: "relative", width: "100%", height: 150, overflow: "hidden", flexShrink: 0 }}>
+        <img
+          src={`${import.meta.env.BASE_URL}teen-patti-banner.jpg`}
+          alt="Teen Patti"
+          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 30%", display: "block" }}
+        />
+        {/* Dark gradient overlay */}
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.1) 50%, rgba(10,36,20,0.85) 100%)" }} />
+        {/* Back button */}
+        <button
+          onClick={() => setLocation("/")}
+          style={{ position: "absolute", top: 12, left: 12, display: "flex", alignItems: "center", gap: 6, background: "rgba(0,0,0,0.55)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 20, padding: "5px 14px", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", backdropFilter: "blur(4px)" }}
+        >
+          <ArrowLeft size={15} /> Back
         </button>
-        <div className="flex items-center gap-2">
-          <Crown size={18} style={{ color: "#f5c542" }} />
-          <span className="font-black text-lg" style={{ background: "linear-gradient(90deg,#f5c542,#ffeba1)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Teen Patti</span>
+        {/* Balance badge */}
+        <div style={{ position: "absolute", top: 12, right: 12, display: "flex", alignItems: "center", gap: 5, background: "rgba(0,0,0,0.55)", border: "1px solid rgba(245,197,66,0.4)", borderRadius: 20, padding: "5px 14px", color: "#f5c542", fontSize: 13, fontWeight: 700, backdropFilter: "blur(4px)" }}>
+          <Wallet size={13} /> {formatCurrency(balance)}
         </div>
-        <div className="flex items-center gap-1.5 text-sm font-bold" style={{ color: "#f5c542" }}>
-          <Wallet size={14} /> {formatCurrency(balance)}
-        </div>
-      </header>
+      </div>
 
       <div className="flex-1 flex flex-col items-center p-4 gap-6 max-w-lg mx-auto w-full">
 

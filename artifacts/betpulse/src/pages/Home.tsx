@@ -17,7 +17,8 @@ const CASINO_GAMES = [
     category: "Teen Patti",  tag: "HOTTEST", tagColor: "#ef4444",
     bg: "linear-gradient(135deg,#1a0830 0%,#4a1060 50%,#7c2d9a 100%)",
     accent: "#c084fc", featured: true,
-    desc: "Player • Banker • Pair"
+    desc: "Player • Banker • Pair",
+    thumbnail: `${BASE_URL}teen-patti-banner.jpg`,
   },
   {
     slug: "dragon-tiger", label: "Dragon Tiger",   emoji: "🐉", players: "8.2K",
