@@ -133,7 +133,8 @@ const CASINO_GAMES = [
     category: "Real Cash",
     bg: "linear-gradient(135deg,#100005 0%,#4a0015 50%,#9f1239 100%)",
     accent: "#fb7185",
-    desc: "Player • House"
+    desc: "Player • House",
+    thumbnail: `${BASE_URL}rummy-logo.jpg`,
   },
   // Other
   {
@@ -157,28 +158,32 @@ const CASINO_GAMES = [
     category: "Casino",
     bg: "linear-gradient(135deg,#0a0800 0%,#3d2e00 50%,#92400e 100%)",
     accent: "#f59e0b",
-    desc: "Heads • Tails (1.95×)"
+    desc: "Heads • Tails (1.95×)",
+    thumbnail: `${BASE_URL}coin-flip-logo.jpg`,
   },
   {
     slug: "dice-roll",    label: "Dice Roll",      emoji: "🎲", players: "1.4K",
     category: "Casino",
     bg: "linear-gradient(135deg,#00021a 0%,#05156b 50%,#1d4ed8 100%)",
     accent: "#818cf8",
-    desc: "High • Low • Seven (5×)"
+    desc: "High • Low • Seven (5×)",
+    thumbnail: `${BASE_URL}dice-roll-logo.jpg`,
   },
   {
-    slug: "rang",         label: "Rang",           emoji: "♠️", players: "1.6K",
+    slug: "rang",         label: "Rung",           emoji: "♠️", players: "1.6K",
     category: "Real Cash",
     bg: "linear-gradient(135deg,#010a01 0%,#032b03 50%,#14532d 100%)",
     accent: "#86efac",
-    desc: "Strategic Trump Game"
+    desc: "Strategic Trump Game",
+    thumbnail: `${BASE_URL}rung-logo.jpg`,
   },
   {
     slug: "court-piece",  label: "Court Piece",    emoji: "🂡", players: "1.2K",
     category: "Real Cash",
     bg: "linear-gradient(135deg,#0d0020 0%,#2d0060 50%,#4c1d95 100%)",
     accent: "#c4b5fd",
-    desc: "Partnership Card Battle"
+    desc: "Partnership Card Battle",
+    thumbnail: `${BASE_URL}court-piece-logo.jpg`,
   },
 ];
 

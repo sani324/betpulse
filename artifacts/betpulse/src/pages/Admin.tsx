@@ -1222,7 +1222,7 @@ export default function Admin() {
                               <SelectItem value="Fruit Line">🍉 Fruit Line</SelectItem>
                               <SelectItem value="Coin Flip">🪙 Coin Flip</SelectItem>
                               <SelectItem value="Rummy">🀄 Rummy</SelectItem>
-                              <SelectItem value="Rang">♠️ Rang</SelectItem>
+                              <SelectItem value="Rung">♠️ Rung</SelectItem>
                               <SelectItem value="Dice Roll">🎲 Dice Roll</SelectItem>
                               <SelectItem value="Court Piece">🂡 Court Piece</SelectItem>
                             </SelectContent>
@@ -2023,7 +2023,7 @@ export default function Admin() {
                 { key: "seven", label: "Seven (7) 5x", color: "bg-purple-600 hover:bg-purple-700", text: "text-purple-300" },
                 { key: "high",  label: "High (8-12)", color: "bg-pink-600 hover:bg-pink-700", text: "text-pink-300" },
               ]},
-              { game: "rang", title: "♠ Rang", sides: [
+              { game: "rang", title: "♠ Rung", sides: [
                 { key: "player", label: "Player", color: "bg-emerald-600 hover:bg-emerald-700", text: "text-emerald-300" },
                 { key: "house",  label: "House",  color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
               ]},
@@ -2533,7 +2533,7 @@ export default function Admin() {
                     ],
                   },
                   {
-                    game: "rang", label: "🃏 Rang (Trump)",
+                    game: "rang", label: "🃏 Rung (Trump)",
                     options: [
                       { value: "player", label: "🤲 Player Wins", color: "bg-green-600 hover:bg-green-700 text-white" },
                       { value: "house",  label: "🏠 House Wins",  color: "bg-red-600 hover:bg-red-700 text-white" },
