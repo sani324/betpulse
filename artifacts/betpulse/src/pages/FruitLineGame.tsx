@@ -206,7 +206,7 @@ export default function FruitLineGame() {
   const [spinningIdx, setSpinningIdx] = useState<number[]>([]);
   const [settledIdx, setSettledIdx]   = useState<number[]>([]);
   const [leaves, setLeaves]     = useState<LeafParticle[]>([]);
-  const [showOverlay, setShowOverlay] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(false); // kept for compat, unused
   const [jackpotPool] = useState(()=>Math.floor(80000+Math.random()*50000));
 
   const roundIdRef    = useRef<string|null>(null);
@@ -329,7 +329,6 @@ export default function FruitLineGame() {
                 const payout = lockedBet * bt.mult;
                 setWin(payout);
                 setResultKey(serverResult);
-                setShowOverlay(true);
                 playWin();
                 startLeaves();
                 qc.invalidateQueries({queryKey:getGetBalanceQueryKey()});
@@ -337,11 +336,6 @@ export default function FruitLineGame() {
               } else {
                 setWin(0);
                 setResultKey(serverResult);
-                toast({
-                  title:"No Harvest 🍂",
-                  description:`Result was ${serverResult.toUpperCase()}. You bet ${lockedSelection.toUpperCase()}. Try again!`,
-                  variant:"destructive",
-                });
               }
             }, 9*140+400);
           }
@@ -359,7 +353,6 @@ export default function FruitLineGame() {
   }
 
   function collect() {
-    setShowOverlay(false);
     setPhase("betting");
     setWin(0);
     setResultKey(null);
@@ -391,42 +384,7 @@ export default function FruitLineGame() {
         ))}
       </div>
 
-      {/* Win Overlay */}
-      {showOverlay && (
-        <div style={{
-          position:"fixed",inset:0,zIndex:80,display:"flex",alignItems:"center",justifyContent:"center",
-          background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",
-        }}>
-          <div style={{
-            background:"linear-gradient(145deg,#052e16,#14532d,#166534)",
-            border:"3px solid #4ade80",borderRadius:28,padding:"36px 32px",textAlign:"center",
-            maxWidth:320,width:"90%",
-            animation:"fl-overlay-in 0.7s cubic-bezier(.34,1.56,.64,1) forwards",
-            boxShadow:"0 0 60px rgba(74,222,128,0.5),0 0 120px rgba(74,222,128,0.2)",
-          }}>
-            <div style={{fontSize:56,marginBottom:8}}>🏆</div>
-            <div style={{fontSize:18,fontWeight:900,color:"#4ade80",letterSpacing:3,marginBottom:4}}>HARVEST WINNER!</div>
-            <div style={{fontSize:13,color:"rgba(255,255,255,0.7)",marginBottom:16}}>
-              {selectedBt?.label} — {selectedBt?.mult}× Multiplier
-            </div>
-            <div style={{fontSize:36,fontWeight:900,color:"#f5c542",
-              textShadow:"0 0 20px rgba(245,197,66,0.8)",marginBottom:24}}>
-              +{formatCurrency(win)}
-            </div>
-            <div style={{display:"flex",gap:8,flexDirection:"column"}}>
-              <button onClick={collect} style={{
-                padding:"14px 0",borderRadius:14,border:"none",cursor:"pointer",fontWeight:900,
-                fontSize:16,letterSpacing:1,
-                background:"linear-gradient(90deg,#4ade80,#22c55e)",color:"#052e16",
-              }}>✨ COLLECT HARVEST</button>
-              <button onClick={()=>{setShowOverlay(false);setPhase("betting");setWin(0);setResultKey(null);setGrid(ALL_FRUITS.slice(0,9));setSettledIdx([]);}} style={{
-                padding:"10px 0",borderRadius:14,border:"1px solid rgba(74,222,128,0.4)",cursor:"pointer",
-                background:"transparent",color:"#4ade80",fontSize:14,
-              }}>Play Again</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Full-screen overlay removed — result is now shown inline inside the grid */}
 
       <div style={{position:"relative",zIndex:10,maxWidth:480,margin:"0 auto",paddingBottom:32}}>
         {/* ── HEADER ── */}
@@ -559,6 +517,50 @@ export default function FruitLineGame() {
                   {formatCurrency(jackpotPool)}
                 </span>
               </div>
+
+              {/* ── INLINE RESULT PANEL (replaces toast + modal) ── */}
+              {phase==="result" && resultKey && (()=>{
+                const won = win > 0;
+                const resultBt = BET_TYPES.find(b=>b.key===resultKey);
+                return (
+                  <div style={{
+                    marginTop:12,
+                    background: won
+                      ? "linear-gradient(135deg,#052e16,#14532d)"
+                      : "linear-gradient(135deg,#3b0000,#7f1d1d)",
+                    border:`2px solid ${won?"#4ade80":"#ef4444"}`,
+                    borderRadius:16,padding:"18px 16px",textAlign:"center",
+                    boxShadow:`0 0 30px ${won?"rgba(74,222,128,0.4)":"rgba(239,68,68,0.35)"}`,
+                    animation:"fl-win-burst 0.55s cubic-bezier(.34,1.56,.64,1) forwards",
+                  }}>
+                    <div style={{fontSize:38,marginBottom:4}}>{won?"🏆":"😔"}</div>
+                    <div style={{fontSize:17,fontWeight:900,letterSpacing:2,
+                      color: won?"#4ade80":"#f87171",marginBottom:4}}>
+                      {won?"HARVEST WINNER!":"NO LUCK THIS TIME"}
+                    </div>
+                    <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",marginBottom:won?8:12}}>
+                      Result: <strong style={{color:resultBt?.color??"#fff"}}>{resultKey.toUpperCase()}</strong>
+                      {" · "}{resultBt?.label} {resultBt?.mult}×
+                    </div>
+                    {won&&(
+                      <div style={{fontSize:28,fontWeight:900,color:"#f5c542",
+                        textShadow:"0 0 16px rgba(245,197,66,0.7)",marginBottom:12}}>
+                        +{formatCurrency(win)}
+                      </div>
+                    )}
+                    <button onClick={collect} style={{
+                      padding:"11px 32px",borderRadius:12,border:"none",cursor:"pointer",
+                      fontWeight:900,fontSize:14,letterSpacing:1,
+                      background: won
+                        ? "linear-gradient(90deg,#4ade80,#22c55e)"
+                        : "linear-gradient(90deg,#ef4444,#dc2626)",
+                      color: won?"#052e16":"#fff",
+                    }}>
+                      {won?"✨ COLLECT & PLAY AGAIN":"🔄 TRY AGAIN"}
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
@@ -640,37 +642,30 @@ export default function FruitLineGame() {
           </div>
 
           {/* ── HARVEST BUTTON ── */}
-          <button
-            onClick={placeBet}
-            disabled={busy||!selection||bet<=0||phase==="result"}
-            className={(!busy&&selection&&bet>0&&phase==="betting")?"fl-btn-harvest":undefined}
-            style={{
-              marginTop:14,width:"100%",padding:"18px 0",borderRadius:18,border:"none",cursor:"pointer",
-              fontSize:17,fontWeight:900,letterSpacing:2,
-              background: busy
-                ? "linear-gradient(90deg,#166534,#15803d)"
-                : (!selection||bet<=0||phase==="result")
-                ? "rgba(255,255,255,0.08)"
-                : "linear-gradient(90deg,#16a34a,#22c55e,#4ade80,#22c55e,#16a34a)",
-              backgroundSize:"200% 100%",
-              color: (!selection||bet<=0) ? "rgba(255,255,255,0.3)" : "#052e16",
-              opacity: (!selection||bet<=0||phase==="result") && !busy ? 0.5 : 1,
-              transition:"all 0.25s",
-              animation: (!busy&&selection&&bet>0&&phase==="betting") ? "fl-shimmer 2s linear infinite, fl-harvest-pulse 2.2s ease-in-out infinite" : undefined,
-            }}
-          >
-            {phase==="spinning"   ? "🌀 HARVESTING..." :
-             phase==="settling"   ? "🍃 SETTLING..." :
-             phase==="result"     ? (win>0?"✨ COLLECT HARVEST!":"🔄 NEXT ROUND") :
-             "🌾 HARVEST TIME!"}
-          </button>
-
-          {phase==="result"&&win<=0&&(
-            <button onClick={collect} style={{
-              marginTop:10,width:"100%",padding:"13px 0",borderRadius:14,
-              border:"1px solid rgba(74,222,128,0.3)",background:"transparent",
-              color:"#4ade80",fontSize:14,fontWeight:700,cursor:"pointer",letterSpacing:1,
-            }}>🔄 New Round</button>
+          {phase !== "result" && (
+            <button
+              onClick={placeBet}
+              disabled={busy||!selection||bet<=0}
+              className={(!busy&&selection&&bet>0&&phase==="betting")?"fl-btn-harvest":undefined}
+              style={{
+                marginTop:14,width:"100%",padding:"18px 0",borderRadius:18,border:"none",cursor:"pointer",
+                fontSize:17,fontWeight:900,letterSpacing:2,
+                background: busy
+                  ? "linear-gradient(90deg,#166534,#15803d)"
+                  : (!selection||bet<=0)
+                  ? "rgba(255,255,255,0.08)"
+                  : "linear-gradient(90deg,#16a34a,#22c55e,#4ade80,#22c55e,#16a34a)",
+                backgroundSize:"200% 100%",
+                color: (!selection||bet<=0) ? "rgba(255,255,255,0.3)" : "#052e16",
+                opacity: (!selection||bet<=0) && !busy ? 0.5 : 1,
+                transition:"all 0.25s",
+                animation: (!busy&&selection&&bet>0&&phase==="betting") ? "fl-shimmer 2s linear infinite, fl-harvest-pulse 2.2s ease-in-out infinite" : undefined,
+              }}
+            >
+              {phase==="spinning" ? "🌀 HARVESTING..." :
+               phase==="settling" ? "🍃 SETTLING..." :
+               "🌾 HARVEST TIME!"}
+            </button>
           )}
 
           {/* Phase hint */}
@@ -680,7 +675,6 @@ export default function FruitLineGame() {
             {phase==="betting" && selection && bet>0 && `Ready to harvest! ${selectedBt?.mult}× multiplier if ${selectedBt?.label} wins`}
             {phase==="spinning" && "🌀 Fruits are tumbling... good luck!"}
             {phase==="settling" && "🍃 Harvest settling..."}
-            {phase==="result" && resultKey && `Result: ${resultKey.toUpperCase()}`}
           </div>
         </div>
       </div>
