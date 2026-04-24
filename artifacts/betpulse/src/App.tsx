@@ -23,6 +23,7 @@ import CourtPieceGame from "@/pages/CourtPieceGame";
 import TeenPattiGame from "@/pages/TeenPattiGame";
 import Lucky7Game from "@/pages/Lucky7Game";
 import JhandiMundaGame from "@/pages/JhandiMundaGame";
+import JokerGame from "@/pages/JokerGame";
 import CatalogGame from "@/pages/CatalogGame";
 import CrashGame from "@/pages/CrashGame";
 import AndarBaharGame from "@/pages/AndarBaharGame";
@@ -69,6 +70,7 @@ function Router() {
       <Route path="/play/court-piece" component={CourtPieceGame} />
       <Route path="/play/lucky-7" component={Lucky7Game} />
       <Route path="/play/jhandi-munda" component={JhandiMundaGame} />
+      <Route path="/play/joker" component={JokerGame} />
       <Route path="/play/crash" component={CrashGame} />
       <Route path="/play/andar-bahar" component={AndarBaharGame} />
       <Route path="/play/roulette" component={RouletteGame} />

@@ -44,11 +44,12 @@ const CASINO_GAMES = [
   },
   // Teen Patti
   {
-    slug: "joker",        label: "Joker",          emoji: "🤡", players: "4.0K",
+    slug: "joker",        label: "Joker Joker",    emoji: "🤡", players: "4.0K",
     category: "Teen Patti", tag: "WILD", tagColor: "#a855f7",
     bg: "linear-gradient(135deg,#0d0020 0%,#3b0764 50%,#6d28d9 100%)",
     accent: "#a78bfa",
-    desc: "Player • Banker • Joker 9×"
+    desc: "Player • Banker • Joker 9×",
+    thumbnail: `${BASE_URL}joker-logo.jpg`,
   },
   {
     slug: "ten-cards",    label: "10 Cards",       emoji: "🔟", players: "2.8K",
