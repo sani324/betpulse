@@ -14,12 +14,15 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = () => {
+    const finishLogout = () => {
+      queryClient.setQueryData(getGetMeQueryKey(), null);
+      queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      setLocation("/login");
+      setMobileOpen(false);
+    };
     logoutMutation.mutate(undefined, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-        setLocation("/login");
-        setMobileOpen(false);
-      },
+      onSuccess: finishLogout,
+      onError: finishLogout,
     });
   };
 

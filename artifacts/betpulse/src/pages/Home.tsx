@@ -295,10 +295,12 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState("All");
 
   const { data: liveEvents, isLoading: isLoadingLive } = useGetLiveEvents(
-    { query: { queryKey: getGetLiveEventsQueryKey() } }
+    { query: { queryKey: getGetLiveEventsQueryKey(), enabled: isAuthenticated } }
   );
 
-  const casinoLive = liveEvents?.filter(e => CASINO_SPORTS.includes(e.sport)) || [];
+  const casinoLive = Array.isArray(liveEvents)
+    ? liveEvents.filter(e => CASINO_SPORTS.includes(e.sport))
+    : [];
 
   const filteredGames = activeCategory === "All"
     ? CASINO_GAMES
