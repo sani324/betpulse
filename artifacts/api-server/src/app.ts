@@ -1,4 +1,6 @@
 import express, { type Express } from "express";
+import path from "path";
+import { fileURLToPath } from "url";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import session from "express-session";
@@ -6,6 +8,8 @@ import connectPgSimple from "connect-pg-simple";
 import { Pool } from "pg";
 import router from "./routes";
 import { logger } from "./lib/logger";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const PgSession = connectPgSimple(session);
 
@@ -34,6 +38,12 @@ pgPool.query(`
 `).catch(err => logger.warn({ err }, "Startup table setup warning"));
 
 const app: Express = express();
+
+const isProduction = process.env.NODE_ENV === "production";
+
+if (isProduction) {
+  app.set("trust proxy", 1);
+}
 
 app.use(
   pinoHttp({
@@ -68,13 +78,24 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false,
+      secure: isProduction,
       httpOnly: true,
+      sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   }),
 );
 
 app.use("/api", router);
+
+// Serve frontend static files in production (single-service deployment)
+if (isProduction) {
+  const frontendPath = path.resolve(__dirname, "../../betpulse/dist/public");
+  app.use(express.static(frontendPath));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api")) return next();
+    res.sendFile(path.join(frontendPath, "index.html"));
+  });
+}
 
 export default app;
