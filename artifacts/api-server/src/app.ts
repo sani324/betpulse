@@ -92,7 +92,8 @@ app.use("/api", router);
 if (isProduction) {
   const frontendPath = path.resolve(__dirname, "../../betpulse/dist/public");
   app.use(express.static(frontendPath));
-  app.get("*", (req, res, next) => {
+  app.use((req, res, next) => {
+    if (req.method !== "GET") return next();
     if (req.path.startsWith("/api")) return next();
     res.sendFile(path.join(frontendPath, "index.html"));
   });
