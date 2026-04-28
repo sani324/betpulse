@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
@@ -10,8 +10,14 @@ export function Header() {
   const { user, isAuthenticated, isAdmin } = useAuth();
   const logoutMutation = useLogout();
   const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [homeView, setHomeView] = useState<"lobby" | "games">("lobby");
+
+  // Jab bhi home page se hat ke kahin aur jao, view reset ho jaye
+  useEffect(() => {
+    if (location !== "/") setHomeView("lobby");
+  }, [location]);
 
   const handleLogout = () => {
     const finishLogout = () => {
@@ -57,8 +63,18 @@ export function Header() {
             </Link>
 
             <nav className="hidden items-center gap-1 md:flex">
-              <NavLink href="/" icon={<Home size={15} />} label="Lobby" />
-              <NavLink href="/" icon={<Gamepad2 size={15} />} label="Games" />
+              <NavLink
+                icon={<Home size={15} />}
+                label="Lobby"
+                isActive={location === "/" && homeView === "lobby"}
+                onClick={() => { setHomeView("lobby"); setLocation("/"); }}
+              />
+              <NavLink
+                icon={<Gamepad2 size={15} />}
+                label="Games"
+                isActive={location === "/" && homeView === "games"}
+                onClick={() => { setHomeView("games"); setLocation("/"); }}
+              />
               {isAuthenticated && (
                 <NavLink href="/my-bets" icon={<ListChecks size={15} />} label="My Bets" />
               )}
@@ -144,8 +160,8 @@ export function Header() {
               )}
 
               <div className="flex flex-col gap-1 py-3">
-                <MobileNavItem onClick={() => nav("/")} icon={<Home size={16} />} label="Lobby" />
-                <MobileNavItem onClick={() => nav("/")} icon={<Gamepad2 size={16} />} label="All Games" />
+                <MobileNavItem onClick={() => { setHomeView("lobby"); nav("/"); }} icon={<Home size={16} />} label="Lobby" />
+                <MobileNavItem onClick={() => { setHomeView("games"); nav("/"); }} icon={<Gamepad2 size={16} />} label="All Games" />
                 {isAuthenticated && (
                   <>
                     <MobileNavItem onClick={() => nav("/my-bets")} icon={<ListChecks size={16} />} label="My Bets" />
@@ -178,20 +194,35 @@ export function Header() {
   );
 }
 
-function NavLink({ href, icon, label, danger }: { href: string; icon: React.ReactNode; label: string; danger?: boolean }) {
+function NavLink({ href, icon, label, danger, isActive: forceActive, onClick }: {
+  href?: string;
+  icon: React.ReactNode;
+  label: string;
+  danger?: boolean;
+  isActive?: boolean;
+  onClick?: () => void;
+}) {
   const [location] = useLocation();
-  const isActive = location === href || (href !== "/" && location.startsWith(href.split("?")[0]));
-  return (
-    <Link href={href}>
-      <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all" style={{
+  const computedActive = href
+    ? (location === href || (href !== "/" && location.startsWith(href.split("?")[0])))
+    : false;
+  const isActive = forceActive !== undefined ? forceActive : computedActive;
+
+  const button = (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all"
+      style={{
         background: isActive ? "rgba(245,197,66,0.1)" : "transparent",
         color: danger ? "#f87171" : isActive ? "#f5c542" : "rgba(255,255,255,0.55)",
         border: isActive ? "1px solid rgba(245,197,66,0.25)" : "1px solid transparent",
-      }}>
-        {icon}{label}
-      </button>
-    </Link>
+      }}
+    >
+      {icon}{label}
+    </button>
   );
+
+  return onClick ? button : <Link href={href!}>{button}</Link>;
 }
 
 function MobileNavItem({ onClick, icon, label, danger }: { onClick: () => void; icon: React.ReactNode; label: string; danger?: boolean }) {
