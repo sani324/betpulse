@@ -288,4 +288,147 @@ export default function TeenPattiGame() {
                   </div>
                   <div className="flex items-center text-xs font-bold" style={{ color: "rgba(255,255,255,0.3)" }}>vs</div>
                   <div className="flex flex-col items-center gap-2">
-                    <div className="text-xs font-bold
+                    <div className="text-xs font-bold uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.4)" }}>Banker</div>
+                    <div className="flex gap-2">
+                      {bDealt.map((vis, i) => (
+                        <PlayingCard key={i} hidden visible={vis} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Revealing — cards flip one by one */}
+            {phase === "revealing" && (
+              <div className="flex flex-col items-center gap-6">
+                <div className="text-center">
+                  <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: "rgba(245,197,66,0.6)" }}>Revealing hands...</p>
+                </div>
+                <div className="flex gap-8">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="text-xs font-bold uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.4)" }}>Player</div>
+                    <div className="flex gap-2">
+                      {[0,1,2].map(i => (
+                        <PlayingCard
+                          key={i}
+                          rank={pRevealed[i] ? playerCards[i]?.rank : undefined}
+                          suit={pRevealed[i] ? playerCards[i]?.suit : undefined}
+                          hidden={!pRevealed[i]}
+                          visible={true}
+                          flipped={pRevealed[i]}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center text-xs font-bold" style={{ color: "rgba(255,255,255,0.3)" }}>vs</div>
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="text-xs font-bold uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.4)" }}>Banker</div>
+                    <div className="flex gap-2">
+                      {[0,1,2].map(i => (
+                        <PlayingCard
+                          key={i}
+                          rank={bRevealed[i] ? bankerCards[i]?.rank : undefined}
+                          suit={bRevealed[i] ? bankerCards[i]?.suit : undefined}
+                          hidden={!bRevealed[i]}
+                          visible={true}
+                          flipped={bRevealed[i]}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Result */}
+            {phase === "result" && (
+              <div className="flex flex-col items-center gap-5 w-full px-4">
+                <div className={`text-center px-6 py-3 rounded-2xl ${wonBet ? "text-yellow-400" : "text-red-400"}`} style={{ background: wonBet ? "rgba(245,197,66,0.1)" : "rgba(239,68,68,0.1)", border: `1px solid ${wonBet ? "rgba(245,197,66,0.3)" : "rgba(239,68,68,0.3)"}` }}>
+                  <div className="text-2xl font-black">{wonBet ? "🏆 You Won!" : "😔 You Lost"}</div>
+                  <div className="text-sm mt-1 font-semibold capitalize">Winner: {result?.result}</div>
+                </div>
+                <div className="flex gap-8">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="text-xs font-bold uppercase tracking-wider" style={{ color: result?.result === "player" ? "#f5c542" : "rgba(255,255,255,0.4)" }}>
+                      Player {result?.result === "player" && "👑"}
+                    </div>
+                    <div className="flex gap-2">
+                      {playerCards.map((c, i) => <PlayingCard key={i} rank={c.rank} suit={c.suit} visible={true} />)}
+                    </div>
+                  </div>
+                  <div className="flex items-center text-xs font-bold" style={{ color: "rgba(255,255,255,0.3)" }}>vs</div>
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="text-xs font-bold uppercase tracking-wider" style={{ color: result?.result === "banker" ? "#f5c542" : "rgba(255,255,255,0.4)" }}>
+                      Banker {result?.result === "banker" && "👑"}
+                    </div>
+                    <div className="flex gap-2">
+                      {bankerCards.map((c, i) => <PlayingCard key={i} rank={c.rank} suit={c.suit} visible={true} />)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Betting Controls */}
+        {!isPlaying && (
+          <div className="w-full space-y-4">
+            {phase === "result" ? (
+              <button onClick={reset} className="w-full py-4 rounded-2xl font-bold text-base transition-all hover:scale-105" style={{ background: "linear-gradient(135deg,#d4a017,#f5c542)", color: "#081c0e", boxShadow: "0 0 20px rgba(245,197,66,0.35)" }}>
+                Deal Again
+              </button>
+            ) : (
+              <>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider mb-3 text-center" style={{ color: "rgba(255,255,255,0.4)" }}>Choose your side</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {([
+                      { key: "player",  label: "Player",  sub: "1.95×", color: "#3b82f6" },
+                      { key: "banker",  label: "Banker",  sub: "1.95×", color: "#ef4444" },
+                      { key: "pair",    label: "Pair",    sub: "11×",   color: "#a855f7" },
+                    ] as const).map(opt => (
+                      <button key={opt.key} onClick={() => setSelection(opt.key)}
+                        className="py-4 rounded-2xl flex flex-col items-center gap-1 transition-all hover:scale-105"
+                        style={{ background: selection === opt.key ? `${opt.color}22` : "rgba(13,43,26,0.6)", border: `2px solid ${selection === opt.key ? opt.color : "rgba(255,255,255,0.08)"}`, boxShadow: selection === opt.key ? `0 0 20px ${opt.color}44` : "none" }}>
+                        <span className="text-sm font-bold text-white">{opt.label}</span>
+                        <span className="text-xs font-semibold" style={{ color: opt.color }}>{opt.sub}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider mb-3 text-center" style={{ color: "rgba(255,255,255,0.4)" }}>Bet Amount</p>
+                  <div className="flex gap-2 flex-wrap justify-center">
+                    {CHIP_AMOUNTS.map(amt => (
+                      <button key={amt} onClick={() => setStake(amt)}
+                        className="px-4 py-2 rounded-xl text-sm font-bold transition-all hover:scale-105"
+                        style={{ background: stake === amt ? "linear-gradient(135deg,#d4a017,#f5c542)" : "rgba(13,43,26,0.6)", color: stake === amt ? "#081c0e" : "rgba(255,255,255,0.6)", border: `1px solid ${stake === amt ? "transparent" : "rgba(255,255,255,0.1)"}` }}>
+                        Rs {amt >= 1000 ? `${amt/1000}K` : amt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button onClick={placeBet} disabled={isPlacing || !selection}
+                  className="w-full py-4 rounded-2xl font-bold text-base transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+                  style={{ background: "linear-gradient(135deg,#d4a017,#f5c542)", color: "#081c0e", boxShadow: "0 0 20px rgba(245,197,66,0.35)" }}>
+                  {isPlacing ? "Shuffling deck..." : `Deal Cards · ${formatCurrency(stake)}`}
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {isPlaying && (
+          <div className="text-center text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
+            Your {formatCurrency(stake)} bet on <strong style={{ color: "#f5c542" }}>{selection}</strong>
+            {phase === "dealing" && " · Dealing cards..."}
+            {phase === "waiting" && " · Deciding the winner..."}
+            {phase === "revealing" && " · Revealing the winner..."}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
