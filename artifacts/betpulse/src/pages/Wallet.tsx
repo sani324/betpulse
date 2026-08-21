@@ -470,8 +470,86 @@ export default function WalletPage() {
 
           {/* ─── HISTORY TAB ─── */}
           <TabsContent value="history" className="mt-4 space-y-4">
+
+            {/* 1. Deposit & Withdrawal Request Statuses with Admin Reason */}
+            <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center justify-between">
+                <span>📋 Request Approvals & Status</span>
+                <button onClick={fetchRequests} className="text-xs text-emerald-700 hover:underline flex items-center gap-1 font-semibold">
+                  <RefreshCw className="w-3 h-3" /> Refresh
+                </button>
+              </h3>
+
+              {depositRequests.length === 0 && withdrawRequests.length === 0 ? (
+                <p className="text-xs text-slate-400 py-2">No pending or previous approval requests.</p>
+              ) : (
+                <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                  {/* Deposit Requests */}
+                  {depositRequests.map((req: any) => (
+                    <div key={`dep-${req.id}`} className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-800">📥 Deposit Request</span>
+                          <span className="text-xs font-mono font-bold text-emerald-600">{formatCurrency(req.amount)}</span>
+                        </div>
+                        <Badge variant="outline" className={`text-[10px] uppercase font-bold ${
+                          req.status === "approved" ? "border-green-500 text-green-600 bg-green-50"
+                          : req.status === "denied" ? "border-red-500 text-red-600 bg-red-50"
+                          : "border-amber-500 text-amber-600 bg-amber-50"
+                        }`}>
+                          {req.status === "approved" ? "✓ Approved" : req.status === "denied" ? "✕ Denied" : "⏳ Pending"}
+                        </Badge>
+                      </div>
+                      <div className="text-[11px] text-slate-500 flex justify-between font-mono">
+                        <span>Ref: {req.transactionRef}</span>
+                        <span>{formatDateTime(req.createdAt)}</span>
+                      </div>
+                      {req.adminNote && (
+                        <div className={`p-2 rounded-xl text-xs font-medium border ${
+                          req.status === "denied" ? "bg-red-50 border-red-200 text-red-700" : "bg-emerald-50 border-emerald-200 text-emerald-800"
+                        }`}>
+                          💬 <strong>Admin Reason:</strong> {req.adminNote}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Withdrawal Requests */}
+                  {withdrawRequests.map((req: any) => (
+                    <div key={`with-${req.id}`} className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-800">📤 Withdrawal Request</span>
+                          <span className="text-xs font-mono font-bold text-amber-600">{formatCurrency(req.amount)}</span>
+                        </div>
+                        <Badge variant="outline" className={`text-[10px] uppercase font-bold ${
+                          req.status === "approved" ? "border-green-500 text-green-600 bg-green-50"
+                          : req.status === "denied" ? "border-red-500 text-red-600 bg-red-50"
+                          : "border-amber-500 text-amber-600 bg-amber-50"
+                        }`}>
+                          {req.status === "approved" ? "✓ Approved" : req.status === "denied" ? "✕ Denied" : "⏳ Pending"}
+                        </Badge>
+                      </div>
+                      <div className="text-[11px] text-slate-500 flex justify-between font-mono">
+                        <span>{req.paymentMethod.replace("_", " ").toUpperCase()} ({req.accountNumber})</span>
+                        <span>{formatDateTime(req.createdAt)}</span>
+                      </div>
+                      {req.adminNote && (
+                        <div className={`p-2 rounded-xl text-xs font-medium border ${
+                          req.status === "denied" ? "bg-red-50 border-red-200 text-red-700" : "bg-emerald-50 border-emerald-200 text-emerald-800"
+                        }`}>
+                          💬 <strong>Admin Note / Reason:</strong> {req.adminNote}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 2. Recent Account Transactions */}
             <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-4">
-              <h3 className="text-lg font-bold text-slate-900">Recent Transactions</h3>
+              <h3 className="text-base font-bold text-slate-900">Recent Account Transactions</h3>
               {isLoadingTx ? (
                 <Skeleton className="h-20 w-full bg-slate-100" />
               ) : !transactions || transactions.length === 0 ? (
