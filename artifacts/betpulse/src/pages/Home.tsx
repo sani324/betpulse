@@ -12,6 +12,14 @@ const CATEGORIES = ["All", "Table Games", "Teen Patti", "Slot Games", "Casino", 
 const BASE_URL = import.meta.env.BASE_URL;
 
 const CASINO_GAMES = [
+  {
+    slug: "cricket",      label: "Cricket League", emoji: "🏏", players: "15.2K",
+    category: "Real Cash",  tag: "LIVE HOT", tagColor: "#22c55e",
+    bg: "linear-gradient(135deg,#06240d 0%,#14532d 50%,#15803d 100%)",
+    accent: "#4ade80", featured: true,
+    desc: "Team A • Team B • Super Over 8×",
+    thumbnail: `${BASE_URL}cricket-logo.jpg`,
+  },
   // Table Games
   {
     slug: "teen-patti",   label: "Teen Patti",     emoji: "👑", players: "12.4K",

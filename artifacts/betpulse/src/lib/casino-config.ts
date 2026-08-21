@@ -3,7 +3,7 @@ export const CASINO_SPORTS = [
   "Lucky 7", "Jhandi Munda",
   "Andar Bahar", "Roulette", "Bingo 777", "Fruit Line", "Sweet Bonanza",
   "Crash", "Joker", "10 Cards", "Muflis", "Blackjack",
-  "Car Roulette", "God of Fortune", "Rummy",
+  "Car Roulette", "God of Fortune", "Rummy", "Cricket",
 ];
 
 export const CASINO_ICONS: Record<string, string> = {
@@ -26,6 +26,7 @@ export const CASINO_ICONS: Record<string, string> = {
   "Car Roulette": "🏎️",
   "God of Fortune": "🐉",
   "Rummy": "🀄",
+  "Cricket": "🏏",
 };
 
 export const CASINO_DESC: Record<string, string> = {
@@ -48,4 +49,5 @@ export const CASINO_DESC: Record<string, string> = {
   "Car Roulette": "Car 1 / Car 2 / Car 3",
   "God of Fortune": "Fortune / Grand / Supreme",
   "Rummy": "Player vs House",
+  "Cricket": "Batting vs Bowling",
 };

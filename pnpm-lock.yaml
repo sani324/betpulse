@@ -93,9 +93,21 @@ importers:
       '@types/connect-pg-simple':
         specifier: ^7.0.3
         version: 7.0.3
+      '@types/cookie-parser':
+        specifier: ^1.4.10
+        version: 1.4.10(@types/express@5.0.6)
+      '@types/cors':
+        specifier: ^2.8.19
+        version: 2.8.19
+      '@types/express':
+        specifier: ^5.0.6
+        version: 5.0.6
       '@types/express-session':
         specifier: ^1.19.0
         version: 1.19.0
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
       '@types/nodemailer':
         specifier: ^8.0.0
         version: 8.0.0
@@ -120,9 +132,18 @@ importers:
       cors:
         specifier: ^2
         version: 2.8.6
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.2(@types/pg@8.18.0)(pg@8.20.0)
+      esbuild:
+        specifier: ^0.27.3
+        version: 0.27.3
+      esbuild-plugin-pino:
+        specifier: ^2.3.3
+        version: 2.3.3(esbuild@0.27.3)(pino-pretty@13.1.3)(pino@9.14.0)(thread-stream@3.1.0)
       express:
         specifier: ^5
         version: 5.2.1
@@ -141,43 +162,21 @@ importers:
       pino-http:
         specifier: ^10
         version: 10.5.0
-      twilio:
-        specifier: ^6.0.0
-        version: 6.0.0
-      zod:
-        specifier: 'catalog:'
-        version: 3.25.76
-    devDependencies:
-      '@types/cookie-parser':
-        specifier: ^1.4.10
-        version: 1.4.10(@types/express@5.0.6)
-      '@types/cors':
-        specifier: ^2.8.19
-        version: 2.8.19
-      '@types/express':
-        specifier: ^5.0.6
-        version: 5.0.6
-      '@types/node':
-        specifier: 'catalog:'
-        version: 25.3.5
-      cross-env:
-        specifier: ^7.0.3
-        version: 7.0.3
-      esbuild:
-        specifier: ^0.27.3
-        version: 0.27.3
-      esbuild-plugin-pino:
-        specifier: ^2.3.3
-        version: 2.3.3(esbuild@0.27.3)(pino-pretty@13.1.3)(pino@9.14.0)(thread-stream@3.1.0)
       pino-pretty:
         specifier: ^13
         version: 13.1.3
       thread-stream:
         specifier: 3.1.0
         version: 3.1.0
+      twilio:
+        specifier: ^6.0.0
+        version: 6.0.0
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
 
   artifacts/betpulse:
-    devDependencies:
+    dependencies:
       '@hookform/resolvers':
         specifier: ^3.10.0
         version: 3.10.0(react-hook-form@7.71.2(react@19.1.0))

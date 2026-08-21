@@ -73,6 +73,7 @@ async function queueRoundBet(
   // Crash needs a longer delay so the plane animation has time to fly.
   if (autoSettleModeOn) {
     const SETTLE_DELAY: Record<string, number> = {
+      "cricket":     3500,  // 3.5s — ball bowling & pitch reveal animation
       "crash":       4500,  // 4.5s — plane flies before crash
       "teen-patti":  3200,  // 3.2s — card dealing animation
       "jhandi-munda":3000,  // 3.0s — dice rolling animation
@@ -189,6 +190,7 @@ router.post("/games/muflis",        requireAuth, (req, res) => queueRoundBet(req
 router.post("/games/blackjack",     requireAuth, (req, res) => queueRoundBet(req, res, "blackjack",     ["player", "dealer", "tie"]));
 router.post("/games/car-roulette",  requireAuth, (req, res) => queueRoundBet(req, res, "car-roulette",  ["car1", "car2", "car3"]));
 router.post("/games/god-of-fortune",requireAuth, (req, res) => queueRoundBet(req, res, "god-of-fortune",["fortune", "grand", "supreme"]));
+router.post("/games/cricket",         requireAuth, (req, res) => queueRoundBet(req, res, "cricket",         ["team-a", "team-b", "tie"]));
 router.post("/games/rummy",         requireAuth, (req, res) => queueRoundBet(req, res, "rummy",         ["player", "house"]));
 
 export default router;

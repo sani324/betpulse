@@ -196,6 +196,20 @@ export const GAME_CATALOG: GameConfig[] = [
       { key: "house",  label: "House",  sub: "1.95×", color: "#ef4444", icon: "🏠" },
     ],
   },
+  {
+    slug: "cricket",
+    name: "Cricket",
+    emoji: "🏏",
+    desc: "Batting vs Bowling · Live stadium action",
+    bgEmoji: "🏏",
+    category: "Real Cash Games",
+    cols: 3,
+    options: [
+      { key: "team-a", label: "Team A (Batting)", sub: "1.95×", color: "#22c55e", icon: "🏏" },
+      { key: "team-b", label: "Team B (Bowling)", sub: "1.95×", color: "#3b82f6", icon: "⚾" },
+      { key: "tie",    label: "Super Over (Tie)", sub: "8×",   color: "#f5c542", icon: "🤝" },
+    ],
+  },
 ];
 
 export function findGame(slug: string): GameConfig | undefined {

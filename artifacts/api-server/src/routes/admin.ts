@@ -931,6 +931,7 @@ const GAME_OPTIONS: Record<string, string[]> = {
   "car-roulette":   ["car1", "car2", "car3"],
   "god-of-fortune": ["fortune", "grand", "supreme"],
   "rummy":          ["player", "house"],
+  "cricket":        ["team-a", "team-b", "tie"],
 };
 
 // Shared settle helper — used by both manual and auto settle.
@@ -956,6 +957,7 @@ async function settleRoundWith(game: string, result: string): Promise<{ message:
     if (g === "car-roulette") return sel === "car3" ? 5 : 1.95;
     if (g === "god-of-fortune") return sel === "supreme" ? 10 : sel === "grand" ? 5 : 1.95;
     if (g === "rummy")        return 1.95;
+    if (g === "cricket")      return sel === "tie" ? 8 : 1.95;
     return 2;
   }
 
