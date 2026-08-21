@@ -268,7 +268,7 @@ export default function WalletPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-border/30">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 pt-6 border-t border-border/30">
             <div>
               <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Total Deposited</div>
               <div className="font-mono font-medium">{formatCurrency(balanceInfo?.totalDeposited || 0)}</div>

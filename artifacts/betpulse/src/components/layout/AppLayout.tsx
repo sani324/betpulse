@@ -6,10 +6,15 @@ import { useAuth } from "@/lib/auth-context";
 import { useBetSlip } from "@/lib/bet-slip-context";
 import { ShoppingCart, X } from "lucide-react";
 
+import { useLocation } from "wouter";
+
 export function AppLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth();
   const { items } = useBetSlip();
+  const [location] = useLocation();
   const [mobileBetSlipOpen, setMobileBetSlipOpen] = useState(false);
+
+  const isAdminPage = location.startsWith("/admin");
 
   return (
     <div className="relative flex min-h-[100dvh] flex-col bg-background text-foreground selection:bg-primary/30">
@@ -30,7 +35,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </div>
 
       {/* Mobile: floating Bet Slip button */}
-      {isAuthenticated && (
+      {isAuthenticated && !isAdminPage && (
         <>
           <button
             onClick={() => setMobileBetSlipOpen(true)}

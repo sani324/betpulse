@@ -859,12 +859,12 @@ export default function Admin() {
         if (v === "paymentsettings") loadPaymentSettings();
         if (v === "signupbonus" && !signupBonusLoaded) loadSignupBonus();
       }}>
-        <div className="flex gap-5 items-start">
+        <div className="flex flex-col md:flex-row gap-5 items-start w-full">
           {/* ── Sidebar Navigation ── */}
-          <TabsList className="flex flex-col h-auto w-56 shrink-0 bg-[#0d1f14] border border-[#1a3a22] rounded-2xl p-3 gap-1 sticky top-4 shadow-xl">
+          <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-col h-auto w-full md:w-56 shrink-0 bg-[#0d1f14] border border-[#1a3a22] rounded-2xl p-2.5 gap-1.5 md:sticky md:top-4 shadow-xl">
 
             {/* EVENTS group */}
-            <p className="text-[9px] font-black uppercase tracking-widest text-white/30 px-1 pt-1 pb-0.5">Events</p>
+            <p className="col-span-2 sm:col-span-3 md:col-span-1 text-[9px] font-black uppercase tracking-widest text-white/30 px-1 pt-1 pb-0.5">Events</p>
             <TabsTrigger value="events" className="w-full justify-start gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold bg-emerald-900/50 text-emerald-100 border border-emerald-800/40 data-[state=active]:bg-emerald-500 data-[state=active]:text-white data-[state=active]:border-emerald-400 data-[state=active]:shadow-lg data-[state=active]:shadow-emerald-900/50 hover:bg-emerald-800/60 transition-all shadow-none">
               <CalendarDays className="h-4 w-4 shrink-0" />
               Manage Events
@@ -875,7 +875,7 @@ export default function Admin() {
             </TabsTrigger>
 
             {/* ANALYTICS group */}
-            <p className="text-[9px] font-black uppercase tracking-widest text-white/30 px-1 pt-2 pb-0.5">Analytics</p>
+            <p className="col-span-2 sm:col-span-3 md:col-span-1 text-[9px] font-black uppercase tracking-widest text-white/30 px-1 pt-2 pb-0.5">Analytics</p>
             <TabsTrigger value="reports" className="w-full justify-start gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold bg-orange-900/50 text-orange-100 border border-orange-800/40 data-[state=active]:bg-orange-500 data-[state=active]:text-white data-[state=active]:border-orange-400 data-[state=active]:shadow-lg data-[state=active]:shadow-orange-900/50 hover:bg-orange-800/60 transition-all shadow-none">
               <FileBarChart className="h-4 w-4 shrink-0" />
               Reports
@@ -890,14 +890,14 @@ export default function Admin() {
             </TabsTrigger>
 
             {/* USERS group */}
-            <p className="text-[9px] font-black uppercase tracking-widest text-white/30 px-1 pt-2 pb-0.5">Users</p>
+            <p className="col-span-2 sm:col-span-3 md:col-span-1 text-[9px] font-black uppercase tracking-widest text-white/30 px-1 pt-2 pb-0.5">Users</p>
             <TabsTrigger value="users" className="w-full justify-start gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold bg-sky-900/50 text-sky-100 border border-sky-800/40 data-[state=active]:bg-sky-500 data-[state=active]:text-white data-[state=active]:border-sky-400 data-[state=active]:shadow-lg data-[state=active]:shadow-sky-900/50 hover:bg-sky-800/60 transition-all shadow-none">
               <Users className="h-4 w-4 shrink-0" />
               Users
             </TabsTrigger>
 
             {/* FINANCE group */}
-            <p className="text-[9px] font-black uppercase tracking-widest text-white/30 px-1 pt-2 pb-0.5">Finance</p>
+            <p className="col-span-2 sm:col-span-3 md:col-span-1 text-[9px] font-black uppercase tracking-widest text-white/30 px-1 pt-2 pb-0.5">Finance</p>
             <TabsTrigger value="deposits" className="w-full justify-start gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold bg-blue-900/50 text-blue-100 border border-blue-800/40 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-400 data-[state=active]:shadow-lg data-[state=active]:shadow-blue-900/50 hover:bg-blue-800/60 transition-all shadow-none">
               <ArrowDownToLine className="h-4 w-4 shrink-0" />
               <span className="flex-1 text-left">Deposits</span>
@@ -918,7 +918,7 @@ export default function Admin() {
             </TabsTrigger>
 
             {/* SETTINGS group */}
-            <p className="text-[9px] font-black uppercase tracking-widest text-white/30 px-1 pt-2 pb-0.5">Settings</p>
+            <p className="col-span-2 sm:col-span-3 md:col-span-1 text-[9px] font-black uppercase tracking-widest text-white/30 px-1 pt-2 pb-0.5">Settings</p>
             <TabsTrigger value="paymentsettings" className="w-full justify-start gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold bg-teal-900/50 text-teal-100 border border-teal-800/40 data-[state=active]:bg-teal-500 data-[state=active]:text-white data-[state=active]:border-teal-400 data-[state=active]:shadow-lg data-[state=active]:shadow-teal-900/50 hover:bg-teal-800/60 transition-all shadow-none">
               <CreditCard className="h-4 w-4 shrink-0" />
               Payment Setup
@@ -929,7 +929,7 @@ export default function Admin() {
             </TabsTrigger>
 
             {/* GAMES group */}
-            <p className="text-[9px] font-black uppercase tracking-widest text-white/30 px-1 pt-2 pb-0.5">Games</p>
+            <p className="col-span-2 sm:col-span-3 md:col-span-1 text-[9px] font-black uppercase tracking-widest text-white/30 px-1 pt-2 pb-0.5">Games</p>
             <TabsTrigger value="gamecontrols" className="w-full justify-start gap-2.5 rounded-lg px-3 py-2.5 text-sm font-bold bg-amber-900/60 text-amber-100 border border-amber-700/50 data-[state=active]:bg-amber-500 data-[state=active]:text-black data-[state=active]:border-amber-400 data-[state=active]:shadow-lg data-[state=active]:shadow-amber-900/50 hover:bg-amber-800/70 transition-all shadow-none">
               <Gamepad2 className="h-4 w-4 shrink-0" />
               Game Controls
@@ -939,7 +939,7 @@ export default function Admin() {
           </TabsList>
 
           {/* ── Content Area ── */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 w-full">
 
         {/* ── Reports ── */}
         <TabsContent value="reports" className="space-y-4">
