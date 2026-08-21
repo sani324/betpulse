@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Activity, Zap, ArrowRight, Users, TrendingUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CASINO_SPORTS } from "@/lib/casino-config";
+import { InstallAppModal } from "@/components/InstallAppModal";
 
 const CATEGORIES = ["All", "Table Games", "Teen Patti", "Slot Games", "Casino", "Real Cash"];
 
@@ -358,12 +359,15 @@ export default function Home() {
                 </div>
               ))}
             </div>
-            <button
-              onClick={() => setLocation(isAuthenticated ? "/" : "/register")}
-              className="px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all hover:scale-105"
-              style={{ background: "linear-gradient(135deg,#d4a017,#f5c542)", color: "#061209", boxShadow: "0 0 20px rgba(245,197,66,0.4)" }}>
-              {isAuthenticated ? "🎮 Play Now" : "🎁 Claim ₹500 Bonus"}
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setLocation(isAuthenticated ? "/" : "/register")}
+                className="px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all hover:scale-105"
+                style={{ background: "linear-gradient(135deg,#d4a017,#f5c542)", color: "#061209", boxShadow: "0 0 20px rgba(245,197,66,0.4)" }}>
+                {isAuthenticated ? "🎮 Play Now" : "🎁 Claim ₹500 Bonus"}
+              </button>
+              <InstallAppModal />
+            </div>
           </div>
           {/* Decorative cards */}
           <div className="relative w-28 h-28 flex-shrink-0">

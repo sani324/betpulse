@@ -3,6 +3,7 @@ import { formatCurrency, formatPercentage } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Target, Trophy, TrendingUp, Flame, Wallet, Coins } from "lucide-react";
+import { InstallAppModal } from "@/components/InstallAppModal";
 import {
   BarChart,
   Bar,
@@ -48,11 +49,12 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
           <Target className="h-8 w-8 text-primary" />
           Performance Dashboard
         </h1>
+        <InstallAppModal />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
