@@ -42,12 +42,52 @@ export default function WalletPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Deposit Form States (Z7VIP Screenshot 1 Exact Match)
+  // Deposit Form States
   const [selectedDepositType, setSelectedDepositType] = useState<"online" | "crypto">("online");
   const [selectedAmount, setSelectedAmount] = useState<number>(500);
   const [payerPhone, setPayerPhone] = useState<string>("03139620729");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [expandPromos, setExpandPromos] = useState<boolean>(false);
+
+  // Cryptocurrency USDT Deposit States
+  const [cryptoNetwork, setCryptoNetwork] = useState<"trc20" | "bep20">("trc20");
+  const [cryptoTxHash, setCryptoTxHash] = useState<string>("");
+  const [isSubmittingCrypto, setIsSubmittingCrypto] = useState<boolean>(false);
+
+  const trc20Address = "TYu89XqZk2mL7vP4n9W1rT3sB5vC8xD0eF";
+  const bep20Address = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
+
+  async function handleCryptoDepositSubmit() {
+    if (!cryptoTxHash || cryptoTxHash.trim().length < 8) {
+      toast({ title: "Enter Transaction Hash / TxID", description: "Please enter your USDT transaction hash.", variant: "destructive" });
+      return;
+    }
+    setIsSubmittingCrypto(true);
+    try {
+      const res = await fetch("/api/wallet/deposit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: selectedAmount,
+          paymentMethod: `usdt_${cryptoNetwork}`,
+          transactionRef: cryptoTxHash.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: "Deposit Request Failed", description: data.error || "Failed to submit request", variant: "destructive" });
+        setIsSubmittingCrypto(false);
+        return;
+      }
+      toast({ title: "USDT Deposit Request Submitted!", description: "Admin will verify your TxID and credit balance shortly." });
+      setCryptoTxHash("");
+      fetchRequests();
+    } catch (e: any) {
+      toast({ title: "Error Submitting Request", description: e.message, variant: "destructive" });
+    } finally {
+      setIsSubmittingCrypto(false);
+    }
+  }
 
   // Withdrawal Form States
   const [withdrawAmount, setWithdrawAmount] = useState<number>(1000);
@@ -344,43 +384,156 @@ export default function WalletPage() {
                 </button>
               </div>
 
-              {/* Enter Payer Info (User's Mobile Number) */}
-              <div className="space-y-2 pt-2">
-                <div className="text-xs font-bold text-slate-700 text-center uppercase tracking-wider">
-                  Enter payer info for proper crediting
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-600">
-                    <span className="text-red-500 font-bold">*</span> Payer&apos;s mobile wallet number
-                  </label>
-                  <div className="relative">
-                    <div className="absolute left-3 top-3.5 text-slate-400 text-sm">📱</div>
-                    <input
-                      type="text"
-                      value={payerPhone}
-                      onChange={(e) => setPayerPhone(e.target.value)}
-                      placeholder="03139620729"
-                      className="w-full pl-9 pr-9 py-3 bg-white border border-slate-300 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:border-emerald-600"
-                    />
-                    {payerPhone && (
-                      <button onClick={() => setPayerPhone("")} className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600">
-                        <X className="w-4 h-4" />
+              {/* ── CONDITIONAL DEPOSIT FORMS: ONLINE vs CRYPTOCURRENCY ── */}
+              {selectedDepositType === "crypto" ? (
+                <div className="space-y-4 pt-2">
+                  {/* 1. Crypto Network Selection */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700">Select Crypto Network</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setCryptoNetwork("trc20")}
+                        className={`py-3 rounded-2xl border font-bold text-xs transition flex items-center justify-center gap-2 ${
+                          cryptoNetwork === "trc20"
+                            ? "bg-amber-50 border-amber-600 text-amber-900 shadow-sm"
+                            : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
+                        }`}
+                      >
+                        <span className="text-base">🔴</span>
+                        <div className="text-left">
+                          <div className="font-extrabold">USDT (TRC20)</div>
+                          <div className="text-[9px] text-slate-400">TRON Network</div>
+                        </div>
                       </button>
-                    )}
+
+                      <button
+                        type="button"
+                        onClick={() => setCryptoNetwork("bep20")}
+                        className={`py-3 rounded-2xl border font-bold text-xs transition flex items-center justify-center gap-2 ${
+                          cryptoNetwork === "bep20"
+                            ? "bg-amber-50 border-amber-600 text-amber-900 shadow-sm"
+                            : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
+                        }`}
+                      >
+                        <span className="text-base">🟡</span>
+                        <div className="text-left">
+                          <div className="font-extrabold">USDT (BEP20)</div>
+                          <div className="text-[9px] text-slate-400">BNB Smart Chain</div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 2. Wallet Address Card with Copy Button */}
+                  <div className="bg-slate-900 text-white rounded-2xl p-4 space-y-3 shadow-lg border border-slate-800">
+                    <div className="flex items-center justify-between text-xs text-slate-400">
+                      <span>Official Deposit Wallet ({cryptoNetwork.toUpperCase()})</span>
+                      <span className="text-amber-400 font-bold text-[10px] bg-amber-500/20 px-2 py-0.5 rounded-full">
+                        +7% Crypto Bonus
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between bg-slate-800/90 p-3 rounded-xl border border-slate-700 font-mono text-xs text-amber-300 font-bold break-all gap-2">
+                      <span>{cryptoNetwork === "trc20" ? trc20Address : bep20Address}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(cryptoNetwork === "trc20" ? trc20Address : bep20Address);
+                          toast({ title: "Address Copied!", description: `Copied ${cryptoNetwork.toUpperCase()} deposit address to clipboard.` });
+                        }}
+                        className="shrink-0 bg-amber-500 hover:bg-amber-600 text-black px-2.5 py-1.5 rounded-lg text-xs font-bold font-sans transition active:scale-95"
+                      >
+                        📋 Copy
+                      </button>
+                    </div>
+
+                    <div className="text-[11px] text-slate-400 space-y-1">
+                      <div>⚠️ Send only <strong>USDT ({cryptoNetwork.toUpperCase()})</strong> to this deposit address.</div>
+                      <div>Min deposit: <strong>5 USDT (~1,400 PKR)</strong>.</div>
+                    </div>
+                  </div>
+
+                  {/* 3. Deposit Amount & TxID Hash Input */}
+                  <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-700">Deposit Amount (PKR)</label>
+                      <input
+                        type="number"
+                        value={selectedAmount}
+                        onChange={(e) => setSelectedAmount(Number(e.target.value))}
+                        placeholder="e.g. 2800"
+                        className="w-full p-3 bg-white border border-slate-300 rounded-xl text-slate-900 font-extrabold text-sm"
+                      />
+                      <div className="text-[11px] text-emerald-700 font-semibold">
+                        Approx: {(selectedAmount / 280).toFixed(2)} USDT (+7% Bonus included)
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-700">
+                        <span className="text-red-500 font-bold">*</span> Blockchain TxID / Transaction Hash
+                      </label>
+                      <input
+                        type="text"
+                        value={cryptoTxHash}
+                        onChange={(e) => setCryptoTxHash(e.target.value)}
+                        placeholder="Paste your USDT TxID / Hash here..."
+                        className="w-full p-3 bg-white border border-slate-300 rounded-xl text-slate-900 font-mono text-xs font-bold"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={isSubmittingCrypto || !selectedAmount || !cryptoTxHash}
+                      onClick={handleCryptoDepositSubmit}
+                      className="w-full py-4 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-sm shadow-lg transition active:scale-[0.99] disabled:opacity-50"
+                    >
+                      {isSubmittingCrypto ? "Submitting Request..." : "Submit USDT Deposit Request"}
+                    </button>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <>
+                  {/* Enter Payer Info (User's Mobile Number) */}
+                  <div className="space-y-2 pt-2">
+                    <div className="text-xs font-bold text-slate-700 text-center uppercase tracking-wider">
+                      Enter payer info for proper crediting
+                    </div>
 
-              {/* Full Width Dark Green Button: Deposit Now */}
-              <button
-                type="button"
-                disabled={isSubmitting || !selectedAmount}
-                onClick={handleDepositNow}
-                className="w-full py-4 rounded-2xl bg-[#0f4d32] hover:bg-[#0c3f29] text-white font-extrabold text-base shadow-lg transition active:scale-[0.99] disabled:opacity-50"
-              >
-                {isSubmitting ? "Redirecting to Checkout..." : "Deposit Now"}
-              </button>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-slate-600">
+                        <span className="text-red-500 font-bold">*</span> Payer&apos;s mobile wallet number
+                      </label>
+                      <div className="relative">
+                        <div className="absolute left-3 top-3.5 text-slate-400 text-sm">📱</div>
+                        <input
+                          type="text"
+                          value={payerPhone}
+                          onChange={(e) => setPayerPhone(e.target.value)}
+                          placeholder="03139620729"
+                          className="w-full pl-9 pr-9 py-3 bg-white border border-slate-300 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:border-emerald-600"
+                        />
+                        {payerPhone && (
+                          <button onClick={() => setPayerPhone("")} className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600">
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Full Width Dark Green Button: Deposit Now */}
+                  <button
+                    type="button"
+                    disabled={isSubmitting || !selectedAmount}
+                    onClick={handleDepositNow}
+                    className="w-full py-4 rounded-2xl bg-[#0f4d32] hover:bg-[#0c3f29] text-white font-extrabold text-base shadow-lg transition active:scale-[0.99] disabled:opacity-50"
+                  >
+                    {isSubmitting ? "Redirecting to Checkout..." : "Deposit Now"}
+                  </button>
+                </>
+              )}
 
             </div>
           </TabsContent>
