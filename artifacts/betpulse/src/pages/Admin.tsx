@@ -777,6 +777,17 @@ export default function Admin() {
     }
   }
 
+  if (isLoadingAuth) {
+    return (
+      <div className="min-h-[75vh] flex items-center justify-center p-4">
+        <div className="text-amber-400 font-bold flex items-center gap-2 text-sm bg-amber-500/10 px-4 py-3 rounded-2xl border border-amber-500/30 shadow-lg">
+          <ShieldAlert className="w-5 h-5 animate-pulse" />
+          <span>Authenticating Admin Credentials...</span>
+        </div>
+      </div>
+    );
+  }
+
   if (!isAdmin) {
     return (
       <div className="min-h-[75vh] flex items-center justify-center p-4">
@@ -870,13 +881,13 @@ export default function Admin() {
             <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            {isLoadingDashboard ? <Skeleton className="h-8 w-24" /> : (
+            {isLoadingDashboard || !dashboard ? <Skeleton className="h-8 w-24" /> : (
               <>
-                <div className={`text-2xl font-bold ${dashboard!.grossProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>
-                  {formatCurrency(dashboard!.grossProfit)}
+                <div className={`text-2xl font-bold ${(dashboard.grossProfit ?? 0) >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                  {formatCurrency(dashboard.grossProfit ?? 0)}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {formatPercentage(dashboard!.profitMargin / 100)} kept from settled bets
+                  {formatPercentage((dashboard.profitMargin ?? 0) / 100)} kept from settled bets
                 </p>
               </>
             )}
@@ -889,10 +900,10 @@ export default function Admin() {
             <Activity className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            {isLoadingDashboard ? <Skeleton className="h-8 w-24" /> : (
+            {isLoadingDashboard || !dashboard ? <Skeleton className="h-8 w-24" /> : (
               <>
                 <div className="text-2xl font-bold text-orange-500">
-                  {formatCurrency(dashboard!.pendingLiability)}
+                  {formatCurrency(dashboard.pendingLiability ?? 0)}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">Max payout if all open bets win</p>
               </>
@@ -906,10 +917,10 @@ export default function Admin() {
             <Coins className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {isLoadingDashboard ? <Skeleton className="h-8 w-24" /> : (
+            {isLoadingDashboard || !dashboard ? <Skeleton className="h-8 w-24" /> : (
               <>
-                <div className="text-2xl font-bold">{formatCurrency(dashboard!.totalStaked)}</div>
-                <p className="text-xs text-muted-foreground mt-1">{dashboard!.totalBets} bets by all players</p>
+                <div className="text-2xl font-bold">{formatCurrency(dashboard.totalStaked ?? 0)}</div>
+                <p className="text-xs text-muted-foreground mt-1">{dashboard.totalBets ?? 0} bets by all players</p>
               </>
             )}
           </CardContent>
@@ -921,9 +932,9 @@ export default function Admin() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {isLoadingDashboard ? <Skeleton className="h-8 w-24" /> : (
+            {isLoadingDashboard || !dashboard ? <Skeleton className="h-8 w-24" /> : (
               <>
-                <div className="text-2xl font-bold">{dashboard!.totalUsers}</div>
+                <div className="text-2xl font-bold">{dashboard.totalUsers ?? 0}</div>
                 <p className="text-xs text-muted-foreground mt-1">Accounts on the platform</p>
               </>
             )}
