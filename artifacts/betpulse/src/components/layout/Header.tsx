@@ -5,6 +5,7 @@ import { useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Crown, Wallet, LogOut, ShieldAlert, Menu, X, Home, ListChecks, Gamepad2, LayoutDashboard, Plus, ArrowDownToLine } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { InstallAppModal } from "../InstallAppModal";
 
 export function Header() {
   const { user, isAuthenticated, isAdmin } = useAuth();
@@ -86,6 +87,7 @@ export function Header() {
 
           {/* Right: balance + actions */}
           <div className="flex items-center gap-2">
+            <InstallAppModal />
             {isAuthenticated ? (
               <>
                 {/* Balance chip */}

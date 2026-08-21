@@ -1,0 +1,18 @@
+{
+  "short_name": "BetPulse",
+  "name": "BetPulse Pro Casino",
+  "description": "Play Teen Patti, Andar Bahar, Roulette, Crash & Casino Games",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512 192x192",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#081c0e",
+  "theme_color": "#081c0e",
+  "display": "standalone",
+  "orientation": "portrait"
+}
