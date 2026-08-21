@@ -39,6 +39,7 @@ import GodOfFortuneGame from "@/pages/GodOfFortuneGame";
 import RummyGame from "@/pages/RummyGame";
 import CricketGame from "@/pages/CricketGame";
 import SodaPayCheckout from "@/pages/SodaPayCheckout";
+import SportsMenu from "@/pages/SportsMenu";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,8 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/checkout" component={SodaPayCheckout} />
+      <Route path="/sports" component={SportsMenu} />
+      <Route path="/home/sport" component={SportsMenu} />
       
       <Route path="/">
         <AppLayout><Home /></AppLayout>
