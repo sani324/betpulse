@@ -872,8 +872,12 @@ export default function Admin() {
           {/* ── Sidebar Navigation ── */}
           <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-col h-auto w-full md:w-56 shrink-0 bg-[#0d1f14] border border-[#1a3a22] rounded-2xl p-2.5 gap-1.5 md:sticky md:top-4 shadow-xl">
 
-            {/* EVENTS group */}
-            <p className="col-span-2 sm:col-span-3 md:col-span-1 text-[9px] font-black uppercase tracking-widest text-white/30 px-1 pt-1 pb-0.5">Events</p>
+            {/* GAMES & SPORTS group */}
+            <p className="col-span-2 sm:col-span-3 md:col-span-1 text-[9px] font-black uppercase tracking-widest text-amber-400/80 px-1 pt-1 pb-0.5">Games & Sports</p>
+            <TabsTrigger value="gamecontrols" className="w-full justify-start gap-2.5 rounded-lg px-3 py-2.5 text-sm font-bold bg-amber-900/60 text-amber-100 border border-amber-700/50 data-[state=active]:bg-amber-500 data-[state=active]:text-black data-[state=active]:border-amber-400 data-[state=active]:shadow-lg data-[state=active]:shadow-amber-900/50 hover:bg-amber-800/70 transition-all shadow-none">
+              <Gamepad2 className="h-4 w-4 shrink-0" />
+              Game Controls
+            </TabsTrigger>
             <TabsTrigger value="events" className="w-full justify-start gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold bg-emerald-900/50 text-emerald-100 border border-emerald-800/40 data-[state=active]:bg-emerald-500 data-[state=active]:text-white data-[state=active]:border-emerald-400 data-[state=active]:shadow-lg data-[state=active]:shadow-emerald-900/50 hover:bg-emerald-800/60 transition-all shadow-none">
               <CalendarDays className="h-4 w-4 shrink-0" />
               Manage Events
@@ -935,13 +939,6 @@ export default function Admin() {
             <TabsTrigger value="signupbonus" className="w-full justify-start gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold bg-purple-900/50 text-purple-100 border border-purple-800/40 data-[state=active]:bg-purple-500 data-[state=active]:text-white data-[state=active]:border-purple-400 data-[state=active]:shadow-lg data-[state=active]:shadow-purple-900/50 hover:bg-purple-800/60 transition-all shadow-none">
               <Gift className="h-4 w-4 shrink-0" />
               Signup Bonus
-            </TabsTrigger>
-
-            {/* GAMES group */}
-            <p className="col-span-2 sm:col-span-3 md:col-span-1 text-[9px] font-black uppercase tracking-widest text-white/30 px-1 pt-2 pb-0.5">Games</p>
-            <TabsTrigger value="gamecontrols" className="w-full justify-start gap-2.5 rounded-lg px-3 py-2.5 text-sm font-bold bg-amber-900/60 text-amber-100 border border-amber-700/50 data-[state=active]:bg-amber-500 data-[state=active]:text-black data-[state=active]:border-amber-400 data-[state=active]:shadow-lg data-[state=active]:shadow-amber-900/50 hover:bg-amber-800/70 transition-all shadow-none">
-              <Gamepad2 className="h-4 w-4 shrink-0" />
-              Game Controls
             </TabsTrigger>
 
             <div className="pb-1" />
@@ -1031,27 +1028,54 @@ export default function Admin() {
                                 </DialogTrigger>
                                 <DialogContent>
                                   <DialogHeader>
-                                    <DialogTitle>Settle Event</DialogTitle>
+                                    <DialogTitle className="flex items-center gap-2 text-emerald-400">
+                                      <Trophy className="h-5 w-5 text-yellow-400" />
+                                      Settle Match Result & Control Profit
+                                    </DialogTitle>
                                     <DialogDescription>
-                                      Select the winning outcome for <strong>{event.homeTeam} vs {event.awayTeam}</strong>.
-                                      All pending bets will be settled automatically.
-                                      <br /><br />
-                                      <strong className="text-destructive">Warning: This cannot be undone.</strong>
+                                      Pick the outcome for <strong>{event.homeTeam} vs {event.awayTeam}</strong> ({event.sport}).
+                                      You control the result — selecting the losing side for users guarantees <strong>100% Admin Profit</strong>.
                                     </DialogDescription>
                                   </DialogHeader>
-                                  <div className="grid grid-cols-3 gap-4 py-4">
-                                    <Button variant="outline" className="flex flex-col h-auto py-4" onClick={() => onSettleEvent("home")} disabled={settleEventMutation.isPending}>
-                                      <span className="font-bold">{event.homeTeam}</span>
-                                      <span className="text-xs text-muted-foreground mt-1">Home Win</span>
+                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 py-3">
+                                    <Button
+                                      variant="outline"
+                                      className="flex flex-col h-auto py-3.5 border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/10"
+                                      onClick={() => onSettleEvent("home")}
+                                      disabled={settleEventMutation.isPending}
+                                    >
+                                      <span className="font-bold text-sm text-foreground">{event.homeTeam}</span>
+                                      <span className="text-xs text-emerald-400 mt-0.5">Home Win ({event.oddsHome.toFixed(2)}x)</span>
+                                      <span className="text-[10px] text-muted-foreground mt-1">Settle as Winner</span>
                                     </Button>
-                                    <Button variant="outline" className="flex flex-col h-auto py-4" onClick={() => onSettleEvent("draw")} disabled={settleEventMutation.isPending}>
-                                      <span className="font-bold">Draw</span>
-                                      <span className="text-xs text-muted-foreground mt-1">Tie</span>
+
+                                    {event.oddsDraw > 0 && (
+                                      <Button
+                                        variant="outline"
+                                        className="flex flex-col h-auto py-3.5 border-yellow-500/30 hover:border-yellow-500 hover:bg-yellow-500/10"
+                                        onClick={() => onSettleEvent("draw")}
+                                        disabled={settleEventMutation.isPending}
+                                      >
+                                        <span className="font-bold text-sm text-foreground">Draw / Tie</span>
+                                        <span className="text-xs text-yellow-400 mt-0.5">Draw ({event.oddsDraw.toFixed(2)}x)</span>
+                                        <span className="text-[10px] text-muted-foreground mt-1">Settle as Winner</span>
+                                      </Button>
+                                    )}
+
+                                    <Button
+                                      variant="outline"
+                                      className="flex flex-col h-auto py-3.5 border-blue-500/30 hover:border-blue-500 hover:bg-blue-500/10"
+                                      onClick={() => onSettleEvent("away")}
+                                      disabled={settleEventMutation.isPending}
+                                    >
+                                      <span className="font-bold text-sm text-foreground">{event.awayTeam}</span>
+                                      <span className="text-xs text-blue-400 mt-0.5">Away Win ({event.oddsAway.toFixed(2)}x)</span>
+                                      <span className="text-[10px] text-muted-foreground mt-1">Settle as Winner</span>
                                     </Button>
-                                    <Button variant="outline" className="flex flex-col h-auto py-4" onClick={() => onSettleEvent("away")} disabled={settleEventMutation.isPending}>
-                                      <span className="font-bold">{event.awayTeam}</span>
-                                      <span className="text-xs text-muted-foreground mt-1">Away Win</span>
-                                    </Button>
+                                  </div>
+
+                                  <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 text-center font-medium">
+                                    💡 <strong>Admin Win Strategy:</strong> Whichever outcome you select above becomes the official result. All bets placed on other outcomes will be marked <strong>LOST</strong>, and 100% of their stakes will stay with the Admin!
                                   </div>
                                 </DialogContent>
                               </Dialog>
@@ -2014,7 +2038,74 @@ export default function Admin() {
         </TabsContent>
 
         {/* ─── GAME CONTROLS TAB ─── */}
-        <TabsContent value="gamecontrols" className="space-y-4">
+        <TabsContent value="gamecontrols" className="space-y-6">
+
+          {/* ─── SPORTS MATCHES CONTROL SECTION ─── */}
+          <Card className="border-emerald-500/30 bg-emerald-950/20">
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-emerald-400">
+                  <Trophy className="h-5 w-5 text-yellow-400" />
+                  ⚽ Sports Center Live Control
+                </CardTitle>
+                <CardDescription>
+                  Manage odds, live status, and settle match outcomes for Sports bets
+                </CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {!events || events.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground text-sm">
+                  No sports matches created yet. Use "Create Event" tab to add matches.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 gap-3">
+                    {events.slice(0, 8).map(event => (
+                      <div key={event.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-card/40 border border-border/40 gap-2">
+                        <div>
+                          <div className="font-bold text-sm flex items-center gap-2">
+                            <span>{event.homeTeam} vs {event.awayTeam}</span>
+                            <Badge variant={event.status === "finished" ? "destructive" : event.status === "live" ? "default" : "outline"} className="text-[10px]">
+                              {event.status.toUpperCase()}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-0.5 font-mono">
+                            {event.sport} · Odds: <span className="text-emerald-400 font-bold">{event.oddsHome.toFixed(2)}</span> / <span className="text-yellow-400 font-bold">{event.oddsDraw.toFixed(2)}</span> / <span className="text-blue-400 font-bold">{event.oddsAway.toFixed(2)}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs gap-1"
+                            onClick={() => openEditOdds(event)}
+                          >
+                            <Pencil className="h-3 w-3" /> Edit Odds
+                          </Button>
+                          {event.status !== "finished" && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="h-8 text-xs gap-1"
+                              onClick={() => {
+                                setSelectedEventId(event.id);
+                                setSettleDialogOpen(true);
+                              }}
+                            >
+                              <Flag className="h-3 w-3" /> Settle Match
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* LIVE ROUND CONTROL — every casino game is round-based: bets queue, admin picks the result */}
           {(() => {
             const GAME_CONFIGS: { game: string; title: string; sides: { key: string; label: string; color: string; text: string }[] }[] = [
