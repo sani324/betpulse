@@ -21,7 +21,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import {
   Wallet,
@@ -35,7 +34,10 @@ import {
   Info,
   CreditCard,
   Gift,
-  Lock,
+  Copy,
+  Check,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -45,13 +47,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const depositSchema = z.object({
   amount: z.coerce.number().min(100, "Minimum deposit is PKR 100").max(1000000),
   paymentMethod: z.string().min(1, "Select a payment method"),
-  transactionRef: z.string().min(3, "Enter your transaction ID or description"),
+  transactionRef: z.string().min(3, "Enter your 11/12-digit transaction TRX ID"),
 });
 
 const withdrawSchema = z.object({
   amount: z.coerce.number().min(500, "Minimum withdrawal is PKR 500").max(500000),
   paymentMethod: z.string().min(1, "Select a payment method"),
-  accountDetails: z.string().min(5, "Enter your account number or IBAN").max(200),
+  accountTitle: z.string().min(2, "Enter account holder name"),
+  accountNumber: z.string().min(5, "Enter valid account number or IBAN"),
 });
 
 type PaymentSetting = { method: string; label: string; accountName: string; accountNumber: string; instructions: string; isActive: boolean };
@@ -76,6 +79,36 @@ type WithdrawalRequest = {
   createdAt: string;
 };
 
+const DEFAULT_ADMIN_ACCOUNTS: Record<string, PaymentSetting> = {
+  easypaisa: {
+    method: "easypaisa",
+    label: "EasyPaisa",
+    accountName: "BetPulse Official",
+    accountNumber: "03001234567",
+    instructions: "Send funds via EasyPaisa App -> Enter 11-digit TRX ID below after payment.",
+    isActive: true,
+  },
+  jazzcash: {
+    method: "jazzcash",
+    label: "JazzCash",
+    accountName: "BetPulse Official",
+    accountNumber: "03019876543",
+    instructions: "Send funds via JazzCash App -> Enter 12-digit TRX ID below after payment.",
+    isActive: true,
+  },
+  bank_transfer: {
+    method: "bank_transfer",
+    label: "Bank Transfer",
+    accountName: "BetPulse Gaming Ltd",
+    accountNumber: "PK36MEZN0001020304050607",
+    instructions: "Transfer to Meezan Bank IBAN -> Enter Bank Transaction Reference ID below.",
+    isActive: true,
+  },
+};
+
+const DEPOSIT_PRESETS = [500, 1000, 2500, 5000, 10000, 25000];
+const WITHDRAW_PRESETS = [500, 1000, 2500, 5000, 10000, 25000];
+
 export default function WalletPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -86,7 +119,9 @@ export default function WalletPage() {
   const [isSubmittingDeposit, setIsSubmittingDeposit] = useState(false);
   const [isSubmittingWithdraw, setIsSubmittingWithdraw] = useState(false);
   const [paymentSettings, setPaymentSettings] = useState<PaymentSetting[]>([]);
-  const [selectedDepositMethod, setSelectedDepositMethod] = useState<string>("");
+  const [selectedDepositMethod, setSelectedDepositMethod] = useState<string>("easypaisa");
+  const [selectedWithdrawMethod, setSelectedWithdrawMethod] = useState<string>("easypaisa");
+  const [copiedNumber, setCopiedNumber] = useState(false);
 
   const { data: balanceInfo, isLoading: isLoadingBalance } = useGetBalance({
     query: { queryKey: getGetBalanceQueryKey() }
@@ -99,12 +134,12 @@ export default function WalletPage() {
 
   const depositForm = useForm<z.infer<typeof depositSchema>>({
     resolver: zodResolver(depositSchema),
-    defaultValues: { amount: 1000 },
+    defaultValues: { amount: 1000, paymentMethod: "easypaisa", transactionRef: "" },
   });
 
   const withdrawForm = useForm<z.infer<typeof withdrawSchema>>({
     resolver: zodResolver(withdrawSchema),
-    defaultValues: { amount: 1000 },
+    defaultValues: { amount: 1000, paymentMethod: "easypaisa", accountTitle: "", accountNumber: "" },
   });
 
   async function fetchDepositRequests() {
@@ -127,481 +162,571 @@ export default function WalletPage() {
     }
   }
 
+  async function fetchPaymentSettings() {
+    try {
+      const res = await fetch("/api/payment-settings");
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) setPaymentSettings(data);
+      }
+    } catch (_) {}
+  }
+
   useEffect(() => {
     fetchDepositRequests();
     fetchWithdrawRequests();
-    fetch("/api/payment-settings").then(r => r.json()).then(setPaymentSettings).catch(() => {});
+    fetchPaymentSettings();
   }, []);
 
-  async function onDeposit(values: z.infer<typeof depositSchema>) {
+  const getAdminAccount = (method: string): PaymentSetting => {
+    const found = paymentSettings.find(s => s.method === method && s.isActive);
+    if (found) return found;
+    return DEFAULT_ADMIN_ACCOUNTS[method] || DEFAULT_ADMIN_ACCOUNTS.easypaisa;
+  };
+
+  const handleCopyAccount = (numberToCopy: string) => {
+    navigator.clipboard.writeText(numberToCopy);
+    setCopiedNumber(true);
+    toast({
+      title: "📋 Copied to Clipboard!",
+      description: `Account number ${numberToCopy} copied.`,
+    });
+    setTimeout(() => setCopiedNumber(false), 2000);
+  };
+
+  async function onDepositSubmit(values: z.infer<typeof depositSchema>) {
     setIsSubmittingDeposit(true);
     try {
       const res = await fetch("/api/wallet/deposit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          amount: values.amount,
+          paymentMethod: selectedDepositMethod,
+          transactionRef: values.transactionRef,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
-        toast({ title: "Error", description: data.error, variant: "destructive" });
-      } else {
-        toast({
-          title: "Deposit Request Submitted",
-          description: "The admin will verify your payment and credit your account.",
-        });
-        depositForm.reset();
-        fetchDepositRequests();
+        toast({ title: "Deposit Request Failed", description: data.error || "Something went wrong", variant: "destructive" });
+        return;
       }
-    } catch {
-      toast({ title: "Error", description: "Network error. Please try again.", variant: "destructive" });
+      toast({ title: "✅ Deposit Submitted!", description: "Admin will review your TRX ID and credit your balance shortly." });
+      depositForm.reset({ amount: 1000, paymentMethod: selectedDepositMethod, transactionRef: "" });
+      fetchDepositRequests();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
       setIsSubmittingDeposit(false);
     }
   }
 
-  async function onWithdraw(values: z.infer<typeof withdrawSchema>) {
+  async function onWithdrawSubmit(values: z.infer<typeof withdrawSchema>) {
     setIsSubmittingWithdraw(true);
     try {
+      const formattedAccount = `${values.accountTitle.trim()} — ${values.accountNumber.trim()}`;
       const res = await fetch("/api/wallet/withdraw-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          amount: values.amount,
+          paymentMethod: selectedWithdrawMethod,
+          accountDetails: formattedAccount,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
-        toast({ title: "Error", description: data.error, variant: "destructive" });
-      } else {
-        toast({ title: "Withdrawal Requested", description: "Your request has been submitted. The admin will process it shortly." });
-        withdrawForm.reset();
-        fetchWithdrawRequests();
+        toast({ title: "Withdrawal Failed", description: data.error || "Something went wrong", variant: "destructive" });
+        return;
       }
-    } catch {
-      toast({ title: "Error", description: "Network error. Please try again.", variant: "destructive" });
+      toast({ title: "✅ Withdrawal Submitted!", description: "Your request is in queue for admin processing." });
+      withdrawForm.reset({ amount: 1000, paymentMethod: selectedWithdrawMethod, accountTitle: "", accountNumber: "" });
+      fetchWithdrawRequests();
+      queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
       setIsSubmittingWithdraw(false);
     }
   }
 
-  const getTxIcon = (type: string) => {
-    switch (type) {
-      case "deposit": return <ArrowDownToLine className="h-4 w-4 text-primary" />;
-      case "withdrawal": return <ArrowUpFromLine className="h-4 w-4 text-destructive" />;
-      case "bet_placed": return <Activity className="h-4 w-4 text-blue-500" />;
-      case "bet_won": return <ArrowDownToLine className="h-4 w-4 text-primary" />;
-      default: return <Activity className="h-4 w-4" />;
-    }
-  };
-
-  const getTxColor = (type: string) => {
-    if (["deposit", "bet_won", "bonus"].includes(type)) return "text-primary";
-    return "text-foreground";
-  };
-
-  const getTxSign = (type: string) => {
-    if (["deposit", "bet_won", "bonus"].includes(type)) return "+";
-    if (["withdrawal", "bet_placed"].includes(type)) return "-";
-    return "";
-  };
-
-  const statusBadge = (status: string) => {
-    if (status === "pending") return <Badge variant="outline" className="text-yellow-500 border-yellow-500 gap-1"><Clock className="h-3 w-3" />Pending</Badge>;
-    if (status === "approved") return <Badge variant="outline" className="text-green-500 border-green-500 gap-1"><CheckCircle className="h-3 w-3" />Approved</Badge>;
-    if (status === "denied") return <Badge variant="outline" className="text-destructive border-destructive gap-1"><XCircle className="h-3 w-3" />Denied</Badge>;
-    return <Badge variant="outline">{status}</Badge>;
-  };
-
-  const methodLabel = (m: string) => {
-    const labels: Record<string, string> = { easypaisa: "EasyPaisa", jazzcash: "JazzCash", nayapay: "NayaPay", bank_transfer: "Bank Transfer" };
-    return labels[m] ?? m;
-  };
-
-  const activePayments = paymentSettings.filter(p => p.isActive && p.accountNumber);
-  const selectedPayment = paymentSettings.find(p => p.method === selectedDepositMethod);
-
-  const pendingDeposits = depositRequests.filter(r => r.status === "pending").length;
-  const pendingWithdrawals = withdrawRequests.filter(r => r.status === "pending").length;
+  const currentAdminAcc = getAdminAccount(selectedDepositMethod);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      <div className="flex items-center gap-3">
-        <Wallet className="h-8 w-8 text-primary" />
-        <h1 className="text-3xl font-bold tracking-tight">Wallet</h1>
-      </div>
-
-      <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 shadow-xl shadow-black/20">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg text-muted-foreground font-medium">Total Balance</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoadingBalance ? (
-            <Skeleton className="h-16 w-48" />
-          ) : (
-            <div className="text-5xl md:text-7xl font-black tabular-nums tracking-tighter text-primary">
-              {formatCurrency(balanceInfo?.balance || 0)}
+    <div className="container max-w-5xl py-6 space-y-6">
+      {/* ─── WALLET BALANCE BANNER ─── */}
+      <div className="relative overflow-hidden rounded-3xl p-6 border-2 border-emerald-500/40 bg-gradient-to-r from-emerald-950 via-green-900 to-emerald-950 shadow-2xl text-white">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-emerald-300 text-xs uppercase tracking-wider font-semibold">
+              <Wallet className="w-4 h-4 text-emerald-400" /> Z7VIP Cash Wallet
             </div>
-          )}
-
-          {/* Withdrawable vs Bonus breakdown */}
-          {!isLoadingBalance && (balanceInfo?.bonusBalance ?? 0) > 0 && (
-            <div className="grid grid-cols-2 gap-3 mt-5">
-              <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <ArrowUpFromLine className="h-3.5 w-3.5 text-primary" />
-                  <span className="text-xs text-primary font-bold uppercase tracking-wider">Withdrawable</span>
-                </div>
-                <div className="font-mono font-bold text-lg text-primary">
-                  {formatCurrency(balanceInfo?.withdrawableBalance ?? 0)}
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Available to cash out</p>
+            {isLoadingBalance ? (
+              <Skeleton className="h-10 w-48 bg-emerald-900/50" />
+            ) : (
+              <div className="text-4xl font-extrabold text-yellow-400 tracking-tight">
+                {formatCurrency(balanceInfo?.balance ?? 0)}
               </div>
-              <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-3">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Gift className="h-3.5 w-3.5 text-yellow-500" />
-                  <span className="text-xs text-yellow-500 font-bold uppercase tracking-wider">Bonus</span>
-                  <Lock className="h-3 w-3 text-yellow-500/60" />
-                </div>
-                <div className="font-mono font-bold text-lg text-yellow-400">
-                  {formatCurrency(balanceInfo?.bonusBalance ?? 0)}
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Play-only, not withdrawable</p>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 pt-6 border-t border-border/30">
-            <div>
-              <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Total Deposited</div>
-              <div className="font-mono font-medium">{formatCurrency(balanceInfo?.totalDeposited || 0)}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Total Wagered</div>
-              <div className="font-mono font-medium">{formatCurrency(balanceInfo?.totalWagered || 0)}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Total Won</div>
-              <div className="font-mono font-medium text-primary">{formatCurrency(balanceInfo?.totalWon || 0)}</div>
+            )}
+            <div className="flex items-center gap-4 text-xs text-emerald-200/80 pt-1">
+              <span>Total Deposited: <strong className="text-white">{formatCurrency(balanceInfo?.totalDeposited ?? 0)}</strong></span>
+              <span>•</span>
+              <span>Total Won: <strong className="text-white">{formatCurrency(balanceInfo?.totalWon ?? 0)}</strong></span>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="bg-card/40 border-border/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-primary" />
-              Request Deposit
-            </CardTitle>
-            <CardDescription>Submit a deposit request for admin approval</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* Step 1: Show admin payment accounts */}
-            {activePayments.length > 0 && (
-              <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
-                <p className="text-xs font-bold text-primary uppercase tracking-wider mb-3">
-                  Step 1 — Send money to one of these accounts:
-                </p>
-                <div className="grid grid-cols-1 gap-2">
-                  {activePayments.map(pm => {
-                    const icons: Record<string,string> = { jazzcash: "📱", easypaisa: "💚", nayapay: "🔵", bank_transfer: "🏦" };
-                    const isSelected = selectedDepositMethod === pm.method;
-                    return (
-                      <button key={pm.method} type="button"
-                        onClick={() => { setSelectedDepositMethod(pm.method); depositForm.setValue("paymentMethod" as any, pm.method); }}
-                        className={`w-full text-left rounded-lg p-3 border transition-all ${isSelected ? "border-primary bg-primary/10" : "border-border/40 bg-card/30 hover:border-primary/40"}`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">{icons[pm.method] ?? "💳"}</span>
-                            <span className="font-bold text-sm">{pm.label}</span>
-                            {isSelected && <span className="text-xs text-primary font-bold">✓ Selected</span>}
-                          </div>
-                        </div>
-                        <div className="mt-1 ml-7">
-                          {pm.accountName && <p className="text-xs text-muted-foreground">{pm.accountName}</p>}
-                          <p className="font-mono text-sm font-bold text-foreground">{pm.accountNumber}</p>
-                          {pm.instructions && <p className="text-xs text-muted-foreground italic mt-0.5">{pm.instructions}</p>}
-                        </div>
-                      </button>
-                    );
-                  })}
+          <div className="flex items-center gap-3">
+            <div className="bg-emerald-900/60 border border-emerald-400/30 p-3 rounded-2xl text-center min-w-[140px]">
+              <div className="text-xs text-emerald-300 font-semibold flex items-center justify-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Withdrawable
+              </div>
+              <div className="text-lg font-bold text-emerald-200">
+                {formatCurrency(balanceInfo?.withdrawableBalance ?? 0)}
+              </div>
+            </div>
+
+            {(balanceInfo?.bonusBalance ?? 0) > 0 && (
+              <div className="bg-amber-950/60 border border-amber-500/30 p-3 rounded-2xl text-center min-w-[130px]">
+                <div className="text-xs text-amber-300 font-semibold flex items-center justify-center gap-1">
+                  <Gift className="w-3.5 h-3.5 text-amber-400" /> Bonus Credit
                 </div>
-                <p className="text-xs text-muted-foreground mt-3">
-                  After sending, fill the form below with your transaction ID so the admin can verify and credit your account.
-                </p>
+                <div className="text-lg font-bold text-amber-300">
+                  {formatCurrency(balanceInfo?.bonusBalance ?? 0)}
+                </div>
               </div>
             )}
-            {activePayments.length === 0 && (
-              <Alert className="mb-4 border-blue-500/30 bg-blue-500/5">
-                <Info className="h-4 w-4 text-blue-400" />
-                <AlertDescription className="text-xs text-muted-foreground">
-                  Contact admin for payment account details. Then submit this form with your transaction reference.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <Form {...depositForm}>
-              <form onSubmit={depositForm.handleSubmit(onDeposit)} className="space-y-4">
-                <FormField control={depositForm.control} name="amount" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Amount (PKR)</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <span className="absolute left-3 top-2 text-muted-foreground text-xs font-bold">PKR</span>
-                        <Input type="number" className="pl-12 font-mono text-lg" {...field} data-testid="input-deposit-amount" />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <div className="grid grid-cols-3 gap-2">
-                  {[500, 1000, 5000].map(amt => (
-                    <Button key={amt} type="button" variant="outline" size="sm" onClick={() => depositForm.setValue("amount", amt)} className="font-mono text-xs">
-                      {amt.toLocaleString()}
-                    </Button>
-                  ))}
-                </div>
-                <FormField control={depositForm.control} name="paymentMethod" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Payment Method Used</FormLabel>
-                    <Select onValueChange={(v) => { field.onChange(v); setSelectedDepositMethod(v); }} value={selectedDepositMethod || field.value}>
-                      <FormControl>
-                        <SelectTrigger><SelectValue placeholder="How did you pay?" /></SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {paymentSettings.filter(p => p.isActive).map(pm => {
-                          const icons: Record<string,string> = { jazzcash: "📱", easypaisa: "💚", nayapay: "🔵", bank_transfer: "🏦" };
-                          return <SelectItem key={pm.method} value={pm.method}>{icons[pm.method] ?? "💳"} {pm.label}</SelectItem>;
-                        })}
-                        {paymentSettings.filter(p => p.isActive).length === 0 && (
-                          <>
-                            <SelectItem value="jazzcash">📱 JazzCash</SelectItem>
-                            <SelectItem value="easypaisa">💚 EasyPaisa</SelectItem>
-                            <SelectItem value="nayapay">🔵 NayaPay</SelectItem>
-                            <SelectItem value="bank_transfer">🏦 Bank Transfer</SelectItem>
-                          </>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={depositForm.control} name="transactionRef" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Transaction ID / Reference</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. TXN12345678 or screenshot ref" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <Button type="submit" className="w-full font-bold" disabled={isSubmittingDeposit} data-testid="btn-deposit">
-                  {isSubmittingDeposit ? "Submitting..." : "Submit Deposit Request"}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/40 border-border/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ArrowUpFromLine className="h-5 w-5 text-primary" />
-              Request Withdrawal
-            </CardTitle>
-            <CardDescription>Request a payout to your account</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {(balanceInfo?.bonusBalance ?? 0) > 0 && (
-              <Alert className="mb-3 border-yellow-500/30 bg-yellow-500/5">
-                <Gift className="h-4 w-4 text-yellow-400" />
-                <AlertDescription className="text-xs text-muted-foreground">
-                  <span className="font-semibold text-yellow-400">Bonus funds are not withdrawable.</span>{" "}
-                  Your {formatCurrency(balanceInfo?.bonusBalance ?? 0)} signup bonus can only be used to play games.
-                  {(balanceInfo?.withdrawableBalance ?? 0) > 0
-                    ? ` You can withdraw up to ${formatCurrency(balanceInfo?.withdrawableBalance ?? 0)} (your winnings/deposits above the bonus).`
-                    : " Win more than your bonus amount to unlock withdrawals."}
-                </AlertDescription>
-              </Alert>
-            )}
-            <Alert className="mb-4 border-yellow-500/30 bg-yellow-500/5">
-              <AlertCircle className="h-4 w-4 text-yellow-400" />
-              <AlertDescription className="text-xs text-muted-foreground">
-                Withdrawal requests are reviewed by the admin. You will receive your money via the selected payment method once approved. Minimum: PKR 500.
-              </AlertDescription>
-            </Alert>
-            <Form {...withdrawForm}>
-              <form onSubmit={withdrawForm.handleSubmit(onWithdraw)} className="space-y-4">
-                <FormField control={withdrawForm.control} name="amount" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Amount (PKR)</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <span className="absolute left-3 top-2 text-muted-foreground text-xs font-bold">PKR</span>
-                        <Input type="number" className="pl-12 font-mono text-lg" {...field} />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={withdrawForm.control} name="paymentMethod" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Payment Method</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger><SelectValue placeholder="Where to send money?" /></SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {paymentSettings.filter(p => p.isActive).map(pm => {
-                          const icons: Record<string,string> = { jazzcash: "📱", easypaisa: "💚", nayapay: "🔵", bank_transfer: "🏦" };
-                          return <SelectItem key={pm.method} value={pm.method}>{icons[pm.method] ?? "💳"} {pm.label}</SelectItem>;
-                        })}
-                        {paymentSettings.filter(p => p.isActive).length === 0 && (
-                          <>
-                            <SelectItem value="jazzcash">📱 JazzCash</SelectItem>
-                            <SelectItem value="easypaisa">💚 EasyPaisa</SelectItem>
-                            <SelectItem value="nayapay">🔵 NayaPay</SelectItem>
-                            <SelectItem value="bank_transfer">🏦 Bank Transfer (IBAN)</SelectItem>
-                          </>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={withdrawForm.control} name="accountDetails" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Account Number / IBAN</FormLabel>
-                    <FormControl>
-                      <Input placeholder="03XX-XXXXXXX or IBAN" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <Button type="submit" variant="outline" className="w-full font-bold border-primary/50 hover:border-primary" disabled={isSubmittingWithdraw}>
-                  {isSubmittingWithdraw ? "Submitting..." : "Request Withdrawal"}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
-      <Tabs defaultValue="transactions">
-        <TabsList className="w-full flex-wrap h-auto">
-          <TabsTrigger value="transactions" className="flex-1">Transactions</TabsTrigger>
-          <TabsTrigger value="deposits" className="flex-1">
-            Deposit Requests
-            {pendingDeposits > 0 && <span className="ml-1.5 bg-blue-500/20 text-blue-400 text-xs px-1.5 py-0.5 rounded-full">{pendingDeposits}</span>}
+      {/* ─── MAIN TABS (DEPOSIT / WITHDRAW / HISTORY) ─── */}
+      <Tabs defaultValue="deposit" className="w-full">
+        <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto h-12 bg-slate-900 border border-slate-800 p-1 rounded-2xl">
+          <TabsTrigger value="deposit" className="rounded-xl font-bold text-xs flex items-center gap-1.5 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+            <ArrowDownToLine className="w-4 h-4" /> Deposit (Jama)
           </TabsTrigger>
-          <TabsTrigger value="withdrawals" className="flex-1">
-            Withdrawal Requests
-            {pendingWithdrawals > 0 && <span className="ml-1.5 bg-yellow-500/20 text-yellow-400 text-xs px-1.5 py-0.5 rounded-full">{pendingWithdrawals}</span>}
+          <TabsTrigger value="withdraw" className="rounded-xl font-bold text-xs flex items-center gap-1.5 data-[state=active]:bg-yellow-500 data-[state=active]:text-slate-950">
+            <ArrowUpFromLine className="w-4 h-4" /> Withdraw (Nikalwayein)
+          </TabsTrigger>
+          <TabsTrigger value="history" className="rounded-xl font-bold text-xs flex items-center gap-1.5 data-[state=active]:bg-slate-800 data-[state=active]:text-white">
+            <Activity className="w-4 h-4" /> Transactions
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="transactions">
-          <Card className="bg-card/30 border-border/50">
+        {/* ─── DEPOSIT TAB ─── */}
+        <TabsContent value="deposit" className="mt-6 space-y-6">
+          <Card className="bg-slate-900 border-slate-800 text-white shadow-xl">
             <CardHeader>
-              <CardTitle>Transaction History</CardTitle>
-              <CardDescription>All confirmed credits and debits on your account</CardDescription>
+              <CardTitle className="text-xl flex items-center gap-2 text-emerald-400">
+                <Zap className="w-5 h-5" /> Instant Deposit Portal
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Select payment method, send funds to official account, and enter TRX ID to credit balance.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              
+              {/* Payment Provider Selection */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">1. Select Payment Method</label>
+                <div className="grid grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedDepositMethod("easypaisa"); depositForm.setValue("paymentMethod", "easypaisa"); }}
+                    className={`p-3.5 rounded-2xl border-2 transition flex flex-col items-center gap-1 ${
+                      selectedDepositMethod === "easypaisa"
+                        ? "bg-emerald-600/20 border-emerald-500 text-emerald-400 font-bold shadow-lg shadow-emerald-500/10"
+                        : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                    }`}
+                  >
+                    <span className="text-2xl">💚</span>
+                    <span className="text-sm">EasyPaisa</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedDepositMethod("jazzcash"); depositForm.setValue("paymentMethod", "jazzcash"); }}
+                    className={`p-3.5 rounded-2xl border-2 transition flex flex-col items-center gap-1 ${
+                      selectedDepositMethod === "jazzcash"
+                        ? "bg-red-600/20 border-red-500 text-red-400 font-bold shadow-lg shadow-red-500/10"
+                        : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                    }`}
+                  >
+                    <span className="text-2xl">🔴</span>
+                    <span className="text-sm">JazzCash</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedDepositMethod("bank_transfer"); depositForm.setValue("paymentMethod", "bank_transfer"); }}
+                    className={`p-3.5 rounded-2xl border-2 transition flex flex-col items-center gap-1 ${
+                      selectedDepositMethod === "bank_transfer"
+                        ? "bg-blue-600/20 border-blue-500 text-blue-400 font-bold shadow-lg shadow-blue-500/10"
+                        : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                    }`}
+                  >
+                    <span className="text-2xl">🏦</span>
+                    <span className="text-sm">Bank Transfer</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Admin Official Account Details Box */}
+              <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                  <span>Official Transfer Account Details</span>
+                  <Badge variant="outline" className="border-emerald-500/40 text-emerald-400 bg-emerald-950/40">Verified</Badge>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4 bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+                  <div>
+                    <div className="text-xs text-slate-400">Account Title / Name</div>
+                    <div className="text-base font-bold text-white mt-0.5">{currentAdminAcc.accountName}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-400">Account Number / IBAN</div>
+                    <div className="flex items-center justify-between gap-2 mt-0.5">
+                      <span className="text-lg font-extrabold text-yellow-400 tracking-wider font-mono">
+                        {currentAdminAcc.accountNumber}
+                      </span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => handleCopyAccount(currentAdminAcc.accountNumber)}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-8 px-3 rounded-lg flex items-center gap-1.5 shrink-0"
+                      >
+                        {copiedNumber ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copiedNumber ? "Copied" : "Copy"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-400 italic">
+                  💡 {currentAdminAcc.instructions} (Min Deposit: PKR 100).
+                </p>
+              </div>
+
+              {/* Deposit Form */}
+              <Form {...depositForm}>
+                <form onSubmit={depositForm.handleSubmit(onDepositSubmit)} className="space-y-4">
+                  {/* Preset Amount Quick Chips */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">2. Select Deposit Amount</label>
+                    <div className="grid grid-cols-6 gap-2">
+                      {DEPOSIT_PRESETS.map((amt) => (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => depositForm.setValue("amount", amt)}
+                          className={`py-2 rounded-xl text-xs font-bold transition border ${
+                            depositForm.watch("amount") === amt
+                              ? "bg-emerald-500 text-slate-950 border-emerald-400 shadow-md shadow-emerald-500/20"
+                              : "bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800"
+                          }`}
+                        >
+                          +{amt >= 1000 ? `${amt / 1000}k` : amt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <FormField
+                      control={depositForm.control}
+                      name="amount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-semibold text-slate-300">Custom Amount (PKR)</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="1000" {...field} className="bg-slate-950 border-slate-800 text-white font-bold h-11" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={depositForm.control}
+                      name="transactionRef"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-semibold text-slate-300">Transaction TRX ID / Reference</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. 034928174928" {...field} className="bg-slate-950 border-slate-800 text-white font-mono h-11" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={isSubmittingDeposit}
+                    className="w-full h-12 bg-gradient-to-r from-emerald-500 to-green-600 text-slate-950 font-extrabold text-base shadow-lg shadow-emerald-500/20 hover:brightness-110"
+                  >
+                    {isSubmittingDeposit ? "Submitting Request..." : "Submit Deposit Request 📥"}
+                  </Button>
+                </form>
+              </Form>
+
+              {/* Deposit History */}
+              <div className="pt-4 space-y-3 border-t border-slate-800">
+                <h4 className="text-sm font-bold text-slate-200">Your Recent Deposit Requests</h4>
+                {isLoadingDeposits ? (
+                  <Skeleton className="h-16 w-full bg-slate-800" />
+                ) : depositRequests.length === 0 ? (
+                  <p className="text-xs text-slate-500">No deposit requests submitted yet.</p>
+                ) : (
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    {depositRequests.map((req) => (
+                      <div key={req.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between">
+                        <div>
+                          <div className="text-sm font-bold text-white">{formatCurrency(req.amount)}</div>
+                          <div className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
+                            <span className="uppercase font-semibold text-emerald-400">{req.paymentMethod}</span>
+                            <span>•</span>
+                            <span className="font-mono">{req.transactionRef}</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <Badge variant="outline" className={`capitalize ${
+                            req.status === "approved" ? "border-emerald-500 text-emerald-400 bg-emerald-950/40" :
+                            req.status === "rejected" ? "border-red-500 text-red-400 bg-red-950/40" :
+                            "border-amber-500 text-amber-400 bg-amber-950/40"
+                          }`}>
+                            {req.status}
+                          </Badge>
+                          <div className="text-[10px] text-slate-500 mt-1">{formatDateTime(req.createdAt)}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ─── WITHDRAW TAB ─── */}
+        <TabsContent value="withdraw" className="mt-6 space-y-6">
+          <Card className="bg-slate-900 border-slate-800 text-white shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2 text-yellow-400">
+                <ArrowUpFromLine className="w-5 h-5" /> Fast Withdrawal Portal
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Submit withdrawal request to receive payouts directly in your EasyPaisa, JazzCash, or Bank account.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+
+              {/* Withdrawable Warning / Limits Alert */}
+              <Alert className="bg-slate-950 border-amber-500/40 text-slate-300">
+                <Info className="h-4 h-4 text-amber-400" />
+                <AlertDescription className="text-xs space-y-1">
+                  <div>• Withdrawable Net Balance: <strong className="text-yellow-400">{formatCurrency(balanceInfo?.withdrawableBalance ?? 0)}</strong></div>
+                  <div>• Minimum Withdrawal: <strong>PKR 500</strong> | Maximum Withdrawal: <strong>PKR 500,000</strong></div>
+                </AlertDescription>
+              </Alert>
+
+              {/* Payment Provider Selection */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">1. Select Withdrawal Method</label>
+                <div className="grid grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedWithdrawMethod("easypaisa"); withdrawForm.setValue("paymentMethod", "easypaisa"); }}
+                    className={`p-3.5 rounded-2xl border-2 transition flex flex-col items-center gap-1 ${
+                      selectedWithdrawMethod === "easypaisa"
+                        ? "bg-emerald-600/20 border-emerald-500 text-emerald-400 font-bold shadow-lg shadow-emerald-500/10"
+                        : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                    }`}
+                  >
+                    <span className="text-2xl">💚</span>
+                    <span className="text-sm">EasyPaisa</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedWithdrawMethod("jazzcash"); withdrawForm.setValue("paymentMethod", "jazzcash"); }}
+                    className={`p-3.5 rounded-2xl border-2 transition flex flex-col items-center gap-1 ${
+                      selectedWithdrawMethod === "jazzcash"
+                        ? "bg-red-600/20 border-red-500 text-red-400 font-bold shadow-lg shadow-red-500/10"
+                        : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                    }`}
+                  >
+                    <span className="text-2xl">🔴</span>
+                    <span className="text-sm">JazzCash</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedWithdrawMethod("bank_transfer"); withdrawForm.setValue("paymentMethod", "bank_transfer"); }}
+                    className={`p-3.5 rounded-2xl border-2 transition flex flex-col items-center gap-1 ${
+                      selectedWithdrawMethod === "bank_transfer"
+                        ? "bg-blue-600/20 border-blue-500 text-blue-400 font-bold shadow-lg shadow-blue-500/10"
+                        : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                    }`}
+                  >
+                    <span className="text-2xl">🏦</span>
+                    <span className="text-sm">Bank Transfer</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Withdrawal Form */}
+              <Form {...withdrawForm}>
+                <form onSubmit={withdrawForm.handleSubmit(onWithdrawSubmit)} className="space-y-4">
+                  {/* Preset Amount Quick Chips */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">2. Select Withdrawal Amount</label>
+                    <div className="grid grid-cols-6 gap-2">
+                      {WITHDRAW_PRESETS.map((amt) => (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => withdrawForm.setValue("amount", amt)}
+                          className={`py-2 rounded-xl text-xs font-bold transition border ${
+                            withdrawForm.watch("amount") === amt
+                              ? "bg-yellow-400 text-slate-950 border-yellow-300 shadow-md shadow-yellow-500/20"
+                              : "bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800"
+                          }`}
+                        >
+                          {amt >= 1000 ? `${amt / 1000}k` : amt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <FormField
+                    control={withdrawForm.control}
+                    name="amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold text-slate-300">Withdrawal Amount (PKR)</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="1000" {...field} className="bg-slate-950 border-slate-800 text-white font-bold h-11" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <FormField
+                      control={withdrawForm.control}
+                      name="accountTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-semibold text-slate-300">Account Holder Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. Muhammad Ali" {...field} className="bg-slate-950 border-slate-800 text-white h-11" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={withdrawForm.control}
+                      name="accountNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-semibold text-slate-300">Account Number / Mobile / IBAN</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. 03001234567" {...field} className="bg-slate-950 border-slate-800 text-white font-mono h-11" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={isSubmittingWithdraw}
+                    className="w-full h-12 bg-gradient-to-r from-yellow-400 to-amber-500 text-slate-950 font-extrabold text-base shadow-lg shadow-amber-500/20 hover:brightness-110"
+                  >
+                    {isSubmittingWithdraw ? "Submitting Request..." : "Submit Withdrawal Request 📤"}
+                  </Button>
+                </form>
+              </Form>
+
+              {/* Withdrawal History */}
+              <div className="pt-4 space-y-3 border-t border-slate-800">
+                <h4 className="text-sm font-bold text-slate-200">Your Recent Withdrawal Requests</h4>
+                {isLoadingWithdraws ? (
+                  <Skeleton className="h-16 w-full bg-slate-800" />
+                ) : withdrawRequests.length === 0 ? (
+                  <p className="text-xs text-slate-500">No withdrawal requests submitted yet.</p>
+                ) : (
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    {withdrawRequests.map((req) => (
+                      <div key={req.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between">
+                        <div>
+                          <div className="text-sm font-bold text-white">{formatCurrency(req.amount)}</div>
+                          <div className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
+                            <span className="uppercase font-semibold text-yellow-400">{req.paymentMethod}</span>
+                            <span>•</span>
+                            <span>{req.accountDetails}</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <Badge variant="outline" className={`capitalize ${
+                            req.status === "approved" ? "border-emerald-500 text-emerald-400 bg-emerald-950/40" :
+                            req.status === "rejected" ? "border-red-500 text-red-400 bg-red-950/40" :
+                            "border-amber-500 text-amber-400 bg-amber-950/40"
+                          }`}>
+                            {req.status}
+                          </Badge>
+                          <div className="text-[10px] text-slate-500 mt-1">{formatDateTime(req.createdAt)}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ─── TRANSACTIONS HISTORY TAB ─── */}
+        <TabsContent value="history" className="mt-6 space-y-6">
+          <Card className="bg-slate-900 border-slate-800 text-white shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2 text-white">
+                <Activity className="w-5 h-5 text-blue-400" /> Wallet Transaction History
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Detailed record of all bets, wins, deposits, and withdrawals on your account.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {isLoadingTx ? (
-                <div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>
+                <div className="space-y-2">
+                  <Skeleton className="h-12 w-full bg-slate-800" />
+                  <Skeleton className="h-12 w-full bg-slate-800" />
+                </div>
               ) : !transactions || transactions.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Activity className="mx-auto h-12 w-12 mb-4 opacity-20" />
-                  <p>No transactions yet</p>
-                  <p className="text-xs mt-1">Transactions appear here once your deposit is approved</p>
-                </div>
+                <p className="text-xs text-slate-500">No transactions recorded yet.</p>
               ) : (
-                <div className="space-y-0 relative">
-                  <div className="absolute left-[27px] top-4 bottom-4 w-px bg-border/50 hidden md:block"></div>
+                <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
                   {transactions.map((tx) => (
-                    <div key={tx.id} className="relative flex items-center p-4 hover:bg-card/50 transition-colors rounded-lg group">
-                      <div className="hidden md:flex h-14 w-14 rounded-full bg-background border border-border items-center justify-center z-10 shadow-sm mr-4 group-hover:border-primary/50 transition-colors">
-                        {getTxIcon(tx.type)}
+                    <div key={tx.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <div className="text-sm font-semibold text-slate-200">{tx.description}</div>
+                        <div className="text-xs text-slate-500">{formatDateTime(tx.createdAt)}</div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold truncate">{tx.description}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{formatDateTime(tx.createdAt)}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className={`font-mono font-bold ${getTxColor(tx.type)}`}>
-                          {getTxSign(tx.type)}{formatCurrency(tx.amount)}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1 font-mono">Bal: {formatCurrency(tx.balanceAfter)}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="deposits">
-          <Card className="bg-card/30 border-border/50">
-            <CardHeader>
-              <CardTitle>Deposit Requests</CardTitle>
-              <CardDescription>Track your deposit request status</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingDeposits ? (
-                <div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>
-              ) : depositRequests.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <CreditCard className="mx-auto h-12 w-12 mb-4 opacity-20" />
-                  <p>No deposit requests yet</p>
-                  <p className="text-xs mt-1">Submit a deposit request using the form above</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {depositRequests.map((req) => (
-                    <div key={req.id} className="flex items-start justify-between p-4 border border-border/40 rounded-lg hover:bg-card/50 transition-colors">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono font-bold text-primary">{formatCurrency(req.amount)}</span>
-                          {statusBadge(req.status)}
+                      <div className="text-right space-y-0.5">
+                        <div className={`text-sm font-bold ${
+                          tx.type === "bet_won" || tx.type === "deposit_approved" ? "text-emerald-400" :
+                          tx.type === "bet_placed" || tx.type === "withdrawal_submitted" ? "text-red-400" : "text-white"
+                        }`}>
+                          {tx.type === "bet_won" || tx.type === "deposit_approved" ? "+" : "-"}{formatCurrency(tx.amount)}
                         </div>
-                        <p className="text-xs text-muted-foreground">{methodLabel(req.paymentMethod)} — Ref: {req.transactionRef}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{formatDateTime(req.createdAt)}</p>
-                        {req.adminNote && <p className="text-xs text-muted-foreground mt-1 italic">Admin: {req.adminNote}</p>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="withdrawals">
-          <Card className="bg-card/30 border-border/50">
-            <CardHeader>
-              <CardTitle>Withdrawal Requests</CardTitle>
-              <CardDescription>Track your payout requests</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingWithdraws ? (
-                <div className="space-y-4">{[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>
-              ) : withdrawRequests.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <ArrowUpFromLine className="mx-auto h-12 w-12 mb-4 opacity-20" />
-                  <p>No withdrawal requests yet</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {withdrawRequests.map((req) => (
-                    <div key={req.id} className="flex items-start justify-between p-4 border border-border/40 rounded-lg hover:bg-card/50 transition-colors">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono font-bold text-primary">{formatCurrency(req.amount)}</span>
-                          {statusBadge(req.status)}
-                        </div>
-                        <p className="text-xs text-muted-foreground">{methodLabel(req.paymentMethod)} — {req.accountDetails}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{formatDateTime(req.createdAt)}</p>
-                        {req.adminNote && <p className="text-xs text-muted-foreground mt-1 italic">Admin: {req.adminNote}</p>}
+                        <div className="text-[11px] text-slate-400">Bal: {formatCurrency(tx.balanceAfter)}</div>
                       </div>
                     </div>
                   ))}
