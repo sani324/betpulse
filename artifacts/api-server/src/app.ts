@@ -42,23 +42,15 @@ import bcrypt from "bcryptjs";
     `);
 
     const passHash = await bcrypt.hash("BetPulseAdmin#2016!Sec", 10);
-    const defaultPassHash = await bcrypt.hash("password", 10);
     
-    // Ensure kaloti@betpulse.com admin account
+    // Ensure ONLY kaloti@betpulse.com admin account exists
     await pgPool.query(`
       INSERT INTO users (username, email, password_hash, role, balance, total_deposited)
       VALUES ('kaloti', 'kaloti@betpulse.com', $1, 'admin', '1000000.00', '0.00')
       ON CONFLICT (email) DO UPDATE SET role = 'admin', password_hash = $1;
     `, [passHash]);
 
-    // Ensure admin@betpulse.com admin account
-    await pgPool.query(`
-      INSERT INTO users (username, email, password_hash, role, balance, total_deposited)
-      VALUES ('admin', 'admin@betpulse.com', $1, 'admin', '1000000.00', '0.00')
-      ON CONFLICT (email) DO UPDATE SET role = 'admin', password_hash = $1;
-    `, [defaultPassHash]);
-
-    logger.info("Admin accounts verified and ready");
+    logger.info("Admin account verified and ready");
   } catch (err) {
     logger.warn({ err }, "Startup database setup warning");
   }
