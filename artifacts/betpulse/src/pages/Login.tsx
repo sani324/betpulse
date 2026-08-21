@@ -168,8 +168,19 @@ export default function Login() {
         padding: "40px 32px",
       }}>
         <div style={{ width: "100%", maxWidth: 400 }}>
-          {/* Mobile logo (hidden on desktop via flex) */}
-          <div style={{ textAlign: "center", marginBottom: 36 }}>
+          {/* Mobile logo & Back button */}
+          <div style={{ marginBottom: 24, display: "flex", itemsCenter: "center", justifyContent: "space-between" }}>
+            <button
+              type="button"
+              onClick={() => setLocation("/")}
+              style={{ background: "#e2e8f0", border: "none", borderRadius: 10, padding: "6px 12px", fontSize: 13, fontWeight: 700, color: "#334155", cursor: "pointer" }}
+            >
+              ← Back
+            </button>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>BetPulse</span>
+          </div>
+
+          <div style={{ textAlign: "center", marginBottom: 32 }}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>👋</div>
             <h2 style={{ fontSize: 26, fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>
               Welcome back!

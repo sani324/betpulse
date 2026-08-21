@@ -67,8 +67,11 @@ export function Header() {
               <NavLink
                 icon={<Home size={15} />}
                 label="Lobby"
-                isActive={location === "/" && homeView === "lobby"}
-                onClick={() => { setHomeView("lobby"); setLocation("/"); }}
+                isActive={location === "/"}
+                onClick={() => {
+                  setLocation("/");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
               />
               <NavLink
                 href="/sports"
@@ -78,8 +81,14 @@ export function Header() {
               <NavLink
                 icon={<Gamepad2 size={15} />}
                 label="Games"
-                isActive={location === "/" && homeView === "games"}
-                onClick={() => { setHomeView("games"); setLocation("/"); }}
+                onClick={() => {
+                  if (location !== "/") setLocation("/");
+                  setTimeout(() => {
+                    const el = document.getElementById("games-section");
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                    else window.scrollTo({ top: 300, behavior: "smooth" });
+                  }, 100);
+                }}
               />
               {isAuthenticated && (
                 <NavLink href="/my-bets" icon={<ListChecks size={15} />} label="My Bets" />
@@ -167,9 +176,16 @@ export function Header() {
               )}
 
               <div className="flex flex-col gap-1 py-3">
-                <MobileNavItem onClick={() => { setHomeView("lobby"); nav("/"); }} icon={<Home size={16} />} label="Lobby" />
+                <MobileNavItem onClick={() => { nav("/"); window.scrollTo({ top: 0, behavior: "smooth" }); }} icon={<Home size={16} />} label="Lobby" />
                 <MobileNavItem onClick={() => nav("/sports")} icon={<Trophy size={16} />} label="⚽ Sports Center" />
-                <MobileNavItem onClick={() => { setHomeView("games"); nav("/"); }} icon={<Gamepad2 size={16} />} label="All Games" />
+                <MobileNavItem onClick={() => {
+                  nav("/");
+                  setTimeout(() => {
+                    const el = document.getElementById("games-section");
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                    else window.scrollTo({ top: 300, behavior: "smooth" });
+                  }, 100);
+                }} icon={<Gamepad2 size={16} />} label="All Games" />
                 {isAuthenticated && (
                   <>
                     <MobileNavItem onClick={() => nav("/my-bets")} icon={<ListChecks size={16} />} label="My Bets" />

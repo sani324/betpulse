@@ -271,11 +271,22 @@ export default function Register() {
         background: "#f8fafc", padding: "40px 32px",
       }}>
         <div style={{ width: "100%", maxWidth: 420 }}>
+          {/* Back button */}
+          <div style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyBetween: "space-between" }}>
+            <button
+              type="button"
+              onClick={() => setLocation("/")}
+              style={{ background: "#e2e8f0", border: "none", borderRadius: 10, padding: "6px 12px", fontSize: 13, fontWeight: 700, color: "#334155", cursor: "pointer" }}
+            >
+              ← Back
+            </button>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>BetPulse</span>
+          </div>
 
           {/* ── STEP 1: Account Info ── */}
           {step === "info" && (
             <>
-              <div style={{ textAlign: "center", marginBottom: 28 }}>
+              <div style={{ textAlign: "center", marginBottom: 24 }}>
                 <div style={{ fontSize: 36, marginBottom: 8 }}>🚀</div>
                 <h2 style={{ fontSize: 26, fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>Create Your Account</h2>
                 <p style={{ fontSize: 14, color: "#64748b" }}>We'll email you a code to confirm it's really you</p>

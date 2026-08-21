@@ -434,7 +434,7 @@ export default function Home() {
       )}
 
       {/* ─── CATEGORY TABS ─── */}
-      <div className="flex gap-2 overflow-x-auto px-4 pb-3 mb-4" style={{ scrollbarWidth: "none" }}>
+      <div id="games-section" className="flex gap-2 overflow-x-auto px-4 pb-3 mb-4 scroll-mt-20" style={{ scrollbarWidth: "none" }}>
         {CATEGORIES.map(cat => (
           <button key={cat}
             onClick={() => setActiveCategory(cat)}

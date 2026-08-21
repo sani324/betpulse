@@ -165,8 +165,26 @@ export default function WalletPage() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 pb-12 font-sans">
-      <div className="max-w-xl mx-auto px-4 py-4 space-y-4">
+      <div className="max-w-xl mx-auto px-4 py-3 space-y-4">
         
+        {/* Top Header Bar with Back Button */}
+        <div className="flex items-center justify-between py-2 border-b border-slate-200">
+          <button
+            type="button"
+            onClick={() => window.history.length > 1 ? window.history.back() : setLocation("/")}
+            className="flex items-center gap-1.5 text-slate-700 hover:text-slate-950 font-bold text-sm bg-slate-200/70 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition"
+          >
+            <X className="w-4 h-4 text-slate-600 hidden" />
+            <span className="text-base">←</span>
+            <span>Back</span>
+          </button>
+          <div className="text-sm font-extrabold text-slate-800 flex items-center gap-1.5">
+            <WalletIcon className="w-4 h-4 text-emerald-600" />
+            <span>Deposit & Wallet</span>
+          </div>
+          <div className="w-14" />
+        </div>
+
         {/* Main Wallet Tabs */}
         <Tabs defaultValue="deposit" className="w-full">
           <TabsList className="grid grid-cols-3 w-full bg-slate-200/80 p-1 rounded-2xl h-12">

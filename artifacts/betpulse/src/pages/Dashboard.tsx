@@ -50,10 +50,19 @@ export default function Dashboard() {
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-          <Target className="h-8 w-8 text-primary" />
-          Performance Dashboard
-        </h1>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => window.history.length > 1 ? window.history.back() : (window.location.href = "/")}
+            className="flex items-center gap-1.5 text-slate-300 hover:text-white font-bold text-sm bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 transition"
+          >
+            <span>← Back</span>
+          </button>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Target className="h-8 w-8 text-primary" />
+            Performance Dashboard
+          </h1>
+        </div>
         <InstallAppModal />
       </div>
 

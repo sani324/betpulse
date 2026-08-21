@@ -79,11 +79,20 @@ export default function MyBets() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="flex items-center gap-3">
-        <Ticket className="h-8 w-8 text-yellow-400" />
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">My Bets</h1>
-          <p className="text-sm text-muted-foreground">{counts.all} total · {counts.pending} pending · {counts.won} won · {counts.lost} lost</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => window.history.length > 1 ? window.history.back() : (window.location.href = "/")}
+            className="flex items-center gap-1.5 text-slate-300 hover:text-white font-bold text-sm bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 transition"
+          >
+            <span>← Back</span>
+          </button>
+          <Ticket className="h-7 w-7 text-yellow-400" />
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">My Bets</h1>
+            <p className="text-sm text-muted-foreground">{counts.all} total · {counts.pending} pending · {counts.won} won · {counts.lost} lost</p>
+          </div>
         </div>
       </div>
 

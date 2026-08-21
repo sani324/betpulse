@@ -772,11 +772,20 @@ export default function Admin() {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2 text-destructive">
-          <ShieldAlert className="h-8 w-8" />
-          Admin Control Center
-        </h1>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => window.history.length > 1 ? window.history.back() : (window.location.href = "/")}
+            className="flex items-center gap-1.5 text-slate-300 hover:text-white font-bold text-sm bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 transition"
+          >
+            <span>← Back</span>
+          </button>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2 text-destructive">
+            <ShieldAlert className="h-8 w-8" />
+            Admin Control Center
+          </h1>
+        </div>
         <div className="text-xs text-muted-foreground bg-card border rounded px-3 py-2">
           Login: <strong>admin@betpulse.com</strong> &nbsp;|&nbsp; Pass: <strong>password</strong>
         </div>
