@@ -69,24 +69,6 @@ const SAMPLE_MATCHES: Record<string, MatchMarket[]> = {
     },
     {
       id: "fb-2",
-      league: "Colombia Primera A",
-      homeTeam: "Alianza Valledupar FC",
-      awayTeam: "CS Deportivo Pereira",
-      homeScore: 0,
-      awayScore: 0,
-      dateTime: "22/08/2026 06:00",
-      isLive: true,
-      handicapHome: { tag: "-0.5/1", odds: 1.80 },
-      handicapAway: { tag: "+0.5/1", odds: 2.06 },
-      overUnderOver: { tag: "o 2/2.5", odds: 1.90 },
-      overUnderUnder: { tag: "u 2/2.5", odds: 1.94 },
-      moneylineHome: { tag: "Home", odds: 1.61 },
-      moneylineAway: { tag: "Away", odds: 5.70 },
-      moneylineDraw: { tag: "Draw", odds: 3.58 },
-      moreMarketsCount: 204,
-    },
-    {
-      id: "fb-3",
       league: "Argentina Liga Profesional",
       homeTeam: "River Plate",
       awayTeam: "Boca Juniors",
@@ -102,6 +84,22 @@ const SAMPLE_MATCHES: Record<string, MatchMarket[]> = {
       moneylineAway: { tag: "Away", odds: 3.80 },
       moneylineDraw: { tag: "Draw", odds: 3.20 },
       moreMarketsCount: 310,
+    },
+    {
+      id: "fb-3",
+      league: "English Premier League (Early)",
+      homeTeam: "Manchester City",
+      awayTeam: "Arsenal FC",
+      dateTime: "23/08/2026 18:00",
+      isLive: false,
+      handicapHome: { tag: "-0.5", odds: 1.90 },
+      handicapAway: { tag: "+0.5", odds: 1.90 },
+      overUnderOver: { tag: "o 2.5", odds: 1.85 },
+      overUnderUnder: { tag: "u 2.5", odds: 1.95 },
+      moneylineHome: { tag: "Home", odds: 1.85 },
+      moneylineAway: { tag: "Away", odds: 3.90 },
+      moneylineDraw: { tag: "Draw", odds: 3.40 },
+      moreMarketsCount: 450,
     },
   ],
   cricket: [
@@ -125,13 +123,11 @@ const SAMPLE_MATCHES: Record<string, MatchMarket[]> = {
     },
     {
       id: "ck-2",
-      league: "PSL T20 League",
+      league: "PSL T20 League (Early)",
       homeTeam: "Lahore Qalandars",
       awayTeam: "Karachi Kings",
-      homeScore: 180,
-      awayScore: 150,
-      dateTime: "22/08/2026 21:00",
-      isLive: true,
+      dateTime: "23/08/2026 21:00",
+      isLive: false,
       handicapHome: { tag: "-2.5 Runs", odds: 1.90 },
       handicapAway: { tag: "+2.5 Runs", odds: 1.90 },
       overUnderOver: { tag: "o 185.5", odds: 1.85 },
@@ -161,6 +157,102 @@ const SAMPLE_MATCHES: Record<string, MatchMarket[]> = {
       moneylineDraw: { tag: "OT", odds: 12.0 },
       moreMarketsCount: 188,
     },
+    {
+      id: "bb-2",
+      league: "EuroLeague (Early)",
+      homeTeam: "Real Madrid Baloncesto",
+      awayTeam: "FC Barcelona",
+      dateTime: "23/08/2026 20:45",
+      isLive: false,
+      handicapHome: { tag: "-3.5", odds: 1.92 },
+      handicapAway: { tag: "+3.5", odds: 1.88 },
+      overUnderOver: { tag: "o 162.5", odds: 1.90 },
+      overUnderUnder: { tag: "u 162.5", odds: 1.90 },
+      moneylineHome: { tag: "Home", odds: 1.62 },
+      moneylineAway: { tag: "Away", odds: 2.35 },
+      moneylineDraw: { tag: "OT", odds: 10.0 },
+      moreMarketsCount: 112,
+    },
+  ],
+  tennis: [
+    {
+      id: "tn-1",
+      league: "US Open Men's Singles",
+      homeTeam: "Novak Djokovic",
+      awayTeam: "Carlos Alcaraz",
+      homeScore: 2,
+      awayScore: 1,
+      dateTime: "22/08/2026 15:00",
+      isLive: true,
+      handicapHome: { tag: "-1.5 Sets", odds: 1.85 },
+      handicapAway: { tag: "+1.5 Sets", odds: 1.95 },
+      overUnderOver: { tag: "o 38.5 Games", odds: 1.90 },
+      overUnderUnder: { tag: "u 38.5 Games", odds: 1.90 },
+      moneylineHome: { tag: "Player 1", odds: 1.70 },
+      moneylineAway: { tag: "Player 2", odds: 2.15 },
+      moneylineDraw: { tag: "N/A", odds: 0 },
+      moreMarketsCount: 95,
+    },
+  ],
+  volleyball: [
+    {
+      id: "vb-1",
+      league: "FIVB Nations League",
+      homeTeam: "Italy",
+      awayTeam: "Poland",
+      homeScore: 2,
+      awayScore: 2,
+      dateTime: "22/08/2026 18:00",
+      isLive: true,
+      handicapHome: { tag: "-1.5 Sets", odds: 1.90 },
+      handicapAway: { tag: "+1.5 Sets", odds: 1.90 },
+      overUnderOver: { tag: "o 182.5 pts", odds: 1.88 },
+      overUnderUnder: { tag: "u 182.5 pts", odds: 1.92 },
+      moneylineHome: { tag: "Team 1", odds: 1.80 },
+      moneylineAway: { tag: "Team 2", odds: 2.00 },
+      moneylineDraw: { tag: "N/A", odds: 0 },
+      moreMarketsCount: 78,
+    },
+  ],
+  tabletennis: [
+    {
+      id: "tt-1",
+      league: "ITTF World Tour",
+      homeTeam: "Fan Zhendong",
+      awayTeam: "Ma Long",
+      homeScore: 3,
+      awayScore: 2,
+      dateTime: "22/08/2026 11:30",
+      isLive: true,
+      handicapHome: { tag: "-1.5 Sets", odds: 1.82 },
+      handicapAway: { tag: "+1.5 Sets", odds: 2.02 },
+      overUnderOver: { tag: "o 72.5 pts", odds: 1.90 },
+      overUnderUnder: { tag: "u 72.5 pts", odds: 1.90 },
+      moneylineHome: { tag: "Player 1", odds: 1.65 },
+      moneylineAway: { tag: "Player 2", odds: 2.25 },
+      moneylineDraw: { tag: "N/A", odds: 0 },
+      moreMarketsCount: 45,
+    },
+  ],
+  badminton: [
+    {
+      id: "bm-1",
+      league: "BWF World Championships",
+      homeTeam: "Viktor Axelsen",
+      awayTeam: "Kento Momota",
+      homeScore: 1,
+      awayScore: 0,
+      dateTime: "22/08/2026 14:15",
+      isLive: true,
+      handicapHome: { tag: "-1.5 Sets", odds: 1.75 },
+      handicapAway: { tag: "+1.5 Sets", odds: 2.10 },
+      overUnderOver: { tag: "o 78.5 pts", odds: 1.90 },
+      overUnderUnder: { tag: "u 78.5 pts", odds: 1.90 },
+      moneylineHome: { tag: "Player 1", odds: 1.50 },
+      moneylineAway: { tag: "Player 2", odds: 2.60 },
+      moneylineDraw: { tag: "N/A", odds: 0 },
+      moreMarketsCount: 38,
+    },
   ],
 };
 
@@ -173,7 +265,12 @@ export default function SportsMenu() {
   const [activeSport, setActiveSport] = useState<string>("football");
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
-  const matches = SAMPLE_MATCHES[activeSport] || SAMPLE_MATCHES.football;
+  const rawMatches = SAMPLE_MATCHES[activeSport] || SAMPLE_MATCHES.football;
+  const matches = rawMatches.filter(m => {
+    if (activeFilter === "live") return m.isLive;
+    if (activeFilter === "early") return !m.isLive;
+    return true; // "today" and "parlay" show all available matches
+  });
 
   const isSelected = (matchId: string, selection: string) => {
     return items.some(item => item.eventId === Number(matchId) && item.selection === selection);
@@ -323,144 +420,145 @@ export default function SportsMenu() {
         </div>
 
         {/* Matches List Grouped By League */}
-        {matches.map((match) => (
-          <div key={match.id} className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            
-            {/* League Title Header */}
-            <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between text-xs font-bold text-slate-700">
-              <div className="flex items-center gap-2">
-                <span className="w-4 h-4 bg-emerald-700 text-white rounded-full flex items-center justify-center text-[10px]">🏆</span>
-                <span>{match.league}</span>
+        {matches.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-2">
+            <div className="text-3xl">⚽</div>
+            <div className="font-bold text-slate-700">No {activeFilter.toUpperCase()} matches found</div>
+            <div className="text-xs text-slate-400">There are currently no {activeFilter} matches for {activeSport}. Try clicking "Today" or selecting another sport above.</div>
+          </div>
+        ) : (
+          matches.map((match) => (
+            <div key={match.id} className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+              
+              {/* League Title Header */}
+              <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between text-xs font-bold text-slate-700">
+                <div className="flex items-center gap-2">
+                  <span className="w-4 h-4 bg-emerald-700 text-white rounded-full flex items-center justify-center text-[10px]">🏆</span>
+                  <span>{match.league}</span>
+                </div>
+                <div className="flex items-center gap-2 text-slate-400">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-slate-400">
-                <ChevronDown className="w-4 h-4" />
-              </div>
-            </div>
 
-            {/* Match Details Row */}
-            <div className="p-4 space-y-3">
-              <div className="flex items-center justify-between text-xs text-slate-400">
-                <div className="flex items-center gap-2 font-mono">
-                  <span>{match.dateTime}</span>
-                  <button onClick={() => toggleFavorite(match.id)}>
-                    <Heart className={`w-3.5 h-3.5 transition ${favorites[match.id] ? "fill-red-500 text-red-500" : "text-slate-300"}`} />
+              {/* Match Details Row */}
+              <div className="p-4 space-y-3">
+                <div className="flex items-center justify-between text-xs text-slate-400">
+                  <div className="flex items-center gap-2 font-mono">
+                    <span>{match.dateTime}</span>
+                    <button onClick={() => toggleFavorite(match.id)}>
+                      <Heart className={`w-3.5 h-3.5 transition ${favorites[match.id] ? "fill-red-500 text-red-500" : "text-slate-300"}`} />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-3 text-[10px] text-slate-400 font-semibold text-center w-full max-w-[280px]">
+                    <span>Full court handicap</span>
+                    <span>Full match over/under</span>
+                    <span>Full match moneyline</span>
+                  </div>
+                </div>
+
+                {/* Team Names & Scores & Bet Buttons Grid */}
+                <div className="grid grid-cols-[1fr_auto] gap-4 items-center">
+                  
+                  {/* Team Names */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                      <span>{match.homeTeam}</span>
+                      {match.isLive && <span className="font-mono text-emerald-700">{match.homeScore ?? 0}</span>}
+                    </div>
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                      <span>{match.awayTeam}</span>
+                      {match.isLive && <span className="font-mono text-emerald-700">{match.awayScore ?? 0}</span>}
+                    </div>
+                  </div>
+
+                  {/* Odds Buttons */}
+                  <div className="grid grid-cols-3 gap-1.5 w-full max-w-[280px]">
+                    
+                    {/* Handicap Market */}
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={() => handleOddsClick(match, "home", match.handicapHome.odds, match.handicapHome.tag)}
+                        className={`px-2 py-1.5 rounded-lg border text-xs flex justify-between items-center transition ${
+                          isSelected(match.id, "home") ? "bg-[#144733] text-white border-[#144733]" : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span className="text-[10px] opacity-75">{match.handicapHome.tag}</span>
+                        <span className="font-extrabold">{match.handicapHome.odds.toFixed(2)}</span>
+                      </button>
+                      <button
+                        onClick={() => handleOddsClick(match, "away", match.handicapAway.odds, match.handicapAway.tag)}
+                        className={`px-2 py-1.5 rounded-lg border text-xs flex justify-between items-center transition ${
+                          isSelected(match.id, "away") ? "bg-[#144733] text-white border-[#144733]" : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span className="text-[10px] opacity-75">{match.handicapAway.tag}</span>
+                        <span className="font-extrabold">{match.handicapAway.odds.toFixed(2)}</span>
+                      </button>
+                    </div>
+
+                    {/* Over/Under Market */}
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={() => handleOddsClick(match, "home", match.overUnderOver.odds, match.overUnderOver.tag)}
+                        className={`px-2 py-1.5 rounded-lg border text-xs flex justify-between items-center transition ${
+                          isSelected(match.id, "home") ? "bg-[#144733] text-white border-[#144733]" : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span className="text-[10px] opacity-75">{match.overUnderOver.tag}</span>
+                        <span className="font-extrabold">{match.overUnderOver.odds.toFixed(2)}</span>
+                      </button>
+                      <button
+                        onClick={() => handleOddsClick(match, "away", match.overUnderUnder.odds, match.overUnderUnder.tag)}
+                        className={`px-2 py-1.5 rounded-lg border text-xs flex justify-between items-center transition ${
+                          isSelected(match.id, "away") ? "bg-[#144733] text-white border-[#144733]" : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span className="text-[10px] opacity-75">{match.overUnderUnder.tag}</span>
+                        <span className="font-extrabold">{match.overUnderUnder.odds.toFixed(2)}</span>
+                      </button>
+                    </div>
+
+                    {/* Moneyline Market */}
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={() => handleOddsClick(match, "home", match.moneylineHome.odds, match.moneylineHome.tag)}
+                        className={`px-2 py-1.5 rounded-lg border text-xs flex justify-between items-center transition ${
+                          isSelected(match.id, "home") ? "bg-[#144733] text-white border-[#144733]" : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span className="text-[10px] opacity-75">{match.homeTeam.substring(0, 4)}</span>
+                        <span className="font-extrabold">{match.moneylineHome.odds.toFixed(2)}</span>
+                      </button>
+                      <button
+                        onClick={() => handleOddsClick(match, "draw", match.moneylineDraw.odds, match.moneylineDraw.tag)}
+                        className={`px-2 py-1.5 rounded-lg border text-xs flex justify-between items-center transition ${
+                          isSelected(match.id, "draw") ? "bg-[#144733] text-white border-[#144733]" : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span className="text-[10px] opacity-75">Draw</span>
+                        <span className="font-extrabold">{match.moneylineDraw.odds.toFixed(2)}</span>
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Card Footer Tools */}
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                  <div className="flex items-center gap-1.5 text-slate-400">
+                    <Tv className="w-4 h-4 text-emerald-600 cursor-pointer" />
+                  </div>
+                  <button className="text-emerald-700 font-bold hover:underline flex items-center gap-1">
+                    <span>More {match.moreMarketsCount}+ &gt;</span>
                   </button>
                 </div>
 
-                <div className="grid grid-cols-3 text-[10px] text-slate-400 font-semibold text-center w-full max-w-[280px]">
-                  <span>Full court handicap</span>
-                  <span>Full match over/under</span>
-                  <span>Full match moneyline</span>
-                </div>
               </div>
-
-              {/* Match Teams & Odds 3-Column Grid (Screenshot Exact Match) */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-                
-                {/* Teams & Score (Cols 5) */}
-                <div className="md:col-span-5 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-sm text-slate-900">{match.homeTeam}</span>
-                    <span className="text-base font-extrabold text-slate-900 font-mono">{match.homeScore ?? 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-sm text-slate-900">{match.awayTeam}</span>
-                    <span className="text-base font-extrabold text-slate-900 font-mono">{match.awayScore ?? 0}</span>
-                  </div>
-                </div>
-
-                {/* 3 Betting Market Columns (Cols 7) */}
-                <div className="md:col-span-7 grid grid-cols-3 gap-2">
-                  
-                  {/* 1. Handicap Column */}
-                  <div className="flex flex-col gap-1.5">
-                    <button
-                      onClick={() => handleOddsClick(match, "home", match.handicapHome.odds, match.handicapHome.tag)}
-                      className={`p-2 rounded-xl border text-center transition flex flex-col items-center justify-center ${
-                        isSelected(match.id, "home")
-                          ? "bg-emerald-700 text-white border-emerald-700 font-bold"
-                          : "bg-slate-50 border-slate-200 hover:bg-slate-100"
-                      }`}
-                    >
-                      <span className="text-[10px] text-slate-400">{match.handicapHome.tag}</span>
-                      <span className="text-xs font-black">{match.handicapHome.odds.toFixed(2)}</span>
-                    </button>
-
-                    <button
-                      onClick={() => handleOddsClick(match, "away", match.handicapAway.odds, match.handicapAway.tag)}
-                      className={`p-2 rounded-xl border text-center transition flex flex-col items-center justify-center ${
-                        isSelected(match.id, "away")
-                          ? "bg-emerald-700 text-white border-emerald-700 font-bold"
-                          : "bg-slate-50 border-slate-200 hover:bg-slate-100"
-                      }`}
-                    >
-                      <span className="text-[10px] text-slate-400">{match.handicapAway.tag}</span>
-                      <span className="text-xs font-black">{match.handicapAway.odds.toFixed(2)}</span>
-                    </button>
-                  </div>
-
-                  {/* 2. Over / Under Column */}
-                  <div className="flex flex-col gap-1.5">
-                    <button
-                      onClick={() => handleOddsClick(match, "home", match.overUnderOver.odds, match.overUnderOver.tag)}
-                      className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-center flex flex-col items-center justify-center"
-                    >
-                      <span className="text-[10px] text-slate-400">{match.overUnderOver.tag}</span>
-                      <span className="text-xs font-black">{match.overUnderOver.odds.toFixed(2)}</span>
-                    </button>
-
-                    <button
-                      onClick={() => handleOddsClick(match, "away", match.overUnderUnder.odds, match.overUnderUnder.tag)}
-                      className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-center flex flex-col items-center justify-center"
-                    >
-                      <span className="text-[10px] text-slate-400">{match.overUnderUnder.tag}</span>
-                      <span className="text-xs font-black">{match.overUnderUnder.odds.toFixed(2)}</span>
-                    </button>
-                  </div>
-
-                  {/* 3. Moneyline Column */}
-                  <div className="flex flex-col gap-1.5">
-                    <button
-                      onClick={() => handleOddsClick(match, "home", match.moneylineHome.odds, "Home")}
-                      className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-center flex flex-col items-center justify-center"
-                    >
-                      <span className="text-[10px] text-slate-400">Home</span>
-                      <span className="text-xs font-black">{match.moneylineHome.odds.toFixed(2)}</span>
-                    </button>
-
-                    <button
-                      onClick={() => handleOddsClick(match, "away", match.moneylineAway.odds, "Away")}
-                      className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-center flex flex-col items-center justify-center"
-                    >
-                      <span className="text-[10px] text-slate-400">Away</span>
-                      <span className="text-xs font-black">{match.moneylineAway.odds.toFixed(2)}</span>
-                    </button>
-
-                    <button
-                      onClick={() => handleOddsClick(match, "draw", match.moneylineDraw.odds, "Draw")}
-                      className="p-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-center flex items-center justify-between px-2 text-[10px]"
-                    >
-                      <span className="text-slate-400">Draw</span>
-                      <span className="font-extrabold">{match.moneylineDraw.odds.toFixed(2)}</span>
-                    </button>
-                  </div>
-
-                </div>
-              </div>
-
-              {/* Card Footer Tools (Live Stream Icon + More Markets Link) */}
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
-                <div className="flex items-center gap-1.5 text-slate-400">
-                  <Tv className="w-4 h-4 text-emerald-600 cursor-pointer" />
-                </div>
-                <button className="text-emerald-700 font-bold hover:underline flex items-center gap-1">
-                  <span>More {match.moreMarketsCount}+ &gt;</span>
-                </button>
-              </div>
-
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
