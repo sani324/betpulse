@@ -1113,41 +1113,55 @@ function AdminContent() {
                                       You control the result — selecting the losing side for users guarantees <strong>100% Admin Profit</strong>.
                                     </DialogDescription>
                                   </DialogHeader>
-                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 py-3">
+                                  <div className="grid grid-cols-1 gap-2.5 py-3">
                                     <Button
-                                      variant="outline"
-                                      className="flex flex-col h-auto py-3.5 border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/10"
-                                      onClick={() => onSettleEvent("home")}
+                                      variant="default"
+                                      className="flex flex-col h-auto py-3.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-extrabold shadow-lg shadow-amber-500/20"
+                                      onClick={() => onSettleEvent("auto")}
                                       disabled={settleEventMutation.isPending}
                                     >
-                                      <span className="font-bold text-sm text-foreground">{event.homeTeam}</span>
-                                      <span className="text-xs text-emerald-400 mt-0.5">Home Win ({event.oddsHome.toFixed(2)}x)</span>
-                                      <span className="text-[10px] text-muted-foreground mt-1">Settle as Winner</span>
+                                      <span className="font-extrabold text-sm flex items-center gap-1.5">
+                                        🟢 Auto-Win (Guaranteed Max House Profit)
+                                      </span>
+                                      <span className="text-[10px] text-black/70">Calculates lowest user payout to guarantee maximum Admin Profit</span>
                                     </Button>
 
-                                    {event.oddsDraw > 0 && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-1">
                                       <Button
                                         variant="outline"
-                                        className="flex flex-col h-auto py-3.5 border-yellow-500/30 hover:border-yellow-500 hover:bg-yellow-500/10"
-                                        onClick={() => onSettleEvent("draw")}
+                                        className="flex flex-col h-auto py-3.5 border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/10"
+                                        onClick={() => onSettleEvent("home")}
                                         disabled={settleEventMutation.isPending}
                                       >
-                                        <span className="font-bold text-sm text-foreground">Draw / Tie</span>
-                                        <span className="text-xs text-yellow-400 mt-0.5">Draw ({event.oddsDraw.toFixed(2)}x)</span>
-                                        <span className="text-[10px] text-muted-foreground mt-1">Settle as Winner</span>
+                                        <span className="font-bold text-sm text-foreground">{event.homeTeam}</span>
+                                        <span className="text-xs text-emerald-400 mt-0.5">Home Win ({event.oddsHome.toFixed(2)}x)</span>
+                                        <span className="text-[10px] text-muted-foreground mt-1">Force Win</span>
                                       </Button>
-                                    )}
 
-                                    <Button
-                                      variant="outline"
-                                      className="flex flex-col h-auto py-3.5 border-blue-500/30 hover:border-blue-500 hover:bg-blue-500/10"
-                                      onClick={() => onSettleEvent("away")}
-                                      disabled={settleEventMutation.isPending}
-                                    >
-                                      <span className="font-bold text-sm text-foreground">{event.awayTeam}</span>
-                                      <span className="text-xs text-blue-400 mt-0.5">Away Win ({event.oddsAway.toFixed(2)}x)</span>
-                                      <span className="text-[10px] text-muted-foreground mt-1">Settle as Winner</span>
-                                    </Button>
+                                      {event.oddsDraw > 0 && (
+                                        <Button
+                                          variant="outline"
+                                          className="flex flex-col h-auto py-3.5 border-yellow-500/30 hover:border-yellow-500 hover:bg-yellow-500/10"
+                                          onClick={() => onSettleEvent("draw")}
+                                          disabled={settleEventMutation.isPending}
+                                        >
+                                          <span className="font-bold text-sm text-foreground">Draw / Tie</span>
+                                          <span className="text-xs text-yellow-400 mt-0.5">Draw ({event.oddsDraw.toFixed(2)}x)</span>
+                                          <span className="text-[10px] text-muted-foreground mt-1">Force Draw</span>
+                                        </Button>
+                                      )}
+
+                                      <Button
+                                        variant="outline"
+                                        className="flex flex-col h-auto py-3.5 border-blue-500/30 hover:border-blue-500 hover:bg-blue-500/10"
+                                        onClick={() => onSettleEvent("away")}
+                                        disabled={settleEventMutation.isPending}
+                                      >
+                                        <span className="font-bold text-sm text-foreground">{event.awayTeam}</span>
+                                        <span className="text-xs text-blue-400 mt-0.5">Away Win ({event.oddsAway.toFixed(2)}x)</span>
+                                        <span className="text-[10px] text-muted-foreground mt-1">Force Win</span>
+                                      </Button>
+                                    </div>
                                   </div>
 
                                   <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 text-center font-medium">

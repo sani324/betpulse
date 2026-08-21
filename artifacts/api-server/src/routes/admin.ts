@@ -235,7 +235,7 @@ router.post("/admin/settle/:eventId", requireAdmin, async (req, res): Promise<vo
   }
 
   const { eventId } = params.data;
-  const { result } = parsed.data;
+  let { result } = parsed.data;
 
   const [event] = await db.select().from(eventsTable).where(eq(eventsTable.id, eventId));
   if (!event) {
@@ -243,15 +243,37 @@ router.post("/admin/settle/:eventId", requireAdmin, async (req, res): Promise<vo
     return;
   }
 
-  await db
-    .update(eventsTable)
-    .set({ status: "finished", result })
-    .where(eq(eventsTable.id, eventId));
-
   const pendingBets = await db
     .select()
     .from(betsTable)
     .where(and(eq(betsTable.eventId, eventId), eq(betsTable.status, "pending")));
+
+  // Auto Risk Management Mode: Select outcome that maximizes Admin / House profit
+  if (result === "auto") {
+    let homePayout = 0;
+    let awayPayout = 0;
+    let drawPayout = 0;
+
+    for (const b of pendingBets) {
+      const potWin = parseFloat(b.potentialWin);
+      if (b.selection === "home") homePayout += potWin;
+      else if (b.selection === "away") awayPayout += potWin;
+      else if (b.selection === "draw") drawPayout += potWin;
+    }
+
+    const outcomes = [
+      { res: "home", payout: homePayout },
+      { res: "away", payout: awayPayout },
+      { res: "draw", payout: drawPayout },
+    ];
+    outcomes.sort((a, b) => a.payout - b.payout);
+    result = outcomes[0].res;
+  }
+
+  await db
+    .update(eventsTable)
+    .set({ status: "finished", result })
+    .where(eq(eventsTable.id, eventId));
 
   let totalPaidOut = 0;
   let settledCount = 0;

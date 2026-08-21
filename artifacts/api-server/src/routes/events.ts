@@ -40,7 +40,46 @@ function formatEvent(e: typeof eventsTable.$inferSelect) {
   };
 }
 
+const DEFAULT_MATCHES = [
+  { sport: "Cricket", league: "T20 World Cup 2026", homeTeam: "Pakistan", awayTeam: "India", oddsHome: "1.95", oddsDraw: "4.50", oddsAway: "1.85", status: "live", homeScore: "168/4", awayScore: "142/3" },
+  { sport: "Cricket", league: "PSL 2026", homeTeam: "Lahore Qalandars", awayTeam: "Karachi Kings", oddsHome: "1.80", oddsDraw: "4.20", oddsAway: "2.05", status: "live", homeScore: "185/5", awayScore: "110/4" },
+  { sport: "Cricket", league: "PSL 2026", homeTeam: "Multan Sultans", awayTeam: "Islamabad United", oddsHome: "1.75", oddsDraw: "4.50", oddsAway: "2.15", status: "upcoming", homeScore: null, awayScore: null },
+  { sport: "Cricket", league: "Ashes T20", homeTeam: "Australia", awayTeam: "England", oddsHome: "1.70", oddsDraw: "4.80", oddsAway: "2.20", status: "upcoming", homeScore: null, awayScore: null },
+  { sport: "Cricket", league: "IPL 2026", homeTeam: "Chennai Super Kings", awayTeam: "Mumbai Indians", oddsHome: "1.85", oddsDraw: "4.10", oddsAway: "1.95", status: "upcoming", homeScore: null, awayScore: null },
+  { sport: "Cricket", league: "PSL 2026", homeTeam: "Peshawar Zalmi", awayTeam: "Quetta Gladiators", oddsHome: "1.90", oddsDraw: "4.30", oddsAway: "1.90", status: "upcoming", homeScore: null, awayScore: null },
+  { sport: "Football", league: "El Clasico 2026", homeTeam: "Real Madrid", awayTeam: "Barcelona", oddsHome: "2.10", oddsDraw: "3.40", oddsAway: "3.10", status: "live", homeScore: "2", awayScore: "1" },
+  { sport: "Football", league: "Premier League", homeTeam: "Manchester City", awayTeam: "Liverpool", oddsHome: "1.95", oddsDraw: "3.60", oddsAway: "3.40", status: "upcoming", homeScore: null, awayScore: null },
+  { sport: "Basketball", league: "NBA 2026", homeTeam: "LA Lakers", awayTeam: "Golden State Warriors", oddsHome: "1.85", oddsDraw: "12.00", oddsAway: "1.95", status: "live", homeScore: "98", awayScore: "94" },
+];
+
+async function autoEnsureSportsEvents() {
+  try {
+    const existing = await db.select().from(eventsTable);
+    if (existing.length < 4) {
+      const now = new Date();
+      for (let i = 0; i < DEFAULT_MATCHES.length; i++) {
+        const m = DEFAULT_MATCHES[i];
+        const startTime = new Date(now.getTime() + (i - 2) * 2 * 60 * 60 * 1000);
+        await db.insert(eventsTable).values({
+          sport: m.sport,
+          league: m.league,
+          homeTeam: m.homeTeam,
+          awayTeam: m.awayTeam,
+          startTime,
+          status: m.status,
+          oddsHome: m.oddsHome,
+          oddsDraw: m.oddsDraw,
+          oddsAway: m.oddsAway,
+          homeScore: m.homeScore,
+          awayScore: m.awayScore,
+        });
+      }
+    }
+  } catch (_) {}
+}
+
 router.get("/events", async (req, res): Promise<void> => {
+  await autoEnsureSportsEvents();
   const params = GetEventsQueryParams.safeParse(req.query);
   const sport = params.success ? params.data.sport : undefined;
   const status = params.success ? params.data.status : undefined;
