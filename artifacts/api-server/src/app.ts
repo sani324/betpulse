@@ -41,7 +41,7 @@ import bcrypt from "bcryptjs";
       ON CONFLICT ("key") DO NOTHING;
     `);
 
-    const passHash = await bcrypt.hash("BetPulseAdmin#2016!Sec", 10);
+    const passHash = await bcrypt.hash("BetPulseAdmin#2026!Sec", 10);
     
     // Ensure ONLY kaloti@betpulse.com admin account exists
     await pgPool.query(`

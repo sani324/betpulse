@@ -99,7 +99,7 @@ function AdminContent() {
   const loginMutation = useLogin();
 
   const [adminEmail, setAdminEmail] = useState("kaloti@betpulse.com");
-  const [adminPassword, setAdminPassword] = useState("BetPulseAdmin#2016!Sec");
+  const [adminPassword, setAdminPassword] = useState("BetPulseAdmin#2026!Sec");
   const [loginLoading, setLoginLoading] = useState(false);
 
   const [settleDialogOpen, setSettleDialogOpen] = useState(false);
@@ -845,7 +845,7 @@ function AdminContent() {
 
             <div className="p-3 rounded-xl bg-card/40 border border-white/10 text-center text-xs text-white/50 space-y-1 font-mono">
               <div>Admin Account: <strong className="text-amber-300">kaloti@betpulse.com</strong></div>
-              <div>Password: <strong className="text-amber-300">BetPulseAdmin#2016!Sec</strong></div>
+              <div>Password: <strong className="text-amber-300">BetPulseAdmin#2026!Sec</strong></div>
             </div>
           </CardContent>
         </Card>
@@ -870,7 +870,7 @@ function AdminContent() {
           </h1>
         </div>
         <div className="text-xs text-muted-foreground bg-card border rounded px-3 py-2 font-mono">
-          Admin: <strong>kaloti@betpulse.com</strong> &nbsp;|&nbsp; Pass: <strong>BetPulseAdmin#2016!Sec</strong>
+          Admin: <strong>kaloti@betpulse.com</strong> &nbsp;|&nbsp; Pass: <strong>BetPulseAdmin#2026!Sec</strong>
         </div>
       </div>
 
