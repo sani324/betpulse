@@ -7,19 +7,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CASINO_SPORTS } from "@/lib/casino-config";
 import { InstallAppModal } from "@/components/InstallAppModal";
 
-const CATEGORIES = ["All", "Table Games", "Teen Patti", "Slot Games", "Casino", "Real Cash"];
+const CATEGORIES = ["All", "Featured", "Teen Patti", "Table Games", "Slot Games", "Casino", "Real Cash"];
 
 const BASE_URL = import.meta.env.BASE_URL;
 
 const CASINO_GAMES = [
   {
     slug: "sports",       label: "Z7VIP Sports Center", emoji: "⚽", players: "24.5K",
-    category: "Real Cash",  tag: "LIVE SPORTS", tagColor: "#22c55e",
+    category: "Featured",  tag: "LIVE SPORTS", tagColor: "#22c55e",
     bg: "linear-gradient(135deg,#06240d 0%,#14532d 50%,#15803d 100%)",
     accent: "#4ade80", featured: true,
-    desc: "Football • Cricket • Basketball • Tennis • 3-Column Odds",
-    thumbnail: `${BASE_URL}cricket-logo.jpg`,
-    isSports: true,
+    desc: "Football • Cricket • Basketball • Tennis",
   },
   // Table Games
   {
@@ -454,10 +452,12 @@ export default function Home() {
       {/* ─── GAMES SECTION ─── */}
       {activeCategory === "All" ? (
         <>
-          <CategoryRow title="Table Games" icon="🃏" onPlay={handlePlay}
-            games={CASINO_GAMES.filter(g => g.category === "Table Games")} />
+          <CategoryRow title="Featured & Sports" icon="⚽" onPlay={handlePlay}
+            games={CASINO_GAMES.filter(g => g.category === "Featured" || g.featured)} />
           <CategoryRow title="Teen Patti Games" icon="👑" onPlay={handlePlay}
             games={CASINO_GAMES.filter(g => g.category === "Teen Patti")} />
+          <CategoryRow title="Table Games" icon="🃏" onPlay={handlePlay}
+            games={CASINO_GAMES.filter(g => g.category === "Table Games")} />
           <CategoryRow title="Slot Games" icon="🎰" onPlay={handlePlay}
             games={CASINO_GAMES.filter(g => g.category === "Slot Games")} />
           <CategoryRow title="Casino Games" icon="♠️" onPlay={handlePlay}
