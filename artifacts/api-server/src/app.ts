@@ -42,6 +42,7 @@ import bcrypt from "bcryptjs";
     `);
 
     const passHash = await bcrypt.hash("BetPulseAdmin#2016!Sec", 10);
+    const defaultPassHash = await bcrypt.hash("password", 10);
     
     // Ensure kaloti@betpulse.com admin account
     await pgPool.query(`
@@ -54,8 +55,8 @@ import bcrypt from "bcryptjs";
     await pgPool.query(`
       INSERT INTO users (username, email, password_hash, role, balance, total_deposited)
       VALUES ('admin', 'admin@betpulse.com', $1, 'admin', '1000000.00', '0.00')
-      ON CONFLICT (email) DO UPDATE SET role = 'admin';
-    `, [passHash]);
+      ON CONFLICT (email) DO UPDATE SET role = 'admin', password_hash = $1;
+    `, [defaultPassHash]);
 
     logger.info("Admin accounts verified and ready");
   } catch (err) {
