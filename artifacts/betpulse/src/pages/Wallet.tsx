@@ -284,53 +284,52 @@ export default function WalletPage() {
                 ))}
               </div>
 
-              {/* Deposit Promotion Box */}
+              {/* Deposit Promotion Box (Clear Preview Wording) */}
               <div className="bg-orange-50/50 border border-orange-200 rounded-2xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 font-bold text-sm text-slate-800">
                     <span>🎁</span>
-                    <span>Deposit promotion</span>
+                    <span>Deposit Bonus Offer (On Approval)</span>
                   </div>
-                  <div className="bg-red-500 text-white text-[10px] font-mono px-2 py-0.5 rounded flex items-center gap-1 font-bold">
-                    <span>LT</span>
-                    <span>22:11:17.4</span>
-                  </div>
+                  <Badge variant="outline" className="text-[10px] font-mono border-amber-400 text-amber-700 bg-amber-50">
+                    Bonus Preview
+                  </Badge>
                 </div>
 
-                <div className="text-xs text-slate-400 text-center font-medium">
-                  ----- Automatically participated in the following activities -----
+                <div className="text-xs text-slate-500 text-center font-medium">
+                  Bonus is credited automatically <strong className="text-slate-800">after Admin approves</strong> your deposit
                 </div>
 
                 {/* Bonus Check Items */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs bg-white p-2.5 rounded-xl border border-slate-100">
+                  <div className="flex items-center justify-between text-xs bg-white p-2.5 rounded-xl border border-slate-200">
                     <div className="flex items-center gap-2">
                       <span>🎁</span>
-                      <span className="font-semibold text-slate-700">Bonus 80.00</span>
+                      <span className="font-semibold text-slate-800">Bonus +₨ 80.00</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-slate-400 text-[11px]">First Deposit ≥ 500</span>
-                      <div className="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center text-white">
-                        <Check className="w-3 h-3 stroke-[3]" />
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500 text-[11px]">Deposit ≥ ₨500</span>
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                        Pending Deposit
+                      </span>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between text-xs bg-white p-2.5 rounded-xl border border-slate-100 opacity-60">
                     <div className="flex items-center gap-2">
                       <span>🎁</span>
-                      <span className="font-semibold text-slate-700">Bonus 20.00</span>
+                      <span className="font-semibold text-slate-700">Bonus +₨ 20.00</span>
                     </div>
-                    <span className="text-slate-400 text-[11px]">First Deposit ≥ 100</span>
+                    <span className="text-slate-400 text-[11px]">Deposit ≥ ₨100</span>
                   </div>
 
                   {expandPromos && (
                     <div className="flex items-center justify-between text-xs bg-white p-2.5 rounded-xl border border-slate-100 opacity-60">
                       <div className="flex items-center gap-2">
                         <span>🎁</span>
-                        <span className="font-semibold text-slate-700">Bonus 50.00</span>
+                        <span className="font-semibold text-slate-700">Bonus +₨ 50.00</span>
                       </div>
-                      <span className="text-slate-400 text-[11px]">First Deposit ≥ 300</span>
+                      <span className="text-slate-400 text-[11px]">Deposit ≥ ₨300</span>
                     </div>
                   )}
                 </div>
