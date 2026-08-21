@@ -29,9 +29,7 @@
     "pino": "^9",
     "pino-http": "^10",
     "twilio": "^6.0.0",
-    "zod": "catalog:"
-  },
-  "devDependencies": {
+    "zod": "catalog:",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
