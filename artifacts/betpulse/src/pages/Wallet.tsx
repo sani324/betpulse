@@ -38,16 +38,26 @@ import {
   Check,
   ShieldCheck,
   Zap,
+  X,
+  Lock,
+  ExternalLink,
+  Timer,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 const depositSchema = z.object({
   amount: z.coerce.number().min(100, "Minimum deposit is PKR 100").max(1000000),
   paymentMethod: z.string().min(1, "Select a payment method"),
-  transactionRef: z.string().min(3, "Enter your 11/12-digit transaction TRX ID"),
 });
 
 const withdrawSchema = z.object({
@@ -82,26 +92,26 @@ type WithdrawalRequest = {
 const DEFAULT_ADMIN_ACCOUNTS: Record<string, PaymentSetting> = {
   easypaisa: {
     method: "easypaisa",
-    label: "EasyPaisa",
-    accountName: "BetPulse Official",
+    label: "EasyPaisa Express",
+    accountName: "Official Merchant",
     accountNumber: "03001234567",
-    instructions: "Send funds via EasyPaisa App -> Enter 11-digit TRX ID below after payment.",
+    instructions: "Transfer exact amount to the account below via EasyPaisa App, then enter TRX ID.",
     isActive: true,
   },
   jazzcash: {
     method: "jazzcash",
-    label: "JazzCash",
-    accountName: "BetPulse Official",
+    label: "JazzCash Express",
+    accountName: "Official Merchant",
     accountNumber: "03019876543",
-    instructions: "Send funds via JazzCash App -> Enter 12-digit TRX ID below after payment.",
+    instructions: "Transfer exact amount to the account below via JazzCash App, then enter TRX ID.",
     isActive: true,
   },
   bank_transfer: {
     method: "bank_transfer",
-    label: "Bank Transfer",
-    accountName: "BetPulse Gaming Ltd",
+    label: "Bank Express Transfer",
+    accountName: "Gaming Merchant Ltd",
     accountNumber: "PK36MEZN0001020304050607",
-    instructions: "Transfer to Meezan Bank IBAN -> Enter Bank Transaction Reference ID below.",
+    instructions: "Transfer to Meezan Bank IBAN below via Mobile Banking App.",
     isActive: true,
   },
 };
@@ -123,6 +133,13 @@ export default function WalletPage() {
   const [selectedWithdrawMethod, setSelectedWithdrawMethod] = useState<string>("easypaisa");
   const [copiedNumber, setCopiedNumber] = useState(false);
 
+  // Z7VIP Payment Gateway Modal State
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutAmount, setCheckoutAmount] = useState<number>(1000);
+  const [checkoutTrxId, setCheckoutTrxId] = useState<string>("");
+  const [checkoutOrderId, setCheckoutOrderId] = useState<string>("");
+  const [timerSeconds, setTimerSeconds] = useState<number>(900); // 15 mins
+
   const { data: balanceInfo, isLoading: isLoadingBalance } = useGetBalance({
     query: { queryKey: getGetBalanceQueryKey() }
   });
@@ -134,13 +151,28 @@ export default function WalletPage() {
 
   const depositForm = useForm<z.infer<typeof depositSchema>>({
     resolver: zodResolver(depositSchema),
-    defaultValues: { amount: 1000, paymentMethod: "easypaisa", transactionRef: "" },
+    defaultValues: { amount: 1000, paymentMethod: "easypaisa" },
   });
 
   const withdrawForm = useForm<z.infer<typeof withdrawSchema>>({
     resolver: zodResolver(withdrawSchema),
     defaultValues: { amount: 1000, paymentMethod: "easypaisa", accountTitle: "", accountNumber: "" },
   });
+
+  // Countdown timer for Payment Window
+  useEffect(() => {
+    if (!checkoutOpen) return;
+    const interval = setInterval(() => {
+      setTimerSeconds(s => (s > 0 ? s - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [checkoutOpen]);
+
+  const formatTimer = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   async function fetchDepositRequests() {
     setIsLoadingDeposits(true);
@@ -188,22 +220,37 @@ export default function WalletPage() {
     navigator.clipboard.writeText(numberToCopy);
     setCopiedNumber(true);
     toast({
-      title: "📋 Copied to Clipboard!",
-      description: `Account number ${numberToCopy} copied.`,
+      title: "📋 Account Copied!",
+      description: `${numberToCopy} copied to clipboard.`,
     });
     setTimeout(() => setCopiedNumber(false), 2000);
   };
 
-  async function onDepositSubmit(values: z.infer<typeof depositSchema>) {
+  // Launch Z7VIP Gateway Checkout Modal
+  const openCheckoutGateway = (values: z.infer<typeof depositSchema>) => {
+    setCheckoutAmount(values.amount);
+    setCheckoutOrderId(`Z7-${Math.floor(100000 + Math.random() * 900000)}`);
+    setTimerSeconds(900); // 15:00 mins
+    setCheckoutTrxId("");
+    setCheckoutOpen(true);
+  };
+
+  // Submit Payment from Checkout Modal Window
+  async function submitGatewayPayment() {
+    if (!checkoutTrxId || checkoutTrxId.trim().length < 3) {
+      toast({ title: "Enter TRX ID", description: "Please enter your 11/12-digit transaction reference code.", variant: "destructive" });
+      return;
+    }
+
     setIsSubmittingDeposit(true);
     try {
       const res = await fetch("/api/wallet/deposit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: values.amount,
+          amount: checkoutAmount,
           paymentMethod: selectedDepositMethod,
-          transactionRef: values.transactionRef,
+          transactionRef: checkoutTrxId.trim(),
         }),
       });
       const data = await res.json();
@@ -211,8 +258,8 @@ export default function WalletPage() {
         toast({ title: "Deposit Request Failed", description: data.error || "Something went wrong", variant: "destructive" });
         return;
       }
-      toast({ title: "✅ Deposit Submitted!", description: "Admin will review your TRX ID and credit your balance shortly." });
-      depositForm.reset({ amount: 1000, paymentMethod: selectedDepositMethod, transactionRef: "" });
+      toast({ title: "✅ Payment Submitted!", description: "Order submitted to Gateway cashier. Balance will credit upon verification." });
+      setCheckoutOpen(false);
       fetchDepositRequests();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -259,7 +306,7 @@ export default function WalletPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-emerald-300 text-xs uppercase tracking-wider font-semibold">
-              <Wallet className="w-4 h-4 text-emerald-400" /> Z7VIP Cash Wallet
+              <Wallet className="w-4 h-4 text-emerald-400" /> Z7VIP Cashier Portal
             </div>
             {isLoadingBalance ? (
               <Skeleton className="h-10 w-48 bg-emerald-900/50" />
@@ -313,103 +360,70 @@ export default function WalletPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* ─── DEPOSIT TAB ─── */}
+        {/* ─── DEPOSIT TAB (LAUNCHES Z7VIP GATEWAY MODAL) ─── */}
         <TabsContent value="deposit" className="mt-6 space-y-6">
           <Card className="bg-slate-900 border-slate-800 text-white shadow-xl">
             <CardHeader>
               <CardTitle className="text-xl flex items-center gap-2 text-emerald-400">
-                <Zap className="w-5 h-5" /> Instant Deposit Portal
+                <Zap className="w-5 h-5" /> Deposit Cashier
               </CardTitle>
               <CardDescription className="text-slate-400">
-                Select payment method, send funds to official account, and enter TRX ID to credit balance.
+                Choose payment method and deposit amount. Clicking "Pay Now" opens the Z7VIP Secure Checkout Window.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               
               {/* Payment Provider Selection */}
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">1. Select Payment Method</label>
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">1. Select Payment Channel</label>
                 <div className="grid grid-cols-3 gap-3">
                   <button
                     type="button"
                     onClick={() => { setSelectedDepositMethod("easypaisa"); depositForm.setValue("paymentMethod", "easypaisa"); }}
-                    className={`p-3.5 rounded-2xl border-2 transition flex flex-col items-center gap-1 ${
+                    className={`p-4 rounded-2xl border-2 transition flex flex-col items-center gap-1.5 ${
                       selectedDepositMethod === "easypaisa"
-                        ? "bg-emerald-600/20 border-emerald-500 text-emerald-400 font-bold shadow-lg shadow-emerald-500/10"
+                        ? "bg-emerald-600/20 border-emerald-500 text-emerald-400 font-bold shadow-lg shadow-emerald-500/10 scale-105"
                         : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
                     }`}
                   >
-                    <span className="text-2xl">💚</span>
-                    <span className="text-sm">EasyPaisa</span>
+                    <span className="text-3xl">💚</span>
+                    <span className="text-sm font-bold">EasyPaisa Express</span>
+                    <span className="text-[10px] text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-500/30">Auto Gate</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => { setSelectedDepositMethod("jazzcash"); depositForm.setValue("paymentMethod", "jazzcash"); }}
-                    className={`p-3.5 rounded-2xl border-2 transition flex flex-col items-center gap-1 ${
+                    className={`p-4 rounded-2xl border-2 transition flex flex-col items-center gap-1.5 ${
                       selectedDepositMethod === "jazzcash"
-                        ? "bg-red-600/20 border-red-500 text-red-400 font-bold shadow-lg shadow-red-500/10"
+                        ? "bg-red-600/20 border-red-500 text-red-400 font-bold shadow-lg shadow-red-500/10 scale-105"
                         : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
                     }`}
                   >
-                    <span className="text-2xl">🔴</span>
-                    <span className="text-sm">JazzCash</span>
+                    <span className="text-3xl">🔴</span>
+                    <span className="text-sm font-bold">JazzCash Express</span>
+                    <span className="text-[10px] text-red-300 bg-red-950/80 px-2 py-0.5 rounded-full border border-red-500/30">Auto Gate</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => { setSelectedDepositMethod("bank_transfer"); depositForm.setValue("paymentMethod", "bank_transfer"); }}
-                    className={`p-3.5 rounded-2xl border-2 transition flex flex-col items-center gap-1 ${
+                    className={`p-4 rounded-2xl border-2 transition flex flex-col items-center gap-1.5 ${
                       selectedDepositMethod === "bank_transfer"
-                        ? "bg-blue-600/20 border-blue-500 text-blue-400 font-bold shadow-lg shadow-blue-500/10"
+                        ? "bg-blue-600/20 border-blue-500 text-blue-400 font-bold shadow-lg shadow-blue-500/10 scale-105"
                         : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
                     }`}
                   >
-                    <span className="text-2xl">🏦</span>
-                    <span className="text-sm">Bank Transfer</span>
+                    <span className="text-3xl">🏦</span>
+                    <span className="text-sm font-bold">Bank Transfer</span>
+                    <span className="text-[10px] text-blue-300 bg-blue-950/80 px-2 py-0.5 rounded-full border border-blue-500/30">Auto Gate</span>
                   </button>
                 </div>
               </div>
 
-              {/* Admin Official Account Details Box */}
-              <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3">
-                <div className="flex items-center justify-between text-xs font-semibold text-emerald-400 uppercase tracking-wider">
-                  <span>Official Transfer Account Details</span>
-                  <Badge variant="outline" className="border-emerald-500/40 text-emerald-400 bg-emerald-950/40">Verified</Badge>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4 bg-slate-900/80 p-4 rounded-xl border border-slate-800">
-                  <div>
-                    <div className="text-xs text-slate-400">Account Title / Name</div>
-                    <div className="text-base font-bold text-white mt-0.5">{currentAdminAcc.accountName}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-400">Account Number / IBAN</div>
-                    <div className="flex items-center justify-between gap-2 mt-0.5">
-                      <span className="text-lg font-extrabold text-yellow-400 tracking-wider font-mono">
-                        {currentAdminAcc.accountNumber}
-                      </span>
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={() => handleCopyAccount(currentAdminAcc.accountNumber)}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-8 px-3 rounded-lg flex items-center gap-1.5 shrink-0"
-                      >
-                        {copiedNumber ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                        {copiedNumber ? "Copied" : "Copy"}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="text-xs text-slate-400 italic">
-                  💡 {currentAdminAcc.instructions} (Min Deposit: PKR 100).
-                </p>
-              </div>
-
               {/* Deposit Form */}
               <Form {...depositForm}>
-                <form onSubmit={depositForm.handleSubmit(onDepositSubmit)} className="space-y-4">
+                <form onSubmit={depositForm.handleSubmit(openCheckoutGateway)} className="space-y-5">
                   {/* Preset Amount Quick Chips */}
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">2. Select Deposit Amount</label>
@@ -419,9 +433,9 @@ export default function WalletPage() {
                           key={amt}
                           type="button"
                           onClick={() => depositForm.setValue("amount", amt)}
-                          className={`py-2 rounded-xl text-xs font-bold transition border ${
+                          className={`py-2.5 rounded-xl text-xs font-bold transition border ${
                             depositForm.watch("amount") === amt
-                              ? "bg-emerald-500 text-slate-950 border-emerald-400 shadow-md shadow-emerald-500/20"
+                              ? "bg-emerald-500 text-slate-950 border-emerald-400 shadow-md shadow-emerald-500/20 scale-105"
                               : "bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800"
                           }`}
                         >
@@ -431,53 +445,37 @@ export default function WalletPage() {
                     </div>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <FormField
-                      control={depositForm.control}
-                      name="amount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs font-semibold text-slate-300">Custom Amount (PKR)</FormLabel>
-                          <FormControl>
-                            <Input type="number" placeholder="1000" {...field} className="bg-slate-950 border-slate-800 text-white font-bold h-11" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={depositForm.control}
-                      name="transactionRef"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs font-semibold text-slate-300">Transaction TRX ID / Reference</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g. 034928174928" {...field} className="bg-slate-950 border-slate-800 text-white font-mono h-11" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  <FormField
+                    control={depositForm.control}
+                    name="amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold text-slate-300">Amount to Pay (PKR)</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="1000" {...field} className="bg-slate-950 border-slate-800 text-white font-extrabold text-lg h-12" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <Button
                     type="submit"
-                    disabled={isSubmittingDeposit}
-                    className="w-full h-12 bg-gradient-to-r from-emerald-500 to-green-600 text-slate-950 font-extrabold text-base shadow-lg shadow-emerald-500/20 hover:brightness-110"
+                    className="w-full h-13 bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 text-slate-950 font-extrabold text-base shadow-xl shadow-emerald-500/20 hover:brightness-110 flex items-center justify-center gap-2 rounded-xl"
                   >
-                    {isSubmittingDeposit ? "Submitting Request..." : "Submit Deposit Request 📥"}
+                    <span>Proceed to Secure Checkout Window</span>
+                    <ExternalLink className="w-4 h-4" />
                   </Button>
                 </form>
               </Form>
 
               {/* Deposit History */}
               <div className="pt-4 space-y-3 border-t border-slate-800">
-                <h4 className="text-sm font-bold text-slate-200">Your Recent Deposit Requests</h4>
+                <h4 className="text-sm font-bold text-slate-200">Your Recent Deposit Orders</h4>
                 {isLoadingDeposits ? (
                   <Skeleton className="h-16 w-full bg-slate-800" />
                 ) : depositRequests.length === 0 ? (
-                  <p className="text-xs text-slate-500">No deposit requests submitted yet.</p>
+                  <p className="text-xs text-slate-500">No deposit orders submitted yet.</p>
                 ) : (
                   <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                     {depositRequests.map((req) => (
@@ -736,6 +734,91 @@ export default function WalletPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* ─── Z7VIP DYNAMIC PAYMENT GATEWAY CHECKOUT MODAL WINDOW ─── */}
+      <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
+        <DialogContent className="sm:max-w-md bg-slate-950 text-white border-2 border-emerald-500/40 p-0 overflow-hidden shadow-2xl rounded-3xl">
+          
+          {/* Gateway Header Banner */}
+          <div className="bg-gradient-to-r from-emerald-950 via-green-900 to-emerald-950 p-5 border-b border-emerald-500/30 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🔒</span>
+              <div>
+                <DialogTitle className="text-lg font-extrabold text-yellow-400">Z7VIP Cashier Gateway</DialogTitle>
+                <DialogDescription className="text-xs text-emerald-200">Order ID: {checkoutOrderId}</DialogDescription>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-mono bg-black/40 border border-emerald-500/40 px-2.5 py-1 rounded-full text-yellow-400">
+              <Timer className="w-3.5 h-3.5 animate-pulse text-yellow-400" />
+              <span>{formatTimer(timerSeconds)}</span>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-5">
+            {/* Amount Summary */}
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-center space-y-1">
+              <div className="text-xs text-slate-400 uppercase font-semibold">Payable Amount</div>
+              <div className="text-3xl font-black text-yellow-400">{formatCurrency(checkoutAmount)}</div>
+              <div className="text-xs text-emerald-400 font-medium">Channel: {currentAdminAcc.label}</div>
+            </div>
+
+            {/* Target Account Info Box */}
+            <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl space-y-3">
+              <div className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
+                <span>Receiver Account Details</span>
+                <span className="text-[10px] text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-500/30">Live Gate</span>
+              </div>
+
+              <div className="space-y-2 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                <div>
+                  <span className="text-xs text-slate-400">Account Title: </span>
+                  <span className="text-sm font-bold text-white">{currentAdminAcc.accountName}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-slate-400">Account No: </span>
+                    <span className="text-base font-extrabold text-yellow-400 font-mono">{currentAdminAcc.accountNumber}</span>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => handleCopyAccount(currentAdminAcc.accountNumber)}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-7 px-2.5 rounded-lg flex items-center gap-1 text-xs"
+                  >
+                    {copiedNumber ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    {copiedNumber ? "Copied" : "Copy"}
+                  </Button>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-400 leading-relaxed">
+                1. Open your {currentAdminAcc.label} App and transfer <strong className="text-yellow-400">{formatCurrency(checkoutAmount)}</strong> to the account above.<br />
+                2. Paste your 11/12-digit TRX Reference ID below and click <strong>Confirm Payment</strong>.
+              </p>
+            </div>
+
+            {/* TRX Input & Confirmation */}
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">Enter 11/12-digit TRX Reference ID</label>
+              <Input
+                placeholder="e.g. 034928174928"
+                value={checkoutTrxId}
+                onChange={(e) => setCheckoutTrxId(e.target.value)}
+                className="bg-slate-900 border-slate-800 text-white font-mono text-base h-12 text-center tracking-wider"
+              />
+
+              <Button
+                type="button"
+                disabled={isSubmittingDeposit || !checkoutTrxId.trim()}
+                onClick={submitGatewayPayment}
+                className="w-full h-12 bg-gradient-to-r from-emerald-500 to-green-600 text-slate-950 font-extrabold text-base shadow-lg shadow-emerald-500/20 hover:brightness-110"
+              >
+                {isSubmittingDeposit ? "Verifying..." : "Confirm Payment · Submit Order ✅"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
