@@ -13,7 +13,7 @@ const BASE_URL = import.meta.env.BASE_URL;
 
 const CASINO_GAMES = [
   {
-    slug: "sports",       label: "Z7VIP Sports Center", emoji: "⚽", players: "24.5K",
+    slug: "sports",       label: "BetPulse Sports Center", emoji: "⚽", players: "24.5K",
     category: "Featured",  tag: "LIVE SPORTS", tagColor: "#22c55e",
     bg: "linear-gradient(135deg,#06240d 0%,#14532d 50%,#15803d 100%)",
     accent: "#4ade80", featured: true,

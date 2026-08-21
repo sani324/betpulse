@@ -208,7 +208,7 @@ export default function SportsMenu() {
         </button>
 
         <div className="flex items-center gap-1 font-bold text-lg text-emerald-300 tracking-tight">
-          <span>z7.com</span>
+          <span>BetPulse</span>
         </div>
 
         <div className="flex items-center gap-2">
