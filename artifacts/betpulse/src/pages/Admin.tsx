@@ -936,6 +936,7 @@ function AdminContent() {
       </div>
 
       <Tabs defaultValue="events" className="w-full" onValueChange={(v) => {
+        window.scrollTo({ top: 120, behavior: "smooth" });
         if (v === "users") loadUsers();
         if (v === "withdrawals") loadWithdrawals();
         if (v === "deposits") loadDeposits();
@@ -958,7 +959,7 @@ function AdminContent() {
               <CalendarDays className="h-4 w-4 shrink-0" />
               Manage Events
             </TabsTrigger>
-            <TabsTrigger value="create" className="w-full justify-start gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold bg-emerald-900/50 text-emerald-100 border border-emerald-800/40 data-[state=active]:bg-emerald-500 data-[state=active]:text-white data-[state=active]:border-emerald-400 data-[state=active]:shadow-lg data-[state=active]:shadow-emerald-900/50 hover:bg-emerald-800/60 transition-all shadow-none">
+            <TabsTrigger value="create" onClick={() => window.scrollTo({ top: 120, behavior: "smooth" })} className="w-full justify-start gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold bg-emerald-900/50 text-emerald-100 border border-emerald-800/40 data-[state=active]:bg-emerald-500 data-[state=active]:text-white data-[state=active]:border-emerald-400 data-[state=active]:shadow-lg data-[state=active]:shadow-emerald-900/50 hover:bg-emerald-800/60 transition-all shadow-none">
               <PlusCircle className="h-4 w-4 shrink-0" />
               Create Event
             </TabsTrigger>
@@ -1320,36 +1321,44 @@ function AdminContent() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Sport</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select sport" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Teen Patti">👑 Teen Patti</SelectItem>
-                              <SelectItem value="Dragon Tiger">🔥 Dragon Tiger</SelectItem>
-                              <SelectItem value="Andar Bahar">🃏 Andar Bahar</SelectItem>
-                              <SelectItem value="Blackjack">♠️ Blackjack</SelectItem>
-                              <SelectItem value="Roulette">🎡 Roulette</SelectItem>
-                              <SelectItem value="Lucky 7">🎲 Lucky 7</SelectItem>
-                              <SelectItem value="Jhandi Munda">🎴 Jhandi Munda</SelectItem>
-                              <SelectItem value="Joker">🃏 Joker</SelectItem>
-                              <SelectItem value="Crash">🚀 Crash</SelectItem>
-                              <SelectItem value="God of Fortune">🐉 God of Fortune</SelectItem>
-                              <SelectItem value="Bingo 777">🎰 777 Bingo</SelectItem>
-                              <SelectItem value="Sweet Bonanza">🍭 Sweet Bonanza</SelectItem>
-                              <SelectItem value="10 Cards">🔟 10 Cards</SelectItem>
-                              <SelectItem value="Muflis">♟️ Muflis</SelectItem>
-                              <SelectItem value="Car Roulette">🏎️ Car Roulette</SelectItem>
-                              <SelectItem value="Fruit Line">🍉 Fruit Line</SelectItem>
-                              <SelectItem value="Coin Flip">🪙 Coin Flip</SelectItem>
-                              <SelectItem value="Rummy">🀄 Rummy</SelectItem>
-                              <SelectItem value="Rung">♠️ Rung</SelectItem>
-                              <SelectItem value="Dice Roll">🎲 Dice Roll</SelectItem>
-                              <SelectItem value="Court Piece">🂡 Court Piece</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <select
+                            value={field.value || "Cricket"}
+                            onChange={(e) => field.onChange(e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl bg-background border border-border text-foreground font-bold text-sm focus:outline-none focus:border-emerald-500 cursor-pointer h-10"
+                          >
+                            <optgroup label="🏏 Sports Categories">
+                              <option value="Cricket">🏏 Cricket</option>
+                              <option value="Football">⚽ Football</option>
+                              <option value="Basketball">🏀 Basketball</option>
+                              <option value="Tennis">🎾 Tennis</option>
+                              <option value="Volleyball">🏐 Volleyball</option>
+                              <option value="Table Tennis">🏓 Table Tennis</option>
+                              <option value="Badminton">🏸 Badminton</option>
+                            </optgroup>
+                            <optgroup label="🎮 Casino Games">
+                              <option value="Teen Patti">👑 Teen Patti</option>
+                              <option value="Dragon Tiger">🔥 Dragon Tiger</option>
+                              <option value="Andar Bahar">🃏 Andar Bahar</option>
+                              <option value="Blackjack">♠️ Blackjack</option>
+                              <option value="Roulette">🎡 Roulette</option>
+                              <option value="Lucky 7">🎲 Lucky 7</option>
+                              <option value="Jhandi Munda">🎴 Jhandi Munda</option>
+                              <option value="Joker">🃏 Joker</option>
+                              <option value="Crash">🚀 Crash</option>
+                              <option value="God of Fortune">🐉 God of Fortune</option>
+                              <option value="Bingo 777">🎰 777 Bingo</option>
+                              <option value="Sweet Bonanza">🍭 Sweet Bonanza</option>
+                              <option value="10 Cards">🔟 10 Cards</option>
+                              <option value="Muflis">♟️ Muflis</option>
+                              <option value="Car Roulette">🏎️ Car Roulette</option>
+                              <option value="Fruit Line">🍉 Fruit Line</option>
+                              <option value="Coin Flip">🪙 Coin Flip</option>
+                              <option value="Rummy">🀄 Rummy</option>
+                              <option value="Rung">♠️ Rung</option>
+                              <option value="Dice Roll">🎲 Dice Roll</option>
+                              <option value="Court Piece">🂡 Court Piece</option>
+                            </optgroup>
+                          </select>
                           <FormMessage />
                         </FormItem>
                       )}
