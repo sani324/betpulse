@@ -36,13 +36,21 @@ export default function Dashboard() {
     );
   }
 
-  if (!stats) return null;
+  const safeStats = stats || {
+    totalBets: 0,
+    wonBets: 0,
+    lostBets: 0,
+    pendingBets: 0,
+    winRate: 0,
+    totalWon: 0,
+    totalStaked: 0,
+    biggestWin: 0,
+  };
 
-  // Mock data for charts since API doesn't provide historical data series
   const winLossData = [
-    { name: "Won", value: stats.wonBets },
-    { name: "Lost", value: stats.lostBets },
-    { name: "Pending", value: stats.pendingBets },
+    { name: "Won", value: safeStats.wonBets },
+    { name: "Lost", value: safeStats.lostBets },
+    { name: "Pending", value: safeStats.pendingBets },
   ];
 
   const COLORS = ["hsl(var(--primary))", "hsl(var(--destructive))", "hsl(var(--muted-foreground))"];
@@ -73,9 +81,9 @@ export default function Dashboard() {
             <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatPercentage(stats.winRate / 100)}</div>
+            <div className="text-2xl font-bold">{formatPercentage(safeStats.winRate / 100)}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Based on {stats.wonBets + stats.lostBets} settled bets
+              Based on {safeStats.wonBets + safeStats.lostBets} settled bets
             </p>
           </CardContent>
         </Card>
@@ -86,9 +94,9 @@ export default function Dashboard() {
             <Trophy className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">{formatCurrency(stats.totalWon)}</div>
+            <div className="text-2xl font-bold text-primary">{formatCurrency(safeStats.totalWon)}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              From {stats.wonBets} winning bets
+              From {safeStats.wonBets} winning bets
             </p>
           </CardContent>
         </Card>
@@ -99,9 +107,9 @@ export default function Dashboard() {
             <Coins className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.totalStaked)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(safeStats.totalStaked)}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Across {stats.totalBets} total bets
+              Across {safeStats.totalBets} total bets
             </p>
           </CardContent>
         </Card>
@@ -112,7 +120,7 @@ export default function Dashboard() {
             <Flame className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.biggestWin)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(safeStats.biggestWin)}</div>
             <p className="text-xs text-muted-foreground mt-1">
               Record payout
             </p>
