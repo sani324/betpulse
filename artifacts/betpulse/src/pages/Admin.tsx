@@ -98,8 +98,8 @@ export default function Admin() {
   const { user, isAdmin, isLoading: isLoadingAuth } = useAuth();
   const loginMutation = useLogin();
 
-  const [adminEmail, setAdminEmail] = useState("admin@betpulse.com");
-  const [adminPassword, setAdminPassword] = useState("password");
+  const [adminEmail, setAdminEmail] = useState("kaloti@betpulse.com");
+  const [adminPassword, setAdminPassword] = useState("BetPulseAdmin#2016!Sec");
   const [loginLoading, setLoginLoading] = useState(false);
 
   const [settleDialogOpen, setSettleDialogOpen] = useState(false);
@@ -844,8 +844,8 @@ export default function Admin() {
             </Button>
 
             <div className="p-3 rounded-xl bg-card/40 border border-white/10 text-center text-xs text-white/50 space-y-1 font-mono">
-              <div>Default Admin: <strong className="text-amber-300">admin@betpulse.com</strong></div>
-              <div>Password: <strong className="text-amber-300">password</strong></div>
+              <div>Admin Account: <strong className="text-amber-300">kaloti@betpulse.com</strong></div>
+              <div>Password: <strong className="text-amber-300">BetPulseAdmin#2016!Sec</strong></div>
             </div>
           </CardContent>
         </Card>
@@ -869,8 +869,8 @@ export default function Admin() {
             Admin Control Center
           </h1>
         </div>
-        <div className="text-xs text-muted-foreground bg-card border rounded px-3 py-2">
-          Login: <strong>admin@betpulse.com</strong> &nbsp;|&nbsp; Pass: <strong>password</strong>
+        <div className="text-xs text-muted-foreground bg-card border rounded px-3 py-2 font-mono">
+          Admin: <strong>kaloti@betpulse.com</strong> &nbsp;|&nbsp; Pass: <strong>BetPulseAdmin#2016!Sec</strong>
         </div>
       </div>
 

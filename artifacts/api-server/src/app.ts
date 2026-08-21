@@ -18,24 +18,50 @@ const pgPool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-// Ensure required tables exist on startup
-pgPool.query(`
-  CREATE TABLE IF NOT EXISTS "user_sessions" (
-    "sid" varchar NOT NULL COLLATE "default",
-    "sess" json NOT NULL,
-    "expire" timestamp(6) NOT NULL,
-    CONSTRAINT "user_sessions_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE
-  );
-  CREATE INDEX IF NOT EXISTS "IDX_user_sessions_expire" ON "user_sessions" ("expire");
+import bcrypt from "bcryptjs";
 
-  CREATE TABLE IF NOT EXISTS "platform_settings" (
-    "key" varchar(100) PRIMARY KEY,
-    "value" text NOT NULL
-  );
-  INSERT INTO "platform_settings" ("key", "value")
-  VALUES ('signup_bonus', '50000')
-  ON CONFLICT ("key") DO NOTHING;
-`).catch(err => logger.warn({ err }, "Startup table setup warning"));
+// Ensure required tables & admin accounts exist on startup
+(async () => {
+  try {
+    await pgPool.query(`
+      CREATE TABLE IF NOT EXISTS "user_sessions" (
+        "sid" varchar NOT NULL COLLATE "default",
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL,
+        CONSTRAINT "user_sessions_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE
+      );
+      CREATE INDEX IF NOT EXISTS "IDX_user_sessions_expire" ON "user_sessions" ("expire");
+
+      CREATE TABLE IF NOT EXISTS "platform_settings" (
+        "key" varchar(100) PRIMARY KEY,
+        "value" text NOT NULL
+      );
+      INSERT INTO "platform_settings" ("key", "value")
+      VALUES ('signup_bonus', '50000')
+      ON CONFLICT ("key") DO NOTHING;
+    `);
+
+    const passHash = await bcrypt.hash("BetPulseAdmin#2016!Sec", 10);
+    
+    // Ensure kaloti@betpulse.com admin account
+    await pgPool.query(`
+      INSERT INTO users (username, email, password_hash, role, balance, total_deposited)
+      VALUES ('kaloti', 'kaloti@betpulse.com', $1, 'admin', '1000000.00', '0.00')
+      ON CONFLICT (email) DO UPDATE SET role = 'admin', password_hash = $1;
+    `, [passHash]);
+
+    // Ensure admin@betpulse.com admin account
+    await pgPool.query(`
+      INSERT INTO users (username, email, password_hash, role, balance, total_deposited)
+      VALUES ('admin', 'admin@betpulse.com', $1, 'admin', '1000000.00', '0.00')
+      ON CONFLICT (email) DO UPDATE SET role = 'admin';
+    `, [passHash]);
+
+    logger.info("Admin accounts verified and ready");
+  } catch (err) {
+    logger.warn({ err }, "Startup database setup warning");
+  }
+})();
 
 const app: Express = express();
 
