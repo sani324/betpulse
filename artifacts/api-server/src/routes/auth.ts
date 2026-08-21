@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
 import { db, pool, usersTable, transactionsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { promises as dns } from "dns";
 import nodemailer from "nodemailer";
 import {
@@ -263,8 +263,13 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  const { email, password } = parsed.data;
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email));
+  const { email: rawEmail, password } = parsed.data;
+  const email = rawEmail.trim().toLowerCase();
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(sql`LOWER(${usersTable.email}) = ${email}`);
 
   if (!user) {
     res.status(401).json({ error: "Invalid email or password" });
