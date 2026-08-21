@@ -826,7 +826,7 @@ function AdminContent() {
               onClick={() => {
                 setLoginLoading(true);
                 loginMutation.mutate(
-                  { email: adminEmail, password: adminPassword },
+                  { data: { email: adminEmail, password: adminPassword } },
                   {
                     onSuccess: () => {
                       queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });

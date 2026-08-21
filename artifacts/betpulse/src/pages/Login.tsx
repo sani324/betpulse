@@ -37,9 +37,13 @@ export default function Login() {
 
   function onSubmit(values: z.infer<typeof loginSchema>) {
     loginMutation.mutate({ data: values }, {
-      onSuccess: () => {
+      onSuccess: (data: any) => {
         queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-        setLocation("/");
+        if (data?.user?.role === "admin" || values.email.toLowerCase().includes("admin") || values.email.toLowerCase().includes("kaloti")) {
+          setLocation("/admin");
+        } else {
+          setLocation("/");
+        }
       },
       onError: (error: any) => {
         toast({
