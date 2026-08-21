@@ -166,7 +166,7 @@ export default function MyBets() {
                       <div className="space-y-2.5">
                         <div className="flex justify-between items-center text-sm">
                           <span className="text-muted-foreground">Stake</span>
-                          <span className="font-mono font-semibold">₹{bet.stake.toFixed(2)}</span>
+                          <span className="font-mono font-semibold">PKR {bet.stake.toFixed(2)}</span>
                         </div>
                         {isCasino ? (
                           <>
@@ -177,7 +177,7 @@ export default function MyBets() {
                             <div className="pt-2 border-t border-border/30 flex justify-between items-center">
                               <span className="text-sm font-bold">Return</span>
                               <span className={`font-mono font-bold text-lg ${bet.status === "won" ? "text-emerald-400" : bet.status === "lost" ? "text-red-400/60" : "text-foreground"}`}>
-                                {bet.status === "won" ? `₹${(cb!.payout ?? 0).toFixed(2)}` : bet.status === "lost" ? "₹0" : "—"}
+                                {bet.status === "won" ? `PKR ${(cb!.payout ?? 0).toFixed(2)}` : bet.status === "lost" ? "PKR 0" : "—"}
                               </span>
                             </div>
                           </>
@@ -185,12 +185,12 @@ export default function MyBets() {
                           <>
                             <div className="flex justify-between items-center text-sm">
                               <span className="text-muted-foreground">To Win</span>
-                              <span className="font-mono font-semibold">₹{(sb?.potentialWin ?? 0).toFixed(2)}</span>
+                              <span className="font-mono font-semibold">PKR {(sb?.potentialWin ?? 0).toFixed(2)}</span>
                             </div>
                             <div className="pt-2 border-t border-border/30 flex justify-between items-center">
                               <span className="text-sm font-bold">Return</span>
                               <span className={`font-mono font-bold text-lg ${bet.status === "won" ? "text-emerald-400" : bet.status === "lost" ? "text-red-400/60" : "text-foreground"}`}>
-                                {bet.status === "won" ? `₹${(sb?.potentialWin ?? 0).toFixed(2)}` : bet.status === "lost" ? "₹0" : "—"}
+                                {bet.status === "won" ? `PKR ${(sb?.potentialWin ?? 0).toFixed(2)}` : bet.status === "lost" ? "PKR 0" : "—"}
                               </span>
                             </div>
                           </>

@@ -351,7 +351,7 @@ export default function Lucky7Game() {
                     <button key={amt} onClick={() => setStake(amt)}
                       className="px-4 py-2 rounded-xl text-sm font-bold transition-all hover:scale-105"
                       style={{ background: stake === amt ? "linear-gradient(135deg,#d4a017,#f5c542)" : "rgba(13,43,26,0.6)", color: stake === amt ? "#081c0e" : "rgba(255,255,255,0.6)", border: `1px solid ${stake === amt ? "transparent" : "rgba(255,255,255,0.1)"}` }}>
-                      ₹{amt >= 1000 ? `${amt/1000}K` : amt}
+                      PKR {amt >= 1000 ? `${amt/1000}K` : amt}
                     </button>
                   ))}
                 </div>

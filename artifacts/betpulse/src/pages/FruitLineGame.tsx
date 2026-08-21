@@ -62,7 +62,7 @@ const CHIP_DEFS = [
   { amt:10000,  color:"#a855f7", icon:"🍇" },
 ];
 
-const TICKER = "🌿 FRESH HARVEST DAILY  •  🥝 JACKPOT PRIZE: 10×  •  🍓 MIX MATCH: 3×  •  🍊 PLAIN WIN: 1.95×  •  🌱 PLAY & WIN BIG  •  🍒 RARE FRUITS INCOMING  •  🏆 LUCKY HARVESTER WINS ₹45,000  •  🌾 HARVEST TIME!  •  ";
+const TICKER = "🌿 FRESH HARVEST DAILY  •  🥝 JACKPOT PRIZE: 10×  •  🍓 MIX MATCH: 3×  •  🍊 PLAIN WIN: 1.95×  •  🌱 PLAY & WIN BIG  •  🍒 RARE FRUITS INCOMING  •  🏆 LUCKY HARVESTER WINS PKR 45,000  •  🌾 HARVEST TIME!  •  ";
 
 const STYLES = `
   .fl-bg {

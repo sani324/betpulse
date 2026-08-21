@@ -2219,12 +2219,12 @@ export default function Admin() {
                     const aReason = totalBets === 0
                       ? "No bets yet — auto-settle will skip this round"
                       : isTied && aMinCount === 0
-                        ? `${aAllTiedLabels} are tied at 0 bets — system randomly picks one → all ${aWillLose.filter(s => aCounts[s.key] > 0).map(s=>s.label.replace(/[^\w\s]/g,'').trim()).join(" + ")} bettors LOSE → Admin keeps ₹${aLostPool.toFixed(0)}`
+                        ? `${aAllTiedLabels} are tied at 0 bets — system randomly picks one → all ${aWillLose.filter(s => aCounts[s.key] > 0).map(s=>s.label.replace(/[^\w\s]/g,'').trim()).join(" + ")} bettors LOSE → Admin keeps PKR ${aLostPool.toFixed(0)}`
                         : aMinCount === 0
-                          ? `${aWinLabel} has 0 bets → declared winner → all other bettors lose → Admin keeps ₹${aLostPool.toFixed(0)}`
+                          ? `${aWinLabel} has 0 bets → declared winner → all other bettors lose → Admin keeps PKR ${aLostPool.toFixed(0)}`
                           : isTied
                             ? `All options tied at ${aMinCount} bet(s) — randomly picks one to win`
-                            : `${aWinLabel} has fewest bets (${aMinCount}) → Admin keeps ₹${aLostPool.toFixed(0)} from ${aWillLose.filter(s=>aCounts[s.key]>0).length} losing side(s)`;
+                            : `${aWinLabel} has fewest bets (${aMinCount}) → Admin keeps PKR ${aLostPool.toFixed(0)} from ${aWillLose.filter(s=>aCounts[s.key]>0).length} losing side(s)`;
 
                     return (
                       <div key={cfg.game} className={`border rounded-xl p-3 transition-all duration-200 ${autoMode ? "border-purple-500/20 bg-purple-950/10" : "border-border/40 bg-card/20"}`}>
@@ -2287,7 +2287,7 @@ export default function Admin() {
                                   </div>
                                   {aLostPool > 0 && (
                                     <span className="text-[11px] font-black text-emerald-300 bg-emerald-900/50 px-2 py-0.5 rounded-full">
-                                      💰 Admin Profit: ₹{aLostPool.toFixed(0)}
+                                      💰 Admin Profit: PKR {aLostPool.toFixed(0)}
                                     </span>
                                   )}
                                 </div>
@@ -2326,7 +2326,7 @@ export default function Admin() {
                                     </div>
                                     {count > 0 && (
                                       <>
-                                        <div className={`text-[10px] mb-1 ${isLoser ? "text-red-400/60" : "text-muted-foreground"}`}>₹{sk.toFixed(0)} · {pct}%</div>
+                                        <div className={`text-[10px] mb-1 ${isLoser ? "text-red-400/60" : "text-muted-foreground"}`}>PKR {sk.toFixed(0)} · {pct}%</div>
                                         <div className="h-1.5 rounded-full bg-border/40">
                                           <div className={`h-full rounded-full ${isWinner ? "bg-emerald-400" : "bg-red-500/60"}`} style={{ width: `${pct}%` }} />
                                         </div>
@@ -2340,7 +2340,7 @@ export default function Admin() {
                                         {sideMap[s.key]!.users.map((u, i) => (
                                           <div key={i} className="flex justify-between gap-1 truncate">
                                             <span className={`truncate ${isLoser ? "line-through opacity-40 text-red-400/60" : ""}`}>{u.username}</span>
-                                            <span className={`tabular-nums ${isLoser ? "text-red-400/50" : ""}`}>₹{u.stake}</span>
+                                            <span className={`tabular-nums ${isLoser ? "text-red-400/50" : ""}`}>PKR {u.stake}</span>
                                           </div>
                                         ))}
                                       </div>
@@ -2370,7 +2370,7 @@ export default function Admin() {
                                     </div>
                                     {count > 0 && (
                                       <>
-                                        <div className="text-[10px] text-muted-foreground mb-1">₹{staked.toFixed(0)} · {pct}% of pool</div>
+                                        <div className="text-[10px] text-muted-foreground mb-1">PKR {staked.toFixed(0)} · {pct}% of pool</div>
                                         <div className="h-1 rounded-full mb-1.5 bg-border/40">
                                           <div className="h-full rounded-full bg-emerald-400/60" style={{ width: `${pct}%` }} />
                                         </div>
@@ -2381,7 +2381,7 @@ export default function Admin() {
                                         {data.users.map((u, i) => (
                                           <div key={i} className="flex justify-between gap-1 truncate">
                                             <span className="truncate">{u.username}</span>
-                                            <span className="tabular-nums">₹{u.stake}</span>
+                                            <span className="tabular-nums">PKR {u.stake}</span>
                                           </div>
                                         ))}
                                       </div>
@@ -2463,7 +2463,7 @@ export default function Admin() {
                                   </span>
                                   <span className="tabular-nums">
                                     <span className="font-bold text-foreground">{s.betCount}</span>
-                                    <span className="text-muted-foreground"> bets · ₹{s.totalStaked.toFixed(2)} staked</span>
+                                    <span className="text-muted-foreground"> bets · PKR {s.totalStaked.toFixed(2)} staked</span>
                                   </span>
                                 </div>
                                 <div className="h-1.5 bg-card/60 rounded-full overflow-hidden">

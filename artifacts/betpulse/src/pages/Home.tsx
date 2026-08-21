@@ -355,7 +355,7 @@ export default function Home() {
             <div className="flex items-center gap-4 mb-4">
               {[
                 { icon: <Activity size={11} style={{ color: "#f5c542" }} />, val: "Live", sub: "Now" },
-                { icon: <TrendingUp size={11} style={{ color: "#4ade80" }} />, val: "₹2Cr+", sub: "Paid" },
+                { icon: <TrendingUp size={11} style={{ color: "#4ade80" }} />, val: "PKR 2Cr+", sub: "Paid" },
                 { icon: <Users size={11} style={{ color: "#60a5fa" }} />, val: "50K+", sub: "Players" },
               ].map((s, i) => (
                 <div key={i} className="flex items-center gap-1">
@@ -372,7 +372,7 @@ export default function Home() {
                 onClick={() => setLocation(isAuthenticated ? "/" : "/register")}
                 className="px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all hover:scale-105"
                 style={{ background: "linear-gradient(135deg,#d4a017,#f5c542)", color: "#061209", boxShadow: "0 0 20px rgba(245,197,66,0.4)" }}>
-                {isAuthenticated ? "🎮 Play Now" : "🎁 Claim ₹500 Bonus"}
+                {isAuthenticated ? "🎮 Play Now" : "🎁 Claim PKR 500 Bonus"}
               </button>
               <InstallAppModal />
             </div>

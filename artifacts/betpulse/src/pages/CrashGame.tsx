@@ -346,7 +346,7 @@ export default function CrashGame() {
       setPhase("waiting");
       pollRound(data.roundId, selection);
       const opt = OPTIONS.find(o => o.key === selection);
-      toast({ title: "🚀 Bet Placed!", description: `₹${stake.toLocaleString()} — cashing out at ${opt?.sub}` });
+      toast({ title: "🚀 Bet Placed!", description: `PKR ${stake.toLocaleString()} — cashing out at ${opt?.sub}` });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
@@ -525,7 +525,7 @@ export default function CrashGame() {
         ) : phase === "waiting" ? (
           <div className="py-4 rounded-2xl text-center text-sm font-bold"
             style={{ background: "rgba(245,197,66,0.06)", border: "1px solid rgba(245,197,66,0.15)", color: "rgba(255,255,255,0.5)" }}>
-            ✈️ Auto-Decider running — your ₹{stake.toLocaleString()} bet is live on {selectedOpt?.sub}
+            ✈️ Auto-Decider running — your PKR {stake.toLocaleString()} bet is live on {selectedOpt?.sub}
           </div>
         ) : (
           <>
@@ -566,7 +566,7 @@ export default function CrashGame() {
                         color: active ? "#040e08" : "rgba(255,255,255,0.55)",
                         border: `1px solid ${active ? "transparent" : "rgba(255,255,255,0.08)"}`,
                         boxShadow: active ? "0 0 12px rgba(245,197,66,0.4)" : "none" }}>
-                      ₹{amt >= 1000 ? `${amt / 1000}K` : amt}
+                      PKR {amt >= 1000 ? `${amt / 1000}K` : amt}
                     </button>
                   );
                 })}

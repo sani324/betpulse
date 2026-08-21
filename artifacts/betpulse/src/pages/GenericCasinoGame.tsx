@@ -134,7 +134,7 @@ export default function GenericCasinoGame({ config }: Props) {
       setBalance(data.newBalance);
       setPhase("waiting");
       pollRound(data.roundId, selection);
-      toast({ title: "✅ Bet Placed!", description: `₹${stake.toLocaleString()} on ${selectedOpt?.label}` });
+      toast({ title: "✅ Bet Placed!", description: `PKR ${stake.toLocaleString()} on ${selectedOpt?.label}` });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
@@ -309,7 +309,7 @@ export default function GenericCasinoGame({ config }: Props) {
                         border: `1px solid ${active ? "transparent" : "rgba(255,255,255,0.08)"}`,
                         boxShadow: active ? "0 0 12px rgba(245,197,66,0.4)" : "none",
                       }}>
-                      ₹{amt >= 1000 ? `${amt / 1000}K` : amt}
+                      PKR {amt >= 1000 ? `${amt / 1000}K` : amt}
                     </button>
                   );
                 })}

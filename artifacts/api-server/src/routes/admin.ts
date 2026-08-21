@@ -1004,7 +1004,7 @@ async function settleRoundWith(game: string, result: string): Promise<{ message:
       type: "bet_won",
       amount: String(winAmount),
       balanceAfter: String(newBal),
-      description: `${prettyGame(game)} round settled — bet ${bet.selection}, result ${result}. Win ₹${winAmount}.`,
+      description: `${prettyGame(game)} round settled — bet ${bet.selection}, result ${result}. Win PKR ${winAmount}.`,
     });
   }
 
@@ -1046,7 +1046,7 @@ router.post("/admin/casino-rounds/:game/auto-settle", requireAdmin, async (req, 
   const finalCandidates = candidates.filter(o => betStaked[o] === minStaked);
   const result = finalCandidates[Math.floor(Math.random() * finalCandidates.length)];
 
-  const reason = `Auto: "${result}" had fewest bets (${betCounts[result]}) & lowest staked (₹${betStaked[result].toFixed(0)})`;
+  const reason = `Auto: "${result}" had fewest bets (${betCounts[result]}) & lowest staked (PKR ${betStaked[result].toFixed(0)})`;
   try {
     const out = await settleRoundWith(game, result);
     res.json({ ...out, autoResult: result, reason });
@@ -1075,7 +1075,7 @@ router.post("/admin/casino-rounds/auto-settle-all", requireAdmin, async (req, re
     const minStaked = Math.min(...candidates.map(o => betStaked[o]));
     const finalCandidates = candidates.filter(o => betStaked[o] === minStaked);
     const result = finalCandidates[Math.floor(Math.random() * finalCandidates.length)];
-    const reason = `${betCounts[result]} bets, ₹${betStaked[result].toFixed(0)} staked`;
+    const reason = `${betCounts[result]} bets, PKR ${betStaked[result].toFixed(0)} staked`;
     try {
       await settleRoundWith(game, result);
       results.push({ game, result, reason });
