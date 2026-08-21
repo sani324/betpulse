@@ -185,14 +185,15 @@ router.get("/admin/users", requireAdmin, async (req, res): Promise<void> => {
     totalDeposited: parseFloat(u.totalDeposited ?? "0"),
     totalWagered: parseFloat(u.totalWagered ?? "0"),
     totalWon: parseFloat(u.totalWon ?? "0"),
-    isBlocked: u.isBlocked,
-    isFlagged: u.isFlagged,
+    isBlocked: (u as any).isBlocked ?? false,
+    isFlagged: (u as any).isFlagged ?? false,
     createdAt: u.createdAt.toISOString(),
   })));
 });
 
 router.post("/admin/users/:userId/adjust", requireAdmin, async (req, res): Promise<void> => {
-  const userId = parseInt(req.params.userId, 10);
+  const rawId = req.params.userId;
+  const userId = parseInt(Array.isArray(rawId) ? rawId[0] : rawId, 10);
   const { amount, note } = req.body;
   if (!amount || isNaN(Number(amount))) {
     res.status(400).json({ error: "Invalid amount" });
@@ -396,7 +397,8 @@ router.get("/admin/deposits", requireAdmin, async (req, res): Promise<void> => {
 });
 
 router.post("/admin/deposits/:id/approve", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const rawId = req.params.id;
+  const id = parseInt(Array.isArray(rawId) ? rawId[0] : rawId, 10);
   const { adminNote } = req.body;
 
   const [dr] = await db.select().from(depositRequestsTable).where(eq(depositRequestsTable.id, id));
@@ -440,7 +442,8 @@ router.post("/admin/deposits/:id/approve", requireAdmin, async (req, res): Promi
 });
 
 router.post("/admin/deposits/:id/deny", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const rawId = req.params.id;
+  const id = parseInt(Array.isArray(rawId) ? rawId[0] : rawId, 10);
   const { adminNote } = req.body;
 
   const [dr] = await db.select().from(depositRequestsTable).where(eq(depositRequestsTable.id, id));
@@ -489,7 +492,8 @@ router.get("/admin/withdrawals", requireAdmin, async (req, res): Promise<void> =
 });
 
 router.post("/admin/withdrawals/:id/approve", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const rawId = req.params.id;
+  const id = parseInt(Array.isArray(rawId) ? rawId[0] : rawId, 10);
   const { adminNote } = req.body;
 
   const [wr] = await db.select().from(withdrawalRequestsTable).where(eq(withdrawalRequestsTable.id, id));
@@ -536,7 +540,8 @@ router.post("/admin/withdrawals/:id/approve", requireAdmin, async (req, res): Pr
 });
 
 router.post("/admin/users/:userId/block", requireAdmin, async (req, res): Promise<void> => {
-  const userId = parseInt(req.params.userId, 10);
+  const rawId = req.params.userId;
+  const userId = parseInt(Array.isArray(rawId) ? rawId[0] : rawId, 10);
   if (isNaN(userId)) { res.status(400).json({ error: "Invalid user id" }); return; }
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
@@ -549,7 +554,8 @@ router.post("/admin/users/:userId/block", requireAdmin, async (req, res): Promis
 });
 
 router.post("/admin/users/:userId/flag", requireAdmin, async (req, res): Promise<void> => {
-  const userId = parseInt(req.params.userId, 10);
+  const rawId = req.params.userId;
+  const userId = parseInt(Array.isArray(rawId) ? rawId[0] : rawId, 10);
   if (isNaN(userId)) { res.status(400).json({ error: "Invalid user id" }); return; }
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
@@ -561,7 +567,8 @@ router.post("/admin/users/:userId/flag", requireAdmin, async (req, res): Promise
 });
 
 router.post("/admin/users/:userId/reset-password", requireAdmin, async (req, res): Promise<void> => {
-  const userId = parseInt(req.params.userId, 10);
+  const rawId = req.params.userId;
+  const userId = parseInt(Array.isArray(rawId) ? rawId[0] : rawId, 10);
   if (isNaN(userId)) { res.status(400).json({ error: "Invalid user id" }); return; }
 
   const { newPassword } = req.body;
@@ -579,7 +586,8 @@ router.post("/admin/users/:userId/reset-password", requireAdmin, async (req, res
 });
 
 router.post("/admin/withdrawals/:id/deny", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const rawId = req.params.id;
+  const id = parseInt(Array.isArray(rawId) ? rawId[0] : rawId, 10);
   const { adminNote } = req.body;
 
   const [wr] = await db.select().from(withdrawalRequestsTable).where(eq(withdrawalRequestsTable.id, id));
@@ -623,7 +631,7 @@ router.get("/payment-settings", async (_req, res): Promise<void> => {
 
 // Admin: create or update a payment method's account details
 router.put("/admin/payment-settings/:method", requireAdmin, async (req, res): Promise<void> => {
-  const { method } = req.params;
+  const method = Array.isArray(req.params.method) ? req.params.method[0] : req.params.method;
   const { label, accountName, accountNumber, instructions, isActive } = req.body;
   const resolvedLabel = label ?? DEFAULT_METHODS.find(m => m.method === method)?.label ?? method;
   await db.insert(paymentSettingsTable)
@@ -637,7 +645,7 @@ router.put("/admin/payment-settings/:method", requireAdmin, async (req, res): Pr
 
 // Admin: permanently delete any payment method
 router.delete("/admin/payment-settings/:method", requireAdmin, async (req, res): Promise<void> => {
-  const { method } = req.params;
+  const method = Array.isArray(req.params.method) ? req.params.method[0] : req.params.method;
   await db.delete(paymentSettingsTable).where(eq(paymentSettingsTable.method, method));
   res.json({ message: "Payment method deleted" });
 });
@@ -742,7 +750,7 @@ function manualPayoutMultiplier(g: string, sel: string, res2: string): number {
 // inserting bet_won transactions. Also recovers any orphaned pending DB bets
 // (e.g. placed before a server restart). Then opens a fresh round.
 router.post("/admin/casino-rounds/:game/settle", requireAdmin, async (req, res): Promise<void> => {
-  const game = req.params.game;
+  const game = Array.isArray(req.params.game) ? req.params.game[0] : req.params.game;
   const { result } = req.body ?? {};
   if (!result || typeof result !== "string") { res.status(400).json({ error: "result is required" }); return; }
 
@@ -1022,7 +1030,7 @@ async function settleRoundWith(game: string, result: string): Promise<{ message:
 // If multiple options tie for fewest, picks the one with lowest total staked.
 // If nobody has bet on any option, picks a random option from the zeroes.
 router.post("/admin/casino-rounds/:game/auto-settle", requireAdmin, async (req, res): Promise<void> => {
-  const game = req.params.game;
+  const game = Array.isArray(req.params.game) ? req.params.game[0] : req.params.game;
   const validOptions = GAME_OPTIONS[game];
   if (!validOptions) { res.status(400).json({ error: `Unknown game: ${game}` }); return; }
 
@@ -1038,12 +1046,12 @@ router.post("/admin/casino-rounds/:game/auto-settle", requireAdmin, async (req, 
   }
 
   // Find the min bet count
-  const minCount = Math.min(...validOptions.map(o => betCounts[o]));
-  const candidates = validOptions.filter(o => betCounts[o] === minCount);
+  const minCount = Math.min(...validOptions.map((o: string) => betCounts[o]));
+  const candidates = validOptions.filter((o: string) => betCounts[o] === minCount);
 
   // Among ties, pick the one with least staked; if still tied, pick randomly
-  const minStaked = Math.min(...candidates.map(o => betStaked[o]));
-  const finalCandidates = candidates.filter(o => betStaked[o] === minStaked);
+  const minStaked = Math.min(...candidates.map((o: string) => betStaked[o]));
+  const finalCandidates = candidates.filter((o: string) => betStaked[o] === minStaked);
   const result = finalCandidates[Math.floor(Math.random() * finalCandidates.length)];
 
   const reason = `Auto: "${result}" had fewest bets (${betCounts[result]}) & lowest staked (PKR ${betStaked[result].toFixed(0)})`;
@@ -1336,8 +1344,9 @@ router.post("/admin/game-overrides", requireAdmin, (req, res) => {
 });
 
 router.delete("/admin/game-overrides/:game", requireAdmin, (req, res) => {
-  gameOverrides.delete(req.params.game);
-  res.json({ message: `Override cleared for ${req.params.game}`, overrides: Object.fromEntries(gameOverrides) });
+  const game = Array.isArray(req.params.game) ? req.params.game[0] : req.params.game;
+  gameOverrides.delete(game);
+  res.json({ message: `Override cleared for ${game}`, overrides: Object.fromEntries(gameOverrides) });
 });
 
 /* ──────────── CASINO LIVE BET STATS ──────────── */

@@ -134,7 +134,7 @@ export default function Dashboard() {
             <CardTitle>Bet Status Distribution</CardTitle>
           </CardHeader>
           <CardContent className="flex justify-center h-[300px]">
-            {stats.totalBets > 0 ? (
+            {safeStats.totalBets > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie

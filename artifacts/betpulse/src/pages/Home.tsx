@@ -406,7 +406,7 @@ export default function Home() {
             {isLoadingLive ? (
               [1,2].map(i => <Skeleton key={i} className="h-24 w-48 rounded-xl flex-shrink-0" />)
             ) : casinoLive.map(ev => {
-              const opts = ev.options as any[];
+              const opts = (ev as any).options as any[];
               return (
                 <div key={ev.id}
                   onClick={() => handlePlay(ev.sport?.toLowerCase().replace(/ /g, "-") || "")}

@@ -171,7 +171,7 @@ export default function CrashGame() {
   const [selection, setSelection] = useState<string | null>(null);
   const [phase, setPhase] = useState<"betting" | "waiting" | "result">("betting");
   const [result, setResult] = useState<any>(null);
-  const [balance, setBalance] = useState<number>(parseFloat(user?.balance || "0"));
+  const [balance, setBalance] = useState<number>(parseFloat(String(user?.balance || "0")));
   const [isPlacing, setIsPlacing] = useState(false);
 
   // Animation state
@@ -190,7 +190,7 @@ export default function CrashGame() {
   const resultArrivedAtRef = useRef<number | null>(null);
   const multAtResultRef = useRef<number>(1);
 
-  useEffect(() => { setBalance(parseFloat(user?.balance || "0")); }, [user?.balance]);
+  useEffect(() => { setBalance(parseFloat(String(user?.balance || "0"))); }, [user?.balance]);
 
   // Store result in ref so animation loop can read it
   useEffect(() => {

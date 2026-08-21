@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, PlayCircle, Clock, CheckCircle2, Gamepad2 } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
-import type { Event } from "@workspace/api-client-react/src/generated/api.schemas";
+import type { Event } from "@workspace/api-client-react";
 
 interface GameStyle {
   homeColor: string;

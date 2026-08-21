@@ -154,7 +154,7 @@ export default function Bingo777Game() {
   const [betType,   setBetType]   = useState<string|null>(null);
   const [phase,     setPhase]     = useState<"idle"|"spinning"|"result">("idle");
   const [result,    setResult]    = useState<any>(null);
-  const [balance,   setBalance]   = useState<number>(parseFloat(user?.balance||"0"));
+  const [balance,   setBalance]   = useState<number>(parseFloat(String(user?.balance||"0")));
   const [isPlacing, setIsPlacing] = useState(false);
 
   /* Reel state */
@@ -164,7 +164,7 @@ export default function Bingo777Game() {
 
   const tickRef = useRef(0);
 
-  useEffect(()=>{ setBalance(parseFloat(user?.balance||"0")); },[user?.balance]);
+  useEffect(()=>{ setBalance(parseFloat(String(user?.balance||"0"))); },[user?.balance]);
 
   /* Map result string to reel display */
   const getReelSymbols = (res:string):string[] => {

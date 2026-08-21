@@ -89,7 +89,7 @@ export default function TeenPattiGame() {
   const [phase, setPhase] = useState<Phase>("betting");
   const [roundId, setRoundId] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
-  const [balance, setBalance] = useState<number>(parseFloat(user?.balance || "0"));
+  const [balance, setBalance] = useState<number>(parseFloat(String(user?.balance || "0")));
   const [isPlacing, setIsPlacing] = useState(false);
 
   // Animation states
@@ -97,7 +97,7 @@ export default function TeenPattiGame() {
   const [revealedCount, setRevealedCount] = useState(0); // 0-6 cards flipped face-up
   const dealTimersRef = useRef<ReturnType<typeof setInterval>[]>([]);
 
-  useEffect(() => { setBalance(parseFloat(user?.balance || "0")); }, [user?.balance]);
+  useEffect(() => { setBalance(parseFloat(String(user?.balance || "0"))); }, [user?.balance]);
 
   // Card dealing animation when entering "dealing" phase
   useEffect(() => {

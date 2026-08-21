@@ -211,7 +211,7 @@ export default function JokerGame() {
   const [selection, setSelection] = useState<string|null>(null);
   const [phase, setPhase]         = useState<"betting"|"spinning"|"result">("betting");
   const [result, setResult]       = useState<any>(null);
-  const [balance, setBalance]     = useState<number>(parseFloat(user?.balance||"0"));
+  const [balance, setBalance]     = useState<number>(parseFloat(String(user?.balance||"0")));
   const [isPlacing, setIsPlacing] = useState(false);
 
   // Reel state: each reel has a "final symbol index" and settled flag
@@ -221,7 +221,7 @@ export default function JokerGame() {
 
   const tickRef = useRef(0);
 
-  useEffect(()=>{ setBalance(parseFloat(user?.balance||"0")); },[user?.balance]);
+  useEffect(()=>{ setBalance(parseFloat(String(user?.balance||"0"))); },[user?.balance]);
 
   /* poll backend */
   const pollRound = useCallback(async (rId:string, sel:string) => {

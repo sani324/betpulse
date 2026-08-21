@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Crown, Wallet, LogOut, ShieldAlert, Menu, X, Home, ListChecks, Gamepad2, LayoutDashboard, Plus, ArrowDownToLine } from "lucide-react";
+import { Crown, Wallet, LogOut, ShieldAlert, Menu, X, Home, ListChecks, Gamepad2, LayoutDashboard, Plus, ArrowDownToLine, Trophy } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { InstallAppModal } from "../InstallAppModal";
 

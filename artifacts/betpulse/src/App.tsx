@@ -42,6 +42,30 @@ import SportsMenu from "@/pages/SportsMenu";
 
 const queryClient = new QueryClient();
 
+function HomeRoute() {
+  return <AppLayout><Home /></AppLayout>;
+}
+
+function EventDetailRoute() {
+  return <AppLayout><EventDetail /></AppLayout>;
+}
+
+function MyBetsRoute() {
+  return <ProtectedRoute><AppLayout><MyBets /></AppLayout></ProtectedRoute>;
+}
+
+function WalletRoute() {
+  return <ProtectedRoute><AppLayout><WalletPage /></AppLayout></ProtectedRoute>;
+}
+
+function DashboardRoute() {
+  return <ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>;
+}
+
+function AdminRoute() {
+  return <ProtectedRoute requireAdmin><AppLayout><Admin /></AppLayout></ProtectedRoute>;
+}
+
 function Router() {
   return (
     <Switch>
@@ -51,29 +75,11 @@ function Router() {
       <Route path="/sports" component={SportsMenu} />
       <Route path="/home/sport" component={SportsMenu} />
       
-      <Route path="/">
-        <AppLayout><Home /></AppLayout>
-      </Route>
-
-      <Route path="/events/:eventId">
-        <AppLayout><EventDetail /></AppLayout>
-      </Route>
-
-      <Route path="/my-bets">
-        <ProtectedRoute><AppLayout><MyBets /></AppLayout></ProtectedRoute>
-      </Route>
-
-      <Route path="/wallet">
-        <ProtectedRoute><AppLayout><WalletPage /></AppLayout></ProtectedRoute>
-      </Route>
-
-      <Route path="/dashboard">
-        <ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>
-      </Route>
-
-      <Route path="/admin">
-        <ProtectedRoute requireAdmin><AppLayout><Admin /></AppLayout></ProtectedRoute>
-      </Route>
+      <Route path="/events/:eventId" component={EventDetailRoute} />
+      <Route path="/my-bets" component={MyBetsRoute} />
+      <Route path="/wallet" component={WalletRoute} />
+      <Route path="/dashboard" component={DashboardRoute} />
+      <Route path="/admin" component={AdminRoute} />
 
       {/* Casino game pages */}
       <Route path="/play/teen-patti" component={TeenPattiGame} />
@@ -98,6 +104,7 @@ function Router() {
       <Route path="/play/car-roulette" component={CarRouletteGame} />
       <Route path="/play/god-of-fortune" component={GodOfFortuneGame} />
       <Route path="/play/:slug" component={CatalogGame} />
+      <Route path="/" component={HomeRoute} />
 
       <Route component={NotFound} />
     </Switch>

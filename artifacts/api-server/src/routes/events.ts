@@ -172,7 +172,9 @@ router.patch("/events/:eventId", requireAdmin, async (req, res): Promise<void> =
 });
 
 router.delete("/events/:eventId/delete", requireAdmin, async (req, res): Promise<void> => {
-  const eventId = parseInt(req.params.eventId, 10);
+  const rawId = req.params.eventId;
+  const idStr = Array.isArray(rawId) ? rawId[0] : rawId;
+  const eventId = parseInt(idStr, 10);
   if (isNaN(eventId)) {
     res.status(400).json({ error: "Invalid event id" });
     return;

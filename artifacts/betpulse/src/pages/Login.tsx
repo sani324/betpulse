@@ -169,7 +169,7 @@ export default function Login() {
       }}>
         <div style={{ width: "100%", maxWidth: 400 }}>
           {/* Mobile logo & Back button */}
-          <div style={{ marginBottom: 24, display: "flex", itemsCenter: "center", justifyContent: "space-between" }}>
+          <div style={{ marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <button
               type="button"
               onClick={() => setLocation("/")}

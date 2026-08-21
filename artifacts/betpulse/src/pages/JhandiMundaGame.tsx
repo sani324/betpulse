@@ -184,7 +184,7 @@ export default function JhandiMundaGame() {
   const [selection, setSelection] = useState<string | null>(null);
   const [phase, setPhase] = useState<"betting" | "rolling" | "settling" | "result">("betting");
   const [result, setResult] = useState<any>(null);
-  const [balance, setBalance] = useState<number>(parseFloat(user?.balance || "0"));
+  const [balance, setBalance] = useState<number>(parseFloat(String(user?.balance || "0")));
   const [isPlacing, setIsPlacing] = useState(false);
 
   const [rollingDisplay, setRollingDisplay] = useState<string[]>(SYM_KEYS);
@@ -192,7 +192,7 @@ export default function JhandiMundaGame() {
   const [finalDice, setFinalDice] = useState<string[]>([]);
   const rollIvRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => { setBalance(parseFloat(user?.balance || "0")); }, [user?.balance]);
+  useEffect(() => { setBalance(parseFloat(String(user?.balance || "0"))); }, [user?.balance]);
 
   useEffect(() => {
     if (phase !== "rolling") return;
@@ -355,7 +355,7 @@ export default function JhandiMundaGame() {
                   key={i}
                   symKey={key ?? SYMBOLS[i].key}
                   isRolling={isRollingDie}
-                  settled={isSettled && phase !== "rolling"}
+                  settled={isSettled}
                   isWin={isWin}
                   dimmed={dimmed}
                 />

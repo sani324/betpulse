@@ -208,7 +208,7 @@ export default function WalletPage() {
                 <div className="text-sm font-semibold text-slate-600">Balance</div>
                 <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-full border border-slate-200 text-sm font-bold text-slate-800">
                   <span>🇵🇰</span>
-                  <span>{parseFloat(balanceInfo?.balance || "0").toFixed(2)}</span>
+                  <span>{parseFloat(String(balanceInfo?.balance || "0")).toFixed(2)}</span>
                   <RefreshCw className="w-3.5 h-3.5 text-slate-400 cursor-pointer hover:rotate-180 transition" onClick={() => queryClient.invalidateQueries()} />
                 </div>
               </div>
@@ -392,7 +392,7 @@ export default function WalletPage() {
               <div className="space-y-1">
                 <h3 className="text-lg font-bold text-slate-900">Withdraw Funds</h3>
                 <p className="text-xs text-slate-500">
-                  Withdrawable Net Balance: <strong className="text-emerald-600 font-bold">{formatCurrency(balanceInfo?.withdrawableBalance || 0)}</strong>
+                  Withdrawable Net Balance: <strong className="text-emerald-600 font-bold">{formatCurrency((balanceInfo as any)?.withdrawableBalance || balanceInfo?.balance || 0)}</strong>
                 </p>
               </div>
 

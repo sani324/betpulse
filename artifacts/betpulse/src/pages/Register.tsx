@@ -272,7 +272,7 @@ export default function Register() {
       }}>
         <div style={{ width: "100%", maxWidth: 420 }}>
           {/* Back button */}
-          <div style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyBetween: "space-between" }}>
+          <div style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <button
               type="button"
               onClick={() => setLocation("/")}

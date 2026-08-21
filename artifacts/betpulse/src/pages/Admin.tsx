@@ -1385,7 +1385,7 @@ export default function Admin() {
                         <TableCell className="font-medium">{bet.username}</TableCell>
                         <TableCell>{bet.homeTeam} vs {bet.awayTeam}</TableCell>
                         <TableCell className="text-xs font-bold">
-                          {bet.selection === "home" ? `${bet.homeTeam} Win` : bet.selection === "away" ? `${bet.awayTeam} Win` : bet.selection === "draw" ? "Draw" : bet.selection.charAt(0).toUpperCase() + bet.selection.slice(1)}
+                          {bet.selection === "home" ? `${bet.homeTeam} Win` : bet.selection === "away" ? `${bet.awayTeam} Win` : bet.selection === "draw" ? "Draw" : String(bet.selection)}
                         </TableCell>
                         <TableCell className="text-right font-mono">{formatCurrency(bet.stake)}</TableCell>
                         <TableCell className="text-right font-mono">{bet.odds.toFixed(2)}</TableCell>

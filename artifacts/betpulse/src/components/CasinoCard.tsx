@@ -3,7 +3,7 @@ import { useBetSlip } from "@/lib/bet-slip-context";
 import { Badge } from "@/components/ui/badge";
 import { PlayCircle, Clock, CheckCircle2 } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
-import type { Event } from "@workspace/api-client-react/src/generated/api.schemas";
+import type { Event } from "@workspace/api-client-react";
 import { CASINO_ICONS } from "@/lib/casino-config";
 
 const SIDE_COLORS: Record<string, { home: string; away: string; tie: string }> = {

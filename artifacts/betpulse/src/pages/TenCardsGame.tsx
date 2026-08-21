@@ -250,14 +250,14 @@ export default function TenCardsGame() {
   const [selection, setSelection] = useState<string|null>(null);
   const [phase,     setPhase]     = useState<"betting"|"dealing"|"result">("betting");
   const [result,    setResult]    = useState<any>(null);
-  const [balance,   setBalance]   = useState<number>(parseFloat(user?.balance||"0"));
+  const [balance,   setBalance]   = useState<number>(parseFloat(String(user?.balance||"0")));
   const [isPlacing, setIsPlacing] = useState(false);
 
   const [dealtCards,  setDealtCards]  = useState(0);   // 0–3 cards dealt per row
   const [showResult,  setShowResult]  = useState(false);
   const tickRef = useRef(0);
 
-  useEffect(()=>{ setBalance(parseFloat(user?.balance||"0")); },[user?.balance]);
+  useEffect(()=>{ setBalance(parseFloat(String(user?.balance||"0"))); },[user?.balance]);
 
   const pollRound = useCallback(async (rId:string, sel:string) => {
     tickRef.current = 0;

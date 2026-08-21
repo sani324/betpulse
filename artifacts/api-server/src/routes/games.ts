@@ -93,7 +93,8 @@ async function queueRoundBet(
 
 // Generic poll endpoint used by all casino games.
 router.get("/games/casino-round/:game/:roundId", requireAuth, (req, res): void => {
-  const { game, roundId } = req.params;
+  const game = Array.isArray(req.params.game) ? req.params.game[0] : req.params.game;
+  const roundId = Array.isArray(req.params.roundId) ? req.params.roundId[0] : req.params.roundId;
   const open = casinoOpenRounds.get(game);
   if (open && open.id === roundId) {
     res.json({ status: "pending", roundId });

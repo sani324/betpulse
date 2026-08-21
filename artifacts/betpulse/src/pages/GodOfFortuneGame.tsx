@@ -404,7 +404,6 @@ export default function GodOfFortuneGame(){
                 background:busy?"linear-gradient(90deg,#7c2d12,#9a3412)":(!selection||bet<=0)?"rgba(255,255,255,0.05)":"linear-gradient(90deg,#9a3412,#dc2626,#f5c542,#dc2626,#9a3412)",
                 backgroundSize:"200% 100%",
                 color:(!selection||bet<=0)&&!busy?"rgba(255,255,255,0.25)":"#1a0006",
-                fontWeight:900,
                 boxShadow:(!busy&&selection&&bet>0)?"0 0 30px rgba(245,197,66,0.4),0 0 60px rgba(220,38,38,0.2)":undefined,
                 animation:(!busy&&selection&&bet>0)?"gof-shimmer 2s linear infinite":undefined,
                 opacity:(!selection||bet<=0)&&!busy?0.5:1}}>

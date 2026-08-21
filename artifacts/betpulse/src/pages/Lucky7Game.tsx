@@ -124,7 +124,7 @@ export default function Lucky7Game() {
   const [selection, setSelection] = useState<Selection | null>(null);
   const [phase, setPhase] = useState<Phase>("betting");
   const [result, setResult] = useState<any>(null);
-  const [balance, setBalance] = useState<number>(parseFloat(user?.balance || "0"));
+  const [balance, setBalance] = useState<number>(parseFloat(String(user?.balance || "0")));
   const [isPlacing, setIsPlacing] = useState(false);
 
   // Rolling animation state
@@ -135,7 +135,7 @@ export default function Lucky7Game() {
   const rollIvRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pendingResultRef = useRef<any>(null);
 
-  useEffect(() => { setBalance(parseFloat(user?.balance || "0")); }, [user?.balance]);
+  useEffect(() => { setBalance(parseFloat(String(user?.balance || "0"))); }, [user?.balance]);
 
   // Rapid cycling while rolling
   useEffect(() => {
