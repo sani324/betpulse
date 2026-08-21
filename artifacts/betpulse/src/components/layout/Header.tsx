@@ -63,8 +63,9 @@ export function Header() {
               </div>
             </Link>
 
-            <nav className="hidden items-center gap-1 md:flex">
+            <nav className="hidden items-center gap-2 md:flex">
               <NavLink
+                variant="lobby"
                 icon={<Home size={15} />}
                 label="Lobby"
                 isActive={location === "/"}
@@ -74,11 +75,13 @@ export function Header() {
                 }}
               />
               <NavLink
+                variant="sports"
                 href="/sports"
-                icon={<Trophy size={15} style={{ color: "#f5c542" }} />}
+                icon={<Trophy size={15} />}
                 label="Sports"
               />
               <NavLink
+                variant="games"
                 icon={<Gamepad2 size={15} />}
                 label="Games"
                 onClick={() => {
@@ -91,10 +94,10 @@ export function Header() {
                 }}
               />
               {isAuthenticated && (
-                <NavLink href="/my-bets" icon={<ListChecks size={15} />} label="My Bets" />
+                <NavLink variant="mybets" href="/my-bets" icon={<ListChecks size={15} />} label="My Bets" />
               )}
               {isAdmin && (
-                <NavLink href="/admin" icon={<ShieldAlert size={15} />} label="Admin" danger />
+                <NavLink variant="admin" href="/admin" icon={<ShieldAlert size={15} />} label="Admin" />
               )}
             </nav>
           </div>
@@ -218,11 +221,11 @@ export function Header() {
   );
 }
 
-function NavLink({ href, icon, label, danger, isActive: forceActive, onClick }: {
+function NavLink({ href, icon, label, variant = "lobby", isActive: forceActive, onClick }: {
   href?: string;
   icon: React.ReactNode;
   label: string;
-  danger?: boolean;
+  variant?: "lobby" | "sports" | "games" | "mybets" | "admin";
   isActive?: boolean;
   onClick?: () => void;
 }) {
@@ -232,17 +235,39 @@ function NavLink({ href, icon, label, danger, isActive: forceActive, onClick }: 
     : false;
   const isActive = forceActive !== undefined ? forceActive : computedActive;
 
+  const variantStyles = {
+    lobby: {
+      active: "bg-gradient-to-r from-amber-400 to-yellow-400 text-black border-amber-300 shadow-md shadow-amber-500/30 font-black scale-105",
+      inactive: "bg-amber-950/40 text-amber-300 border-amber-500/30 hover:bg-amber-500 hover:text-black font-bold",
+    },
+    sports: {
+      active: "bg-gradient-to-r from-emerald-500 to-green-400 text-black border-green-300 shadow-md shadow-green-500/30 font-black scale-105",
+      inactive: "bg-emerald-950/60 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500 hover:text-black font-bold",
+    },
+    games: {
+      active: "bg-gradient-to-r from-purple-500 to-violet-400 text-white border-purple-300 shadow-md shadow-purple-500/30 font-black scale-105",
+      inactive: "bg-purple-950/60 text-purple-300 border-purple-500/40 hover:bg-purple-600 hover:text-white font-bold",
+    },
+    mybets: {
+      active: "bg-gradient-to-r from-sky-500 to-blue-400 text-white border-sky-300 shadow-md shadow-sky-500/30 font-black scale-105",
+      inactive: "bg-sky-950/60 text-sky-300 border-sky-500/40 hover:bg-sky-600 hover:text-white font-bold",
+    },
+    admin: {
+      active: "bg-gradient-to-r from-rose-600 to-red-500 text-white border-rose-300 shadow-md shadow-rose-500/40 font-black scale-105",
+      inactive: "bg-rose-950/80 text-rose-300 border-rose-500/50 hover:bg-rose-600 hover:text-white font-bold",
+    },
+  };
+
+  const styleConfig = variantStyles[variant] || variantStyles.lobby;
+  const currentClass = isActive ? styleConfig.active : styleConfig.inactive;
+
   const button = (
     <button
       onClick={onClick}
-      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all"
-      style={{
-        background: isActive ? "rgba(245,197,66,0.1)" : "transparent",
-        color: danger ? "#f87171" : isActive ? "#f5c542" : "rgba(255,255,255,0.55)",
-        border: isActive ? "1px solid rgba(245,197,66,0.25)" : "1px solid transparent",
-      }}
+      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs border transition-all duration-200 active:scale-95 ${currentClass}`}
     >
-      {icon}{label}
+      <span className="shrink-0">{icon}</span>
+      <span>{label}</span>
     </button>
   );
 
@@ -251,8 +276,16 @@ function NavLink({ href, icon, label, danger, isActive: forceActive, onClick }: 
 
 function MobileNavItem({ onClick, icon, label, danger }: { onClick: () => void; icon: React.ReactNode; label: string; danger?: boolean }) {
   return (
-    <button onClick={onClick} className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium transition-colors hover:bg-white/5" style={{ color: danger ? "#f87171" : "rgba(255,255,255,0.75)" }}>
-      <span style={{ color: danger ? "#f87171" : "#f5c542" }}>{icon}</span> {label}
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-left text-xs font-bold transition-all border ${
+        danger
+          ? "bg-rose-950/60 border-rose-500/40 text-rose-300 hover:bg-rose-600 hover:text-white"
+          : "bg-emerald-950/40 border-amber-500/20 text-amber-200 hover:bg-amber-500 hover:text-black"
+      }`}
+    >
+      <span className={danger ? "text-rose-400" : "text-amber-400"}>{icon}</span>
+      <span>{label}</span>
     </button>
   );
 }
