@@ -66,7 +66,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ShieldAlert, TrendingUp, Users, Coins, Activity, Pencil, Trash2, UserCog, ArrowUpFromLine, ArrowDownToLine, CheckCircle, XCircle, Clock, AlertCircle, Flag, ShieldX, ShieldCheck, KeyRound, CalendarDays, PlusCircle, BarChart3, Receipt, CreditCard, Gift, Gamepad2, FileBarChart } from "lucide-react";
+import { ShieldAlert, TrendingUp, Users, Coins, Activity, Pencil, Trash2, UserCog, ArrowUpFromLine, ArrowDownToLine, CheckCircle, XCircle, Clock, AlertCircle, Flag, ShieldX, ShieldCheck, KeyRound, CalendarDays, PlusCircle, BarChart3, Receipt, CreditCard, Gift, Gamepad2, FileBarChart, Trophy } from "lucide-react";
 import AdminReports from "@/components/AdminReports";
 import { Skeleton } from "@/components/ui/skeleton";
 
