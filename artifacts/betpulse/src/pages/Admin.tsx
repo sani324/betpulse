@@ -2686,6 +2686,30 @@ function AdminContent() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                 {[
                   {
+                    game: "teen-patti", label: "👑 Teen Patti",
+                    options: [
+                      { value: "player", label: "👤 Player Wins", color: "bg-green-600 hover:bg-green-700 text-white" },
+                      { value: "house",  label: "🏠 House (Admin) Wins", color: "bg-red-600 hover:bg-red-700 text-white" },
+                      { value: "trail",  label: "🔥 Trio / Trail 100×", color: "bg-amber-500 hover:bg-amber-600 text-white" },
+                    ],
+                  },
+                  {
+                    game: "lucky-7", label: "7️⃣ Lucky 7",
+                    options: [
+                      { value: "low",   label: "⬇ 7 Down (1-6)", color: "bg-blue-600 hover:bg-blue-700 text-white" },
+                      { value: "seven", label: "7️⃣ Seven 7×",     color: "bg-amber-500 hover:bg-amber-600 text-white" },
+                      { value: "high",  label: "⬆ 7 Up (8-12)", color: "bg-red-600 hover:bg-red-700 text-white" },
+                    ],
+                  },
+                  {
+                    game: "jhandi-munda", label: "🚩 Jhandi Munda",
+                    options: [
+                      { value: "flag",  label: "🚩 Flag",  color: "bg-red-600 hover:bg-red-700 text-white" },
+                      { value: "crown", label: "👑 Crown", color: "bg-yellow-500 hover:bg-yellow-600 text-white" },
+                      { value: "spade", label: "♠️ Spade", color: "bg-gray-700 hover:bg-gray-800 text-white" },
+                    ],
+                  },
+                  {
                     game: "dragon-tiger", label: "🐲 Dragon Tiger",
                     options: [
                       { value: "dragon", label: "🐲 Dragon", color: "bg-red-600 hover:bg-red-700 text-white" },
