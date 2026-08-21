@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -92,7 +92,7 @@ const adjustBalanceSchema = z.object({
   note: z.string().optional(),
 });
 
-export default function Admin() {
+function AdminContent() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, isAdmin, isLoading: isLoadingAuth } = useAuth();
@@ -1066,7 +1066,7 @@ export default function Admin() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {events.map(event => (
+                    {events?.map(event => (
                       <TableRow key={event.id}>
                         <TableCell className="font-medium">
                           {event.homeTeam} vs {event.awayTeam}
@@ -1487,7 +1487,7 @@ export default function Admin() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {bets.map(bet => (
+                    {bets?.map(bet => (
                       <TableRow key={bet.id}>
                         <TableCell className="font-medium">{bet.username}</TableCell>
                         <TableCell>{bet.homeTeam} vs {bet.awayTeam}</TableCell>
@@ -2144,7 +2144,7 @@ export default function Admin() {
               ) : (
                 <div className="space-y-3">
                   <div className="grid grid-cols-1 gap-3">
-                    {events.slice(0, 8).map(event => (
+                    {events?.slice(0, 8).map(event => (
                       <div key={event.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-card/40 border border-border/40 gap-2">
                         <div>
                           <div className="font-bold text-sm flex items-center gap-2">
@@ -2984,5 +2984,51 @@ export default function Admin() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+class AdminErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("Admin Panel Error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-[75vh] flex items-center justify-center p-4">
+          <div className="bg-[#0d1f14] border border-amber-500/50 rounded-2xl p-6 text-center space-y-4 max-w-md shadow-2xl">
+            <div className="text-4xl">🛡️</div>
+            <div className="font-extrabold text-amber-400 text-xl">Admin Control Center Notice</div>
+            <div className="text-xs text-white/70 bg-black/40 p-3 rounded-xl border border-white/10 font-mono">
+              {String(this.state.error?.message || "An unexpected error occurred.")}
+            </div>
+            <button
+              onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
+              className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-bold text-sm rounded-xl transition"
+            >
+              🔄 Reload Admin Panel
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export default function Admin() {
+  return (
+    <AdminErrorBoundary>
+      <AdminContent />
+    </AdminErrorBoundary>
   );
 }
