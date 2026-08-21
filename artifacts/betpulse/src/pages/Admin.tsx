@@ -98,8 +98,8 @@ function AdminContent() {
   const { user, isAdmin, isLoading: isLoadingAuth } = useAuth();
   const loginMutation = useLogin();
 
-  const [adminEmail, setAdminEmail] = useState("kaloti@betpulse.com");
-  const [adminPassword, setAdminPassword] = useState("BetPulseAdmin#2026!Sec");
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
 
   const [settleDialogOpen, setSettleDialogOpen] = useState(false);
@@ -843,10 +843,6 @@ function AdminContent() {
               {loginLoading ? "Logging in..." : "🔓 Unlock Admin Control Center"}
             </Button>
 
-            <div className="p-3 rounded-xl bg-card/40 border border-white/10 text-center text-xs text-white/50 space-y-1 font-mono">
-              <div>Admin Account: <strong className="text-amber-300">kaloti@betpulse.com</strong></div>
-              <div>Password: <strong className="text-amber-300">BetPulseAdmin#2026!Sec</strong></div>
-            </div>
           </CardContent>
         </Card>
       </div>
@@ -868,9 +864,6 @@ function AdminContent() {
             <ShieldAlert className="h-8 w-8" />
             Admin Control Center
           </h1>
-        </div>
-        <div className="text-xs text-muted-foreground bg-card border rounded px-3 py-2 font-mono">
-          Admin: <strong>kaloti@betpulse.com</strong> &nbsp;|&nbsp; Pass: <strong>BetPulseAdmin#2026!Sec</strong>
         </div>
       </div>
 
