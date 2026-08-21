@@ -71,6 +71,11 @@ export function Header() {
                 onClick={() => { setHomeView("lobby"); setLocation("/"); }}
               />
               <NavLink
+                href="/sports"
+                icon={<Trophy size={15} style={{ color: "#f5c542" }} />}
+                label="Sports"
+              />
+              <NavLink
                 icon={<Gamepad2 size={15} />}
                 label="Games"
                 isActive={location === "/" && homeView === "games"}
@@ -163,6 +168,7 @@ export function Header() {
 
               <div className="flex flex-col gap-1 py-3">
                 <MobileNavItem onClick={() => { setHomeView("lobby"); nav("/"); }} icon={<Home size={16} />} label="Lobby" />
+                <MobileNavItem onClick={() => nav("/sports")} icon={<Trophy size={16} />} label="⚽ Sports Center" />
                 <MobileNavItem onClick={() => { setHomeView("games"); nav("/"); }} icon={<Gamepad2 size={16} />} label="All Games" />
                 {isAuthenticated && (
                   <>

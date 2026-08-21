@@ -37,7 +37,6 @@ import BlackjackGame from "@/pages/BlackjackGame";
 import CarRouletteGame from "@/pages/CarRouletteGame";
 import GodOfFortuneGame from "@/pages/GodOfFortuneGame";
 import RummyGame from "@/pages/RummyGame";
-import CricketGame from "@/pages/CricketGame";
 import SodaPayCheckout from "@/pages/SodaPayCheckout";
 import SportsMenu from "@/pages/SportsMenu";
 
@@ -84,7 +83,6 @@ function Router() {
       <Route path="/play/rang" component={RangGame} />
       <Route path="/play/court-piece" component={CourtPieceGame} />
       <Route path="/play/rummy" component={RummyGame} />
-      <Route path="/play/cricket" component={CricketGame} />
       <Route path="/play/lucky-7" component={Lucky7Game} />
       <Route path="/play/jhandi-munda" component={JhandiMundaGame} />
       <Route path="/play/joker" component={JokerGame} />

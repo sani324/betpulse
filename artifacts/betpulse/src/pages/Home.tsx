@@ -13,12 +13,13 @@ const BASE_URL = import.meta.env.BASE_URL;
 
 const CASINO_GAMES = [
   {
-    slug: "cricket",      label: "Cricket League", emoji: "🏏", players: "15.2K",
-    category: "Real Cash",  tag: "LIVE HOT", tagColor: "#22c55e",
+    slug: "sports",       label: "Z7VIP Sports Center", emoji: "⚽", players: "24.5K",
+    category: "Real Cash",  tag: "LIVE SPORTS", tagColor: "#22c55e",
     bg: "linear-gradient(135deg,#06240d 0%,#14532d 50%,#15803d 100%)",
     accent: "#4ade80", featured: true,
-    desc: "Team A • Team B • Super Over 8×",
+    desc: "Football • Cricket • Basketball • Tennis • 3-Column Odds",
     thumbnail: `${BASE_URL}cricket-logo.jpg`,
+    isSports: true,
   },
   // Table Games
   {
@@ -316,6 +317,7 @@ export default function Home() {
     : CASINO_GAMES.filter(g => g.category === activeCategory);
 
   const handlePlay = (slug: string) => {
+    if (slug === "sports") { setLocation("/sports"); return; }
     if (!isAuthenticated) { setLocation("/login"); return; }
     setLocation(`/play/${slug}`);
   };
