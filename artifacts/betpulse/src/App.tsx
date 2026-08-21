@@ -63,7 +63,7 @@ function DashboardRoute() {
 }
 
 function AdminRoute() {
-  return <ProtectedRoute requireAdmin><AppLayout><Admin /></AppLayout></ProtectedRoute>;
+  return <AppLayout><Admin /></AppLayout>;
 }
 
 function Router() {

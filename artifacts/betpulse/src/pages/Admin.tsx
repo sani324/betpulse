@@ -9,10 +9,13 @@ import {
   useSettleEvent,
   useUpdateOdds,
   useGetEvents,
+  useLogin,
+  getGetMeQueryKey,
   getGetAdminDashboardQueryKey,
   getGetAdminBetsQueryKey,
   getGetEventsQueryKey
 } from "@workspace/api-client-react";
+import { useAuth } from "@/lib/auth-context";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatCurrency, formatPercentage, formatDateTime } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -92,6 +95,12 @@ const adjustBalanceSchema = z.object({
 export default function Admin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user, isAdmin, isLoading: isLoadingAuth } = useAuth();
+  const loginMutation = useLogin();
+
+  const [adminEmail, setAdminEmail] = useState("admin@betpulse.com");
+  const [adminPassword, setAdminPassword] = useState("password");
+  const [loginLoading, setLoginLoading] = useState(false);
 
   const [settleDialogOpen, setSettleDialogOpen] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
@@ -768,7 +777,70 @@ export default function Admin() {
     }
   }
 
-  const unsettledEvents = events?.filter(e => e.status !== "finished") || [];
+  if (!isAdmin) {
+    return (
+      <div className="min-h-[75vh] flex items-center justify-center p-4">
+        <Card className="w-full max-w-md border-amber-500/40 bg-[#0d1f14] shadow-2xl">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto w-14 h-14 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center mb-3">
+              <ShieldAlert className="w-8 h-8 text-amber-400" />
+            </div>
+            <CardTitle className="text-2xl font-black text-amber-400 tracking-tight">Admin Control Center</CardTitle>
+            <CardDescription className="text-xs text-white/60">
+              Enter Admin Credentials to access Game Controls, Events, and Withdrawals
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-white/80">Admin Email</label>
+              <Input
+                type="email"
+                value={adminEmail}
+                onChange={e => setAdminEmail(e.target.value)}
+                className="bg-background border-emerald-800 text-foreground font-mono text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-white/80">Password</label>
+              <Input
+                type="password"
+                value={adminPassword}
+                onChange={e => setAdminPassword(e.target.value)}
+                className="bg-background border-emerald-800 text-foreground font-mono text-sm"
+              />
+            </div>
+            <Button
+              className="w-full bg-amber-500 hover:bg-amber-600 text-black font-bold text-sm h-11"
+              disabled={loginLoading}
+              onClick={() => {
+                setLoginLoading(true);
+                loginMutation.mutate(
+                  { email: adminEmail, password: adminPassword },
+                  {
+                    onSuccess: () => {
+                      queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+                      toast({ title: "Welcome Admin!" });
+                    },
+                    onError: (err: any) => {
+                      toast({ title: "Login failed", description: err.response?.data?.error || "Invalid admin credentials", variant: "destructive" });
+                    },
+                    onSettled: () => setLoginLoading(false),
+                  }
+                );
+              }}
+            >
+              {loginLoading ? "Logging in..." : "🔓 Unlock Admin Control Center"}
+            </Button>
+
+            <div className="p-3 rounded-xl bg-card/40 border border-white/10 text-center text-xs text-white/50 space-y-1 font-mono">
+              <div>Default Admin: <strong className="text-amber-300">admin@betpulse.com</strong></div>
+              <div>Password: <strong className="text-amber-300">password</strong></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
