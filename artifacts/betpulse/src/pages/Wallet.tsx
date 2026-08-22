@@ -54,8 +54,31 @@ export default function WalletPage() {
   const [cryptoTxHash, setCryptoTxHash] = useState<string>("");
   const [isSubmittingCrypto, setIsSubmittingCrypto] = useState<boolean>(false);
 
-  const trc20Address = "TYu89XqZk2mL7vP4n9W1rT3sB5vC8xD0eF";
-  const bep20Address = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
+  const [dynamicTrc20, setDynamicTrc20] = useState<string>("");
+  const [dynamicBep20, setDynamicBep20] = useState<string>("");
+  const [userMe, setUserMe] = useState<any>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me", { credentials: "include" })
+      .then(r => r.json())
+      .then(data => { if (data?.id) setUserMe(data); })
+      .catch(() => {});
+
+    fetch("/api/payment-settings")
+      .then(r => r.json())
+      .then((methods: any[]) => {
+        if (Array.isArray(methods)) {
+          const trc = methods.find(m => m.method === "usdt_trc20");
+          const bep = methods.find(m => m.method === "usdt_bep20");
+          if (trc?.accountNumber) setDynamicTrc20(trc.accountNumber);
+          if (bep?.accountNumber) setDynamicBep20(bep.accountNumber);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const trc20Address = dynamicTrc20 || "TYu89XqZk2mL7vP4n9W1rT3sB5vC8xD0eF";
+  const bep20Address = dynamicBep20 || "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
 
   async function handleCryptoDepositSubmit() {
     if (!cryptoTxHash || cryptoTxHash.trim().length < 8) {
@@ -108,6 +131,10 @@ export default function WalletPage() {
     { limit: 50 },
     { query: { queryKey: getGetTransactionsQueryKey({ limit: 50 }) } }
   );
+
+  const currentBalance = balanceInfo?.balance ?? 0;
+  const currentBonusBal = (balanceInfo as any)?.bonusBalance ?? 50000;
+  const withdrawableBalance = Math.max(0, currentBalance - currentBonusBal);
 
   const getBonusForAmount = (amt: number) => {
     const item = PRESET_AMOUNTS.find(p => p.amount === amt);
@@ -223,6 +250,44 @@ export default function WalletPage() {
             <span>Deposit & Wallet</span>
           </div>
           <div className="w-14" />
+        </div>
+
+        {/* Referral Link & Earn Card */}
+        <div className="bg-gradient-to-r from-emerald-900 to-teal-900 text-white rounded-2xl p-4 shadow-lg border border-emerald-500/30 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🎁</span>
+              <div>
+                <h4 className="font-extrabold text-sm text-emerald-300">Refer & Earn Bonus</h4>
+                <p className="text-[11px] text-slate-300">Share link — earn referral reward bonus for every player who joins!</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-emerald-500/40 font-mono text-xs text-emerald-300 font-bold">
+            <span className="truncate flex-1">{window.location.origin}/register?ref={userMe?.username || userMe?.id || "user"}</span>
+            <div className="flex gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  const refCode = userMe?.username || userMe?.id || "";
+                  const link = `${window.location.origin}/register?ref=${refCode}`;
+                  navigator.clipboard.writeText(link);
+                  toast({ title: "Referral Link Copied!", description: "Share this link with your friends to earn referral rewards." });
+                }}
+                className="bg-emerald-500 hover:bg-emerald-600 text-black px-2.5 py-1.5 rounded-lg text-xs font-bold font-sans transition active:scale-95"
+              >
+                📋 Copy
+              </button>
+              <a
+                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`🔥 Join BetPulse & Get Free Welcome Bonus! Download app & Register using my link: ${window.location.origin}/register?ref=${userMe?.username || userMe?.id || ""}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-green-600 hover:bg-green-700 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold font-sans transition flex items-center gap-1 active:scale-95"
+              >
+                💬 WhatsApp
+              </a>
+            </div>
+          </div>
         </div>
 
         {/* Main Wallet Tabs */}
@@ -544,8 +609,34 @@ export default function WalletPage() {
               <div className="space-y-1">
                 <h3 className="text-lg font-bold text-slate-900">Withdraw Funds</h3>
                 <p className="text-xs text-slate-500">
-                  Withdrawable Net Balance: <strong className="text-emerald-600 font-bold">{formatCurrency((balanceInfo as any)?.withdrawableBalance || balanceInfo?.balance || 0)}</strong>
+                  Minimum withdrawal is <strong>PKR 500</strong>. Processing time: 5-30 minutes.
                 </p>
+              </div>
+
+              {/* Account Balance & Bonus Breakdown Card */}
+              <div className="bg-slate-900 text-white rounded-2xl p-4 space-y-3 shadow-sm border border-slate-800">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Account Balance Breakdown</div>
+                
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="p-2.5 bg-slate-800/80 rounded-xl border border-slate-700">
+                    <div className="text-[10px] text-slate-400 font-medium">Total Balance</div>
+                    <div className="text-sm font-extrabold text-white mt-0.5">{formatCurrency(currentBalance)}</div>
+                  </div>
+
+                  <div className="p-2.5 bg-purple-950/60 rounded-xl border border-purple-500/30">
+                    <div className="text-[10px] text-purple-300 font-medium">Bonus (Play Only)</div>
+                    <div className="text-sm font-extrabold text-purple-400 mt-0.5">{formatCurrency(currentBonusBal)}</div>
+                  </div>
+
+                  <div className="p-2.5 bg-emerald-950/60 rounded-xl border border-emerald-500/30">
+                    <div className="text-[10px] text-emerald-300 font-medium">Max Withdrawable</div>
+                    <div className="text-sm font-extrabold text-emerald-400 mt-0.5">{formatCurrency(withdrawableBalance)}</div>
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-xl">
+                  ⚠️ <strong>Note:</strong> Signup and referral bonuses are play-only credits. Play sports bets or casino games — all winnings you earn from bets become <strong>100% real withdrawable cash</strong>!
+                </div>
               </div>
 
               <div className="space-y-2">

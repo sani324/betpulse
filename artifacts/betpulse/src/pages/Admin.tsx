@@ -158,39 +158,45 @@ function AdminContent() {
   const [addingMethod, setAddingMethod] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
 
-  // Signup bonus state
+  // Signup & Referral bonus state
   const [signupBonus, setSignupBonus] = useState<number>(50000);
   const [signupBonusInput, setSignupBonusInput] = useState<string>("50000");
+  const [referralBonus, setReferralBonus] = useState<number>(500);
+  const [referralBonusInput, setReferralBonusInput] = useState<string>("500");
   const [signupBonusSaving, setSignupBonusSaving] = useState(false);
   const [signupBonusLoaded, setSignupBonusLoaded] = useState(false);
 
   const loadSignupBonus = async () => {
     try {
-      const res = await fetch("/api/admin/platform-settings/signup_bonus", { credentials: "include" });
+      const res = await fetch("/api/admin/bonuses", { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
-        const val = Math.round(parseFloat(data.value));
-        setSignupBonus(val);
-        setSignupBonusInput(String(val));
+        setSignupBonus(data.signupBonus ?? 50000);
+        setSignupBonusInput(String(data.signupBonus ?? 50000));
+        setReferralBonus(data.referralBonus ?? 500);
+        setReferralBonusInput(String(data.referralBonus ?? 500));
       }
     } catch {}
     setSignupBonusLoaded(true);
   };
 
-  const saveSignupBonus = async () => {
-    const val = Math.max(0, Math.round(parseFloat(signupBonusInput) || 0));
+  const saveBonuses = async () => {
+    const sVal = Math.max(0, Math.round(parseFloat(signupBonusInput) || 0));
+    const rVal = Math.max(0, Math.round(parseFloat(referralBonusInput) || 0));
     setSignupBonusSaving(true);
     try {
-      const res = await fetch("/api/admin/platform-settings/signup_bonus", {
+      const res = await fetch("/api/admin/bonuses", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ value: String(val) }),
+        body: JSON.stringify({ signupBonus: sVal, referralBonus: rVal }),
       });
       if (res.ok) {
-        setSignupBonus(val);
-        setSignupBonusInput(String(val));
-        toast({ title: "Signup bonus updated!", description: `New users will now receive PKR ${val.toLocaleString()} on signup.` });
+        setSignupBonus(sVal);
+        setSignupBonusInput(String(sVal));
+        setReferralBonus(rVal);
+        setReferralBonusInput(String(rVal));
+        toast({ title: "Bonuses updated successfully!", description: `Signup Bonus: PKR ${sVal.toLocaleString()} | Referral Bonus: PKR ${rVal.toLocaleString()}` });
       } else {
         toast({ title: "Failed to save", variant: "destructive" });
       }
@@ -2061,76 +2067,107 @@ function AdminContent() {
         </TabsContent>
 
         {/* ─── SIGNUP BONUS TAB ─── */}
+        {/* ─── SIGNUP & REFERRAL BONUS TAB ─── */}
         <TabsContent value="signupbonus" className="space-y-4">
           <Card className="border-purple-500/30 bg-purple-500/5">
             <CardHeader>
-              <CardTitle className="text-purple-400 flex items-center gap-2">🎁 Signup Bonus</CardTitle>
-              <CardDescription>Set how much PKR bonus balance every new user receives when they create an account. Set to 0 to disable the bonus entirely.</CardDescription>
+              <CardTitle className="text-purple-400 flex items-center gap-2">🎁 Signup & Referral Bonuses</CardTitle>
+              <CardDescription>Configure PKR bonus rewards for new signups and referral links. Bonuses are play-only credits.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Current value display */}
-              <div className="flex items-center justify-between p-4 bg-card/60 rounded-xl border border-purple-500/20">
-                <div>
-                  <div className="text-sm text-muted-foreground mb-1">Current Signup Bonus</div>
-                  <div className="text-3xl font-bold text-purple-400">
-                    PKR {signupBonus.toLocaleString()}
+              {/* Bonus Edit Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Signup Bonus Card */}
+                <div className="p-4 bg-card/60 rounded-xl border border-purple-500/20 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-bold text-purple-300">🎁 New Signup Bonus</div>
+                      <div className="text-2xl font-black text-purple-400">PKR {signupBonus.toLocaleString()}</div>
+                    </div>
+                    <span className="text-3xl">🎉</span>
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {signupBonus === 0 ? "Bonus is disabled — new users start with PKR 0" : `Every new signup receives PKR ${signupBonus.toLocaleString()} automatically`}
-                  </div>
-                </div>
-                <div className="text-5xl">🎁</div>
-              </div>
-
-              {/* Edit section */}
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium block mb-2">New Bonus Amount (PKR)</label>
-                  <div className="flex gap-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">Signup Bonus Amount (PKR)</label>
                     <input
                       type="number"
                       min="0"
                       step="500"
                       value={signupBonusInput}
                       onChange={e => setSignupBonusInput(e.target.value)}
-                      onKeyDown={e => e.key === "Enter" && saveSignupBonus()}
                       placeholder="e.g. 50000"
-                      className="flex-1 px-4 py-3 text-lg font-mono rounded-xl bg-background border border-purple-500/30 text-foreground focus:outline-none focus:border-purple-500/70"
+                      className="w-full px-3 py-2 text-base font-mono rounded-lg bg-background border border-purple-500/30 text-foreground focus:outline-none focus:border-purple-500/70"
                     />
-                    <Button
-                      onClick={saveSignupBonus}
-                      disabled={signupBonusSaving || signupBonusInput === String(signupBonus)}
-                      className="px-6 bg-purple-600 hover:bg-purple-700 text-white font-semibold"
-                    >
-                      {signupBonusSaving ? "Saving..." : "💾 Save"}
-                    </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">Enter 0 to give no bonus. Changes apply to all new signups immediately.</p>
-                </div>
-
-                {/* Quick presets */}
-                <div>
-                  <div className="text-xs text-muted-foreground mb-2">Quick presets:</div>
-                  <div className="flex flex-wrap gap-2">
-                    {[0, 1000, 5000, 10000, 25000, 50000, 100000].map(preset => (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {[0, 1000, 5000, 10000, 50000].map(preset => (
                       <button
                         key={preset}
+                        type="button"
                         onClick={() => setSignupBonusInput(String(preset))}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors ${
                           signupBonusInput === String(preset)
                             ? "bg-purple-600 border-purple-500 text-white"
-                            : "border-border/50 bg-card/40 hover:border-purple-500/50 hover:text-purple-400"
+                            : "border-border/50 bg-card/40 hover:border-purple-500/50"
                         }`}
                       >
-                        {preset === 0 ? "No Bonus" : `PKR ${preset.toLocaleString()}`}
+                        {preset === 0 ? "Off" : `${preset.toLocaleString()}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Referral Bonus Card */}
+                <div className="p-4 bg-card/60 rounded-xl border border-emerald-500/20 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-bold text-emerald-300">👥 Referral Reward Bonus</div>
+                      <div className="text-2xl font-black text-emerald-400">PKR {referralBonus.toLocaleString()}</div>
+                    </div>
+                    <span className="text-3xl">🤝</span>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">Referral Reward per User (PKR)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={referralBonusInput}
+                      onChange={e => setReferralBonusInput(e.target.value)}
+                      placeholder="e.g. 500"
+                      className="w-full px-3 py-2 text-base font-mono rounded-lg bg-background border border-emerald-500/30 text-foreground focus:outline-none focus:border-emerald-500/70"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {[0, 200, 500, 1000, 2000].map(preset => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setReferralBonusInput(String(preset))}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors ${
+                          referralBonusInput === String(preset)
+                            ? "bg-emerald-600 border-emerald-500 text-white"
+                            : "border-border/50 bg-card/40 hover:border-emerald-500/50"
+                        }`}
+                      >
+                        {preset === 0 ? "Off" : `${preset.toLocaleString()}`}
                       </button>
                     ))}
                   </div>
                 </div>
               </div>
 
-              <div className="p-3 bg-card/30 rounded-lg border border-border/30 text-xs text-muted-foreground">
-                💡 <strong>How it works:</strong> When a new user signs up, the system automatically credits their account with the signup bonus amount and records it as a "Welcome bonus" transaction in their history.
+              <Button
+                onClick={saveBonuses}
+                disabled={signupBonusSaving}
+                className="w-full py-3 bg-gradient-to-r from-purple-600 to-emerald-600 hover:from-purple-700 hover:to-emerald-700 text-white font-bold text-base shadow-lg shadow-purple-900/30"
+              >
+                {signupBonusSaving ? "Saving..." : "💾 Save Both Bonus Settings"}
+              </Button>
+
+              <div className="p-3 bg-card/30 rounded-lg border border-border/30 text-xs text-muted-foreground space-y-1">
+                <p>💡 <strong>How Bonuses Work & Non-Withdrawable Rule:</strong></p>
+                <p>• All signup and referral bonuses are automatically credited as <strong>Play-Only Credit</strong>.</p>
+                <p>• Users <strong>CANNOT withdraw bonus funds directly</strong>. They must play sports bets or casino games — all winnings earned from bets become 100% real withdrawable cash!</p>
               </div>
             </CardContent>
           </Card>

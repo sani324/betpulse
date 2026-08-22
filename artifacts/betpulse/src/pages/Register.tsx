@@ -153,10 +153,11 @@ export default function Register() {
   }
 
   async function handleRegister(token: string) {
+    const refCode = new URLSearchParams(window.location.search).get("ref") || "";
     const r = await fetch(`${API}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, email, password, verificationToken: token }),
+      body: JSON.stringify({ username, email, password, verificationToken: token, refCode }),
       credentials: "include",
     });
     const data = await r.json();

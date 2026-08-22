@@ -636,6 +636,8 @@ const DEFAULT_METHODS = [
   { method: "easypaisa",     label: "EasyPaisa" },
   { method: "nayapay",       label: "NayaPay" },
   { method: "bank_transfer", label: "Bank Transfer" },
+  { method: "usdt_trc20",    label: "USDT (TRC20 Wallet Address)" },
+  { method: "usdt_bep20",    label: "USDT (BEP20 Wallet Address)" },
 ];
 
 async function ensurePaymentDefaults() {
@@ -670,6 +672,34 @@ router.delete("/admin/payment-settings/:method", requireAdmin, async (req, res):
   const method = Array.isArray(req.params.method) ? req.params.method[0] : req.params.method;
   await db.delete(paymentSettingsTable).where(eq(paymentSettingsTable.method, method));
   res.json({ message: "Payment method deleted" });
+});
+
+/* ──────────── PLATFORM BONUSES (SIGNUP & REFERRAL) ──────────── */
+router.get("/admin/bonuses", requireAdmin, async (_req, res): Promise<void> => {
+  const sRes = await pool.query("SELECT value FROM platform_settings WHERE key = $1", ["signup_bonus"]);
+  const rRes = await pool.query("SELECT value FROM platform_settings WHERE key = $1", ["referral_bonus"]);
+  const signupBonus = Math.max(0, Math.round(parseFloat(sRes.rows[0]?.value ?? "50000")));
+  const referralBonus = Math.max(0, Math.round(parseFloat(rRes.rows[0]?.value ?? "500")));
+  res.json({ signupBonus, referralBonus });
+});
+
+router.put("/admin/bonuses", requireAdmin, async (req, res): Promise<void> => {
+  const { signupBonus, referralBonus } = req.body;
+  if (signupBonus !== undefined) {
+    const sVal = String(Math.max(0, Math.round(Number(signupBonus))));
+    await pool.query(
+      "INSERT INTO platform_settings (key, value) VALUES ('signup_bonus', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+      [sVal]
+    );
+  }
+  if (referralBonus !== undefined) {
+    const rVal = String(Math.max(0, Math.round(Number(referralBonus))));
+    await pool.query(
+      "INSERT INTO platform_settings (key, value) VALUES ('referral_bonus', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+      [rVal]
+    );
+  }
+  res.json({ message: "Bonus settings updated successfully" });
 });
 
 /* ──────────── CASINO ROUNDS (round-based games) ──────────── */

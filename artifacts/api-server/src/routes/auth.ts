@@ -186,6 +186,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     email: z.string().email("Invalid email address"),
     password: z.string().min(6, "Password must be at least 6 characters"),
     verificationToken: z.string().optional(),
+    refCode: z.string().optional(),
   });
 
   const parsed = BodySchema.safeParse(req.body);
@@ -194,7 +195,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     return;
   }
 
-  const { username, email, password, verificationToken } = parsed.data;
+  const { username, email, password, verificationToken, refCode } = parsed.data;
 
   // Validate verification token if provided
   if (verificationToken) {
@@ -219,9 +220,28 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     return;
   }
 
+  // Check referral bonus
+  let refBonusAmt = 0;
+  let referrerUser: typeof usersTable.$inferSelect | undefined;
+
+  if (refCode) {
+    const cleanRef = refCode.trim();
+    const isNum = /^\d+$/.test(cleanRef);
+    const [rUser] = isNum
+      ? await db.select().from(usersTable).where(eq(usersTable.id, parseInt(cleanRef, 10)))
+      : await db.select().from(usersTable).where(sql`lower(${usersTable.username}) = lower(${cleanRef})`);
+    if (rUser) {
+      referrerUser = rUser;
+      const refBonusRes = await pool.query("SELECT value FROM platform_settings WHERE key = $1", ["referral_bonus"]);
+      refBonusAmt = Math.max(0, Math.round(parseFloat(refBonusRes.rows[0]?.value ?? "500")));
+    }
+  }
+
   const bonusResult = await pool.query("SELECT value FROM platform_settings WHERE key = $1", ["signup_bonus"]);
   const signupBonus = Math.max(0, Math.round(parseFloat(bonusResult.rows[0]?.value ?? "50000")));
-  const bonusStr = signupBonus.toFixed(2);
+
+  const initialTotalBonus = signupBonus + refBonusAmt;
+  const initialBonusStr = initialTotalBonus.toFixed(2);
 
   const passwordHash = await bcrypt.hash(password, 10);
   const [user] = await db
@@ -229,15 +249,32 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     .values({ username, email, passwordHash, role: "user" })
     .returning();
 
-  if (signupBonus > 0) {
+  if (initialTotalBonus > 0) {
     await db.insert(transactionsTable).values({
       userId: user.id,
       type: "deposit",
-      amount: bonusStr,
-      balanceAfter: bonusStr,
-      description: "Welcome bonus — signup reward (play-only, not withdrawable)",
+      amount: initialBonusStr,
+      balanceAfter: initialBonusStr,
+      description: `Welcome bonus — signup reward (play-only credit)${refBonusAmt > 0 ? ` + PKR ${refBonusAmt} Referral Bonus` : ""}`,
     });
-    await db.update(usersTable).set({ balance: bonusStr, bonusBalance: bonusStr }).where(eq(usersTable.id, user.id));
+    await db.update(usersTable).set({ balance: initialBonusStr, bonusBalance: initialBonusStr }).where(eq(usersTable.id, user.id));
+  }
+
+  // Credit Referrer
+  if (referrerUser && refBonusAmt > 0) {
+    const curRefBal = parseFloat(referrerUser.balance);
+    const curRefBonus = parseFloat(referrerUser.bonusBalance);
+    const newRefBal = (curRefBal + refBonusAmt).toFixed(2);
+    const newRefBonus = (curRefBonus + refBonusAmt).toFixed(2);
+
+    await db.update(usersTable).set({ balance: newRefBal, bonusBalance: newRefBonus }).where(eq(usersTable.id, referrerUser.id));
+    await db.insert(transactionsTable).values({
+      userId: referrerUser.id,
+      type: "deposit",
+      amount: String(refBonusAmt),
+      balanceAfter: newRefBal,
+      description: `Referral Bonus — referred new player ${username} (play-only credit)`,
+    });
   }
 
   req.session.userId = user.id;
@@ -308,9 +345,11 @@ router.post("/auth/logout", async (req, res): Promise<void> => {
 
 // Public endpoint — returns current signup bonus so the register page shows the correct amount
 router.get("/auth/signup-bonus", async (_req, res): Promise<void> => {
-  const result = await pool.query("SELECT value FROM platform_settings WHERE key = $1", ["signup_bonus"]);
-  const amount = Math.max(0, Math.round(parseFloat(result.rows[0]?.value ?? "0")));
-  res.json({ signupBonus: amount });
+  const sRes = await pool.query("SELECT value FROM platform_settings WHERE key = $1", ["signup_bonus"]);
+  const rRes = await pool.query("SELECT value FROM platform_settings WHERE key = $1", ["referral_bonus"]);
+  const signupAmount = Math.max(0, Math.round(parseFloat(sRes.rows[0]?.value ?? "50000")));
+  const referralAmount = Math.max(0, Math.round(parseFloat(rRes.rows[0]?.value ?? "500")));
+  res.json({ signupBonus: signupAmount, referralBonus: referralAmount });
 });
 
 router.get("/auth/me", async (req, res): Promise<void> => {
