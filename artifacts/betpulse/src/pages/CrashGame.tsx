@@ -7,7 +7,7 @@ import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Wallet, Volume2, VolumeX, Info, Users, ShieldCheck, History } from "lucide-react";
 
-const CHIP_AMOUNTS = [100, 500, 1000, 5000, 10000];
+const CHIP_AMOUNTS = [16, 50, 100, 500, 1000, 5000];
 const API = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const OPTIONS = [
@@ -139,7 +139,7 @@ export default function CrashGame() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const [stake, setStake] = useState(500);
+  const [stake, setStake] = useState(16);
   const [selection, setSelection] = useState<string | null>("x2");
   const [phase, setPhase] = useState<"betting" | "waiting" | "result">("betting");
   const [result, setResult] = useState<any>(null);
