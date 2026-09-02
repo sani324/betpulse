@@ -2291,7 +2291,7 @@ function AdminContent() {
                 { key: "scatter", label: "⭐ Scatter (3×)",  color: "bg-orange-500 hover:bg-orange-600", text: "text-orange-300" },
                 { key: "base",    label: "🍬 Base (1.95×)",  color: "bg-blue-600 hover:bg-blue-700", text: "text-blue-300" },
               ]},
-              { game: "crash", title: "🚀 Crash", sides: [
+              { game: "crash", title: "✈️ Aviator", sides: [
                 { key: "x2",  label: "💚 Cash at 2×",  color: "bg-green-600 hover:bg-green-700", text: "text-green-300" },
                 { key: "x5",  label: "🧡 Cash at 5×",  color: "bg-orange-500 hover:bg-orange-600", text: "text-orange-300" },
                 { key: "x10", label: "🔴 Cash at 10×", color: "bg-red-600 hover:bg-red-700", text: "text-red-300" },
@@ -2846,7 +2846,7 @@ function AdminContent() {
                     ],
                   },
                   {
-                    game: "crash", label: "🚀 Crash",
+                    game: "crash", label: "✈️ Aviator",
                     options: [
                       { value: "x2",  label: "💚 2×",  color: "bg-green-600 hover:bg-green-700 text-white" },
                       { value: "x5",  label: "🧡 5×",  color: "bg-orange-500 hover:bg-orange-600 text-white" },

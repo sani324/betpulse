@@ -103,11 +103,11 @@ const CASINO_GAMES = [
     thumbnail: `${BASE_URL}sweet-bonanza-logo.jpg`,
   },
   {
-    slug: "crash",        label: "Crash",          emoji: "🚀", players: "3.8K",
-    category: "Slot Games", tag: "HOT", tagColor: "#ef4444",
-    bg: "linear-gradient(135deg,#0a0000 0%,#450a00 50%,#b91c1c 100%)",
+    slug: "crash",        label: "Aviator",        emoji: "✈️", players: "18.5K",
+    category: "Slot Games", tag: "HOTTEST", tagColor: "#ef4444",
+    bg: "linear-gradient(135deg,#120002 0%,#5a050d 50%,#dc2626 100%)",
     accent: "#f87171",
-    desc: "Cash at 2× • 5× • 10×",
+    desc: "Fly & Cash Out before Crash!",
     thumbnail: `${BASE_URL}crash-logo.jpg`,
   },
   // Casino

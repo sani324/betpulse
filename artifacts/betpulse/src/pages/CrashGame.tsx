@@ -5,25 +5,37 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getGetMeQueryKey, getGetBalanceQueryKey } from "@workspace/api-client-react";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Wallet } from "lucide-react";
+import { ArrowLeft, Wallet, Volume2, VolumeX, Info, Users, ShieldCheck, History } from "lucide-react";
 
 const CHIP_AMOUNTS = [100, 500, 1000, 5000, 10000];
 const API = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const OPTIONS = [
-  { key: "x2",  label: "Cash at 2×",  sub: "2×",  color: "#22c55e", mult: 2 },
-  { key: "x5",  label: "Cash at 5×",  sub: "5×",  color: "#f97316", mult: 5 },
-  { key: "x10", label: "Cash at 10×", sub: "10×", color: "#ef4444", mult: 10 },
+  { key: "x2",  label: "Cash at 2×",  sub: "2.00×",  color: "#3b82f6", mult: 2.0 },
+  { key: "x5",  label: "Cash at 5×",  sub: "5.00×",  color: "#a855f7", mult: 5.0 },
+  { key: "x10", label: "Cash at 10×", sub: "10.00×", color: "#ec4899", mult: 10.0 },
 ];
 
-// SVG viewBox: 0 0 320 210
-const VW = 320, VH = 210;
-const ORIGIN_X = 28, ORIGIN_Y = 190; // graph origin
+const INITIAL_HISTORY = [
+  { mult: 1.24, color: "#3b82f6" },
+  { mult: 2.85, color: "#a855f7" },
+  { mult: 1.05, color: "#3b82f6" },
+  { mult: 15.40, color: "#ec4899" },
+  { mult: 1.98, color: "#3b82f6" },
+  { mult: 5.12, color: "#a855f7" },
+  { mult: 1.10, color: "#3b82f6" },
+  { mult: 33.20, color: "#ec4899" },
+  { mult: 2.15, color: "#a855f7" },
+];
+
+// SVG viewBox: 0 0 340 220
+const VW = 340, VH = 220;
+const ORIGIN_X = 24, ORIGIN_Y = 196;
 
 function multToPoint(m: number): [number, number] {
-  const t = Math.min((m - 1) / 10, 1);          // 1× = 0, 11× = 1
-  const x = ORIGIN_X + t * (VW - ORIGIN_X - 16);
-  const y = ORIGIN_Y - Math.pow(t, 0.65) * (VH - 24); // exponential-ish rise
+  const t = Math.min((m - 1) / 10, 1);
+  const x = ORIGIN_X + t * (VW - ORIGIN_X - 20);
+  const y = ORIGIN_Y - Math.pow(t, 0.65) * (VH - 30);
   return [x, y];
 }
 
@@ -61,15 +73,14 @@ function playLose() {
   } catch (_) {}
 }
 
-// Flying plane SVG element — Aviator-style red propeller plane
-function PlaneSVG({ x, y, angle, crashed, cashedOut, propAngle = 0 }: {
-  x: number; y: number; angle: number; crashed: boolean; cashedOut: boolean; propAngle?: number;
+// Authentic Red Aviator Aircraft SVG
+function AviatorPlaneSVG({ x, y, angle, crashed, propAngle = 0 }: {
+  x: number; y: number; angle: number; crashed: boolean; propAngle?: number;
 }) {
   if (crashed) {
     return (
-      <g>
-        <text x={x - 14} y={y + 12} fontSize="28">💥</text>
-        <text x={x + 10} y={y - 6} fontSize="16">💥</text>
+      <g transform={`translate(${x},${y})`}>
+        <text x="-16" y="8" fontSize="30">💥</text>
       </g>
     );
   }
@@ -77,89 +88,50 @@ function PlaneSVG({ x, y, angle, crashed, cashedOut, propAngle = 0 }: {
   const tilt = -angle;
   return (
     <g transform={`translate(${x},${y}) rotate(${tilt})`}>
-      {/* Engine glow trail */}
-      <ellipse cx="-22" cy="0" rx="10" ry="5" fill="url(#engineGlow)" opacity="0.6" />
+      {/* Engine Flame Trail */}
+      <ellipse cx="-24" cy="0" rx="14" ry="5" fill="url(#exhaustGlow)" opacity="0.85" />
 
-      {/* Main fuselage */}
-      <ellipse cx="0" cy="0" rx="20" ry="7" fill="#dc2626" />
-      {/* Fuselage sheen */}
-      <ellipse cx="2" cy="-2" rx="14" ry="3.5" fill="#ef4444" opacity="0.6" />
+      {/* Main Red Fuselage */}
+      <ellipse cx="0" cy="0" rx="22" ry="7.5" fill="#e11d48" />
+      <ellipse cx="2" cy="-2.5" rx="16" ry="3.8" fill="#fb7185" opacity="0.7" />
 
-      {/* Nose cone */}
-      <ellipse cx="19" cy="0" rx="6" ry="5" fill="#991b1b" />
-      <ellipse cx="22" cy="-1" rx="3" ry="2" fill="#b91c1b" opacity="0.7" />
+      {/* Nose Cone */}
+      <ellipse cx="21" cy="0" rx="6.5" ry="5.5" fill="#9f1239" />
 
-      {/* Cockpit / canopy */}
-      <ellipse cx="6" cy="-5.5" rx="5.5" ry="4.5" fill="#93c5fd" opacity="0.9" />
-      <ellipse cx="6" cy="-6" rx="4" ry="3" fill="#bfdbfe" opacity="0.5" />
+      {/* Cockpit Canopy */}
+      <ellipse cx="6" cy="-6" rx="6" ry="4.5" fill="#60a5fa" opacity="0.9" />
+      <ellipse cx="6" cy="-6.5" rx="4.5" ry="3" fill="#93c5fd" opacity="0.6" />
 
-      {/* Main wing (upper) */}
-      <polygon points="-2,-22 10,-22 15,0 -8,0" fill="#dc2626" />
-      <polygon points="-2,-22 10,-22 10,-18 -1,-18" fill="#ef4444" opacity="0.5" />
+      {/* Upper Main Wing */}
+      <polygon points="-2,-24 11,-24 16,0 -9,0" fill="#e11d48" />
+      <polygon points="-2,-24 11,-24 11,-20 -1,-20" fill="#f43f5e" opacity="0.6" />
 
-      {/* Lower wing stub */}
-      <polygon points="-2,8 8,8 10,0 -5,0" fill="#b91c1c" />
+      {/* Lower Wing Stub */}
+      <polygon points="-2,9 9,9 11,0 -6,0" fill="#9f1239" />
 
-      {/* Tail vertical fin */}
-      <polygon points="-17,-14 -12,0 -9,0" fill="#dc2626" />
-      <polygon points="-17,-14 -14,-14 -12,0 -15,0" fill="#ef4444" opacity="0.4" />
+      {/* Tail Fin */}
+      <polygon points="-18,-15 -13,0 -10,0" fill="#e11d48" />
 
-      {/* Tail horizontal stabilizer */}
-      <rect x="-17" y="-2" width="8" height="3" rx="1" fill="#b91c1c" />
+      {/* White Stripe Decal */}
+      <line x1="-10" y1="-1" x2="14" y2="-1" stroke="#ffffff" strokeWidth="1.5" opacity="0.8" />
 
-      {/* Fuselage stripe */}
-      <line x1="-8" y1="-1" x2="12" y2="-1" stroke="#fca5a5" strokeWidth="1" opacity="0.5" />
-
-      {/* Red star decal */}
-      <polygon points="2,-2 2.8,-0.5 4.3,-0.5 3.2,0.5 3.6,2 2,1 0.4,2 0.8,0.5 -0.3,-0.5 1.2,-0.5"
-        fill="#fbbf24" opacity="0.9" transform="scale(0.7)" />
-
-      {/* Propeller hub */}
-      <circle cx="25" cy="0" r="3" fill="#374151" />
-      <circle cx="25" cy="0" r="1.5" fill="#6b7280" />
-
-      {/* Spinning propeller blades */}
-      <g transform={`rotate(${propAngle}, 25, 0)`}>
-        <ellipse cx="25" cy="0" rx="1.8" ry="11" fill="#1f2937" opacity="0.88" />
-        <ellipse cx="25" cy="0" rx="1.8" ry="11" fill="#374151" opacity="0.7"
-          transform="rotate(90,25,0)" />
+      {/* Spinning Propeller */}
+      <circle cx="27" cy="0" r="3.5" fill="#1f2937" />
+      <g transform={`rotate(${propAngle}, 27, 0)`}>
+        <ellipse cx="27" cy="0" rx="1.8" ry="12" fill="#374151" opacity="0.9" />
+        <ellipse cx="27" cy="0" rx="1.8" ry="12" fill="#1f2937" opacity="0.8" transform="rotate(90,27,0)" />
       </g>
 
-      {/* Engine exhaust glow */}
-      <ellipse cx="-20" cy="0" rx="4" ry="2.5" fill="#f97316" opacity="0.5" />
-
-      {/* Cashout money bag */}
-      {cashedOut && (
-        <text x="4" y="-16" fontSize="14" style={{ animation: "none" }}>💰</text>
-      )}
-
       <defs>
-        <radialGradient id="engineGlow" cx="100%" cy="50%" r="100%">
-          <stop offset="0%" stopColor="#f97316" stopOpacity="0.8" />
-          <stop offset="100%" stopColor="#dc2626" stopOpacity="0" />
+        <radialGradient id="exhaustGlow" cx="100%" cy="50%" r="100%">
+          <stop offset="0%" stopColor="#ff4500" stopOpacity="0.9" />
+          <stop offset="60%" stopColor="#e11d48" stopOpacity="0.4" />
+          <stop offset="100%" stopColor="#e11d48" stopOpacity="0" />
         </radialGradient>
       </defs>
     </g>
   );
 }
-
-// Confetti burst for win
-function Confetti() {
-  const items = ["💰", "⭐", "✨", "🏆", "🎊", "💎", "🌟", "🎉"];
-  return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      {[...Array(14)].map((_, i) => (
-        <div key={i} className="absolute text-xl animate-bounce"
-          style={{ left: `${8 + (i * 7) % 88}%`, top: `${10 + (i * 13) % 70}%`,
-            animationDelay: `${(i * 0.07) % 0.6}s`, animationDuration: `${0.4 + (i % 3) * 0.15}s` }}>
-          {items[i % items.length]}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-type AnimPhase = "idle" | "flying" | "ending" | "done";
 
 export default function CrashGame() {
   const [, setLocation] = useLocation();
@@ -168,14 +140,19 @@ export default function CrashGame() {
   const { toast } = useToast();
 
   const [stake, setStake] = useState(500);
-  const [selection, setSelection] = useState<string | null>(null);
+  const [selection, setSelection] = useState<string | null>("x2");
   const [phase, setPhase] = useState<"betting" | "waiting" | "result">("betting");
   const [result, setResult] = useState<any>(null);
   const [balance, setBalance] = useState<number>(parseFloat(String(user?.balance || "0")));
   const [isPlacing, setIsPlacing] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [activeTab, setActiveTab] = useState<"all" | "my" | "top">("all");
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
+
+  // History Pills
+  const [history, setHistory] = useState(INITIAL_HISTORY);
 
   // Animation state
-  const [animPhase, setAnimPhase] = useState<AnimPhase>("idle");
   const [displayMult, setDisplayMult] = useState(1.00);
   const [pathPoints, setPathPoints] = useState<[number, number][]>([[ORIGIN_X, ORIGIN_Y]]);
   const [planeAngle, setPlaneAngle] = useState(25);
@@ -186,24 +163,22 @@ export default function CrashGame() {
   const animRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef(0);
   const resultRef = useRef<any>(null);
-  const selectionRef = useRef<string | null>(null);
+  const selectionRef = useRef<string | null>("x2");
   const resultArrivedAtRef = useRef<number | null>(null);
   const multAtResultRef = useRef<number>(1);
 
   useEffect(() => { setBalance(parseFloat(String(user?.balance || "0"))); }, [user?.balance]);
 
-  // Store result in ref so animation loop can read it
   useEffect(() => {
     resultRef.current = result;
     if (result && resultArrivedAtRef.current === null) {
-      // Capture when result first arrives and what the multiplier was at that moment
       resultArrivedAtRef.current = Date.now();
       multAtResultRef.current = displayMult;
     }
   }, [result, displayMult]);
+
   useEffect(() => { selectionRef.current = selection; }, [selection]);
 
-  // ── Animation tick ──────────────────────────────────────────────────────────
   const stopAnim = useCallback(() => {
     if (animRef.current) { clearInterval(animRef.current); animRef.current = null; }
   }, []);
@@ -217,38 +192,35 @@ export default function CrashGame() {
     setPathPoints([[ORIGIN_X, ORIGIN_Y]]);
     setCrashed(false);
     setCashedOut(false);
-    setAnimPhase("flying");
+    setPhase("waiting");
 
     animRef.current = setInterval(() => {
       const currentResult = resultRef.current;
       const sel = selectionRef.current;
-
-      // Spin propeller continuously
-      setPropAngle(a => (a + 22) % 360);
+      setPropAngle(a => (a + 25) % 360);
 
       if (currentResult && resultArrivedAtRef.current !== null) {
-        // Result known — smoothly finish to the crash/cashout point over 2s
         const sinceResult = (Date.now() - resultArrivedAtRef.current) / 1000;
         const won = currentResult.result === sel;
         const crashOpt = OPTIONS.find(o => o.key === currentResult.result);
-        const targetMult = crashOpt?.mult ?? 2;
+        const targetMult = crashOpt?.mult ?? 2.0;
         const startMult = multAtResultRef.current;
 
         let m: number;
         if (startMult >= targetMult) {
           m = startMult;
         } else {
-          const progress = Math.min(sinceResult / 1.6, 1);
+          const progress = Math.min(sinceResult / 1.5, 1);
           m = startMult + (targetMult - startMult) * Math.pow(progress, 0.7);
         }
 
         setDisplayMult(m);
         const pt = multToPoint(m);
-        // Damped wave as we approach crash
         const totalElapsed = (Date.now() - startTimeRef.current) / 1000;
         const damping = Math.max(0, 1 - sinceResult / 1.2);
-        const wave = Math.sin(totalElapsed * 3.2) * 9 * damping;
+        const wave = Math.sin(totalElapsed * 3.2) * 8 * damping;
         const wavePt: [number, number] = [pt[0], pt[1] + wave];
+
         setPathPoints(prev => {
           const last = prev[prev.length - 1];
           const ang = last ? angleForPoints(last, wavePt) : 25;
@@ -256,23 +228,24 @@ export default function CrashGame() {
           return [...prev, wavePt];
         });
 
-        const done = startMult >= targetMult ? sinceResult >= 0.2 : sinceResult >= 1.6;
+        const done = startMult >= targetMult ? sinceResult >= 0.2 : sinceResult >= 1.5;
         if (done) {
           stopAnim();
-          setAnimPhase("done");
           if (won) setCashedOut(true); else setCrashed(true);
+
+          // Append to history
+          const color = targetMult >= 10 ? "#ec4899" : targetMult >= 2 ? "#a855f7" : "#3b82f6";
+          setHistory(prev => [{ mult: targetMult, color }, ...prev.slice(0, 12)]);
         }
         return;
       }
 
-      // No result yet — steady rise with sinusoidal wave overlay
       const elapsed = (Date.now() - startTimeRef.current) / 1000;
-      const m = Math.min(1 + elapsed * 0.28 + elapsed * elapsed * 0.018, 9.5);
+      const m = Math.min(1 + elapsed * 0.35 + elapsed * elapsed * 0.02, 10.0);
       setDisplayMult(m);
       const pt = multToPoint(m);
 
-      // Wave: amplitude 10px, frequency 3.2 rad/s — creates realistic turbulence
-      const wave = Math.sin(elapsed * 3.2) * 10 + Math.sin(elapsed * 1.7) * 5;
+      const wave = Math.sin(elapsed * 3.2) * 8;
       const wavePt: [number, number] = [pt[0], pt[1] + wave];
 
       setPathPoints(prev => {
@@ -281,29 +254,11 @@ export default function CrashGame() {
         setPlaneAngle(ang);
         return [...prev, wavePt];
       });
-    }, 40);
+    }, 35);
   }, [stopAnim]);
 
-  // Reset animation when back to betting
-  useEffect(() => {
-    if (phase === "betting") {
-      stopAnim();
-      setAnimPhase("idle");
-      setDisplayMult(1.00);
-      setPathPoints([[ORIGIN_X, ORIGIN_Y]]);
-      setCrashed(false);
-      setCashedOut(false);
-      setPlaneAngle(25);
-      setPropAngle(0);
-    } else if (phase === "waiting") {
-      startFlyingAnim();
-    }
-  }, [phase, startFlyingAnim, stopAnim]);
+  useEffect(() => { stopAnim(); }, [stopAnim]);
 
-  // Clean up on unmount
-  useEffect(() => stopAnim, [stopAnim]);
-
-  // ── Polling ─────────────────────────────────────────────────────────────────
   const pollRound = useCallback(async (rId: string, sel: string) => {
     let attempts = 0;
     const interval = setInterval(async () => {
@@ -315,22 +270,22 @@ export default function CrashGame() {
         if (data.status === "settled") {
           clearInterval(interval);
           setResult(data);
-          // 2s dramatic animation then reveal
           setTimeout(() => {
             setPhase("result");
-            if (data.result === sel) playWin(); else playLose();
+            if (soundEnabled) {
+              if (data.result === sel) playWin(); else playLose();
+            }
             queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
             queryClient.invalidateQueries({ queryKey: getGetBalanceQueryKey() });
-          }, 2000);
+          }, 1800);
         }
       } catch (_) {}
     }, 500);
-  }, [queryClient]);
+  }, [queryClient, soundEnabled]);
 
-  // ── Place Bet ───────────────────────────────────────────────────────────────
   const placeBet = async () => {
     if (!isAuthenticated) { setLocation("/login"); return; }
-    if (!selection) { toast({ title: "Pick a cashout target first!", variant: "destructive" }); return; }
+    if (!selection) { toast({ title: "Select a cashout target!", variant: "destructive" }); return; }
     if (balance < stake) { toast({ title: "Insufficient balance!", variant: "destructive" }); return; }
     setIsPlacing(true);
     try {
@@ -343,10 +298,10 @@ export default function CrashGame() {
       if (!r.ok) throw new Error(data.error || "Failed to place bet");
       setBalance(data.newBalance);
       setResult(null);
-      setPhase("waiting");
+      startFlyingAnim();
       pollRound(data.roundId, selection);
       const opt = OPTIONS.find(o => o.key === selection);
-      toast({ title: "🚀 Bet Placed!", description: `PKR ${stake.toLocaleString()} — cashing out at ${opt?.sub}` });
+      toast({ title: "✈️ Bet Placed!", description: `PKR ${stake.toLocaleString()} at ${opt?.sub}` });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
@@ -354,256 +309,287 @@ export default function CrashGame() {
     }
   };
 
-  const reset = () => { setPhase("betting"); setResult(null); setSelection(null); };
+  const reset = () => {
+    stopAnim();
+    setPhase("betting");
+    setResult(null);
+    setDisplayMult(1.00);
+    setPathPoints([[ORIGIN_X, ORIGIN_Y]]);
+    setCrashed(false);
+    setCashedOut(false);
+  };
 
   const won = result?.result === selection;
   const selectedOpt = OPTIONS.find(o => o.key === selection);
-  const resultOpt = OPTIONS.find(o => o.key === result?.result);
   const currentPt = pathPoints[pathPoints.length - 1] ?? [ORIGIN_X, ORIGIN_Y];
 
-  // Multiplier color
-  const multColor = displayMult < 2 ? "#22c55e" : displayMult < 5 ? "#f97316" : "#ef4444";
-
-  // Gradient stop for path (changes as mult rises)
-  const pathColor = displayMult < 2 ? "#22c55e" : displayMult < 5 ? "#f97316" : "#ef4444";
+  // Dummy Live Bets Feed for Aviator Community Vibe
+  const dummyLiveBets = [
+    { user: "user_891", bet: 1000, mult: "1.45x", payout: 1450, isWin: true },
+    { user: "ali_king", bet: 5000, mult: "2.10x", payout: 10500, isWin: true },
+    { user: "zain_786", bet: 500, mult: "Flew Away", payout: 0, isWin: false },
+    { user: "kami_pro", bet: 2500, mult: "5.00x", payout: 12500, isWin: true },
+    { user: "player_99", bet: 10000, mult: "Flew Away", payout: 0, isWin: false },
+  ];
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(180deg,#040e08 0%,#080f0a 100%)" }}>
+    <div className="min-h-screen flex flex-col text-white font-sans select-none" style={{ background: "#0e0f12" }}>
 
-      {/* ── HEADER ── */}
-      <header className="flex items-center justify-between px-4 py-3 sticky top-0 z-50"
-        style={{ background: "rgba(4,14,8,0.95)", borderBottom: "1px solid rgba(245,197,66,0.12)", backdropFilter: "blur(12px)" }}>
-        <button onClick={() => setLocation("/")} className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-semibold"
-          style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.65)" }}>
-          <ArrowLeft size={16} /> Back
-        </button>
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">🚀</span>
-          <span className="font-black text-lg" style={{ background: "linear-gradient(90deg,#f5c542,#ffeba1)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-            Crash
+      {/* ── TOP AVIATOR NAVBAR ── */}
+      <header className="flex items-center justify-between px-3 py-2 border-b border-gray-800/80 bg-[#141518]">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setLocation("/")} className="p-1.5 rounded-lg bg-gray-800/60 hover:bg-gray-700 text-gray-300">
+            <ArrowLeft size={18} />
+          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-xl">✈️</span>
+            <span className="font-black text-xl tracking-wider text-rose-500">
+              AVIATOR
+            </span>
+          </div>
+          <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <Users size={10} /> 18.4K Live
           </span>
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold"
-          style={{ background: "rgba(245,197,66,0.1)", border: "1px solid rgba(245,197,66,0.2)", color: "#f5c542" }}>
-          <Wallet size={13} /> {formatCurrency(balance)}
+
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-900 border border-amber-500/30 text-amber-400 font-mono font-bold text-xs">
+            <Wallet size={13} /> {formatCurrency(balance)}
+          </div>
+
+          <button onClick={() => setSoundEnabled(!soundEnabled)} className="p-2 rounded-xl bg-gray-800/60 text-gray-400 hover:text-white">
+            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+          </button>
+          <button onClick={() => setShowHowToPlay(true)} className="p-2 rounded-xl bg-gray-800/60 text-gray-400 hover:text-white">
+            <Info size={16} />
+          </button>
         </div>
       </header>
 
-      <div className="flex-1 flex flex-col max-w-lg mx-auto w-full px-4 pt-4 pb-6 gap-4">
+      {/* ── MULTIPLIER HISTORY BAR ── */}
+      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#181a1f] border-b border-gray-800 overflow-x-auto scrollbar-none text-xs">
+        <span className="text-gray-500 font-bold flex items-center gap-1 shrink-0 text-[10px] uppercase mr-1">
+          <History size={12} /> History
+        </span>
+        {history.map((h, i) => (
+          <span
+            key={i}
+            className="px-2.5 py-0.5 rounded-full font-extrabold font-mono shrink-0 text-[11px] border"
+            style={{
+              color: h.color,
+              borderColor: `${h.color}40`,
+              background: `${h.color}15`,
+            }}
+          >
+            {h.mult.toFixed(2)}x
+          </span>
+        ))}
+      </div>
 
-        {/* ── FLIGHT GRAPH ── */}
-        <div className="relative rounded-3xl overflow-hidden"
-          style={{ background: "#050d07", border: "2px solid rgba(245,197,66,0.18)", minHeight: 260,
-            boxShadow: "0 8px 48px rgba(0,0,0,0.7), inset 0 1px 0 rgba(245,197,66,0.08)" }}>
+      <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full p-3 gap-3">
 
-          {/* Stars background */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[...Array(30)].map((_, i) => (
-              <div key={i} className="absolute rounded-full bg-white"
-                style={{ width: i % 4 === 0 ? 2 : 1, height: i % 4 === 0 ? 2 : 1,
-                  left: `${(i * 37 + 11) % 95}%`, top: `${(i * 29 + 7) % 88}%`, opacity: 0.2 + (i % 4) * 0.1 }} />
-            ))}
+        {/* ── MAIN FLIGHT RADAR DISPLAY ── */}
+        <div className="relative rounded-2xl overflow-hidden border border-gray-800 bg-[#0c0c0e] flex-1 flex flex-col justify-between"
+          style={{ minHeight: 270, boxShadow: "0 10px 40px rgba(0,0,0,0.8)" }}>
+
+          {/* Grid lines background */}
+          <div className="absolute inset-0 pointer-events-none opacity-20"
+            style={{ backgroundImage: "linear-gradient(to right, #2a2d34 1px, transparent 1px), linear-gradient(to bottom, #2a2d34 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+
+          {/* Glowing Center Multiplier / Status */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
+            {crashed ? (
+              <div className="text-center animate-in fade-in zoom-in duration-200">
+                <div className="text-3xl md:text-5xl font-black text-rose-500 uppercase tracking-widest drop-shadow-[0_0_20px_rgba(225,29,72,0.8)]">
+                  FLEW AWAY!
+                </div>
+                <div className="text-lg md:text-2xl font-bold font-mono text-gray-400 mt-1">
+                  @ {displayMult.toFixed(2)}x
+                </div>
+              </div>
+            ) : cashedOut ? (
+              <div className="text-center animate-in fade-in zoom-in duration-200">
+                <div className="text-3xl md:text-5xl font-black text-emerald-400 uppercase tracking-widest drop-shadow-[0_0_20px_rgba(16,185,129,0.8)]">
+                  CASHED OUT!
+                </div>
+                <div className="text-xl font-bold font-mono text-amber-400 mt-1">
+                  +{formatCurrency(stake * (selectedOpt?.mult ?? 2) - stake)}
+                </div>
+              </div>
+            ) : phase === "waiting" ? (
+              <div className="text-center">
+                <div className="text-5xl md:text-7xl font-black font-mono tracking-tight text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.4)]">
+                  {displayMult.toFixed(2)}x
+                </div>
+              </div>
+            ) : (
+              <div className="text-center">
+                <div className="text-4xl md:text-6xl text-rose-500/80 mb-2 animate-pulse">✈️</div>
+                <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">
+                  WAITING FOR NEXT ROUND
+                </div>
+                <div className="text-xs text-gray-500 mt-1">Place your bet below to take off</div>
+              </div>
+            )}
           </div>
 
-          {/* Win confetti */}
-          {phase === "result" && won && <Confetti />}
-
-          {/* Result overlay */}
-          {phase === "result" && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center z-20 gap-3">
-              <div className={`text-6xl ${won ? "animate-bounce" : ""}`} style={{ filter: `drop-shadow(0 8px 24px ${won ? "#f5c54288" : "#ef444488"})` }}>
-                {won ? "🏆" : "💥"}
-              </div>
-              <div className="px-8 py-4 rounded-2xl text-center"
-                style={{ background: won ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.12)",
-                  border: `1.5px solid ${won ? "rgba(34,197,94,0.4)" : "rgba(239,68,68,0.3)"}`,
-                  backdropFilter: "blur(8px)" }}>
-                <div className="text-2xl font-black mb-1" style={{ color: won ? "#4ade80" : "#f87171" }}>
-                  {won ? `CASHED OUT AT ${selectedOpt?.sub}!` : `CRASHED AT ${resultOpt?.sub}!`}
-                </div>
-                {won && (
-                  <div className="text-lg font-black" style={{ color: "#f5c542" }}>
-                    +{formatCurrency(stake * (selectedOpt?.mult ?? 2) - stake)}
-                  </div>
-                )}
-                {!won && (
-                  <div className="text-sm font-medium mt-1" style={{ color: "rgba(255,255,255,0.5)" }}>
-                    Your cashout at {selectedOpt?.sub} was too high
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Flight SVG */}
-          <svg viewBox={`0 0 ${VW} ${VH}`} className="w-full h-full" style={{ minHeight: 210 }} preserveAspectRatio="none">
-            {/* Horizontal grid lines */}
-            {[25, 50, 75, 100, 125, 150, 175].map(y => (
-              <line key={y} x1={ORIGIN_X} y1={y} x2={VW} y2={y}
-                stroke="rgba(255,255,255,0.04)" strokeWidth="1" strokeDasharray="4,8" />
+          {/* SVG Flight Canvas */}
+          <svg viewBox={`0 0 ${VW} ${VH}`} className="w-full h-full min-h-[220px]" preserveAspectRatio="none">
+            {/* Grid Coordinates */}
+            {[40, 80, 120, 160].map(y => (
+              <line key={y} x1={ORIGIN_X} y1={y} x2={VW} y2={y} stroke="rgba(255,255,255,0.05)" strokeWidth="1" strokeDasharray="3 3" />
             ))}
-            {/* Vertical grid lines */}
-            {[70, 120, 170, 220, 270].map(x => (
-              <line key={x} x1={x} y1="0" x2={x} y2={ORIGIN_Y}
-                stroke="rgba(255,255,255,0.04)" strokeWidth="1" strokeDasharray="4,8" />
+            {[80, 160, 240, 320].map(x => (
+              <line key={x} x1={x} y1="0" x2={x} y2={ORIGIN_Y} stroke="rgba(255,255,255,0.05)" strokeWidth="1" strokeDasharray="3 3" />
             ))}
-            {/* Axes */}
-            <line x1={ORIGIN_X} y1="0" x2={ORIGIN_X} y2={ORIGIN_Y} stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-            <line x1={ORIGIN_X} y1={ORIGIN_Y} x2={VW} y2={ORIGIN_Y} stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
 
-            {/* Y-axis labels */}
-            <text x="4" y="28" fill="rgba(255,255,255,0.2)" fontSize="7">10×</text>
-            <text x="6" y="80" fill="rgba(255,255,255,0.2)" fontSize="7">5×</text>
-            <text x="6" y="145" fill="rgba(255,255,255,0.2)" fontSize="7">2×</text>
-            <text x="4" y={ORIGIN_Y - 3} fill="rgba(255,255,255,0.2)" fontSize="7">1×</text>
-
-            {/* Flight path trail */}
+            {/* Flight Trajectory Fill & Line */}
             {pathPoints.length > 1 && (
               <>
-                {/* Glow under curve */}
                 <polyline
                   points={[...pathPoints, [currentPt[0], ORIGIN_Y], [ORIGIN_X, ORIGIN_Y]].map(p => p.join(",")).join(" ")}
-                  fill={`${pathColor}18`} stroke="none" />
-                {/* Main curve */}
+                  fill="url(#trajectoryFill)" opacity="0.35" />
                 <polyline
                   points={pathPoints.map(p => p.join(",")).join(" ")}
-                  fill="none" stroke={pathColor} strokeWidth="2.5"
-                  strokeLinecap="round" strokeLinejoin="round"
-                  style={{ filter: `drop-shadow(0 0 4px ${pathColor}80)` }} />
+                  fill="none" stroke="#e11d48" strokeWidth="3.5" strokeLinecap="round"
+                  style={{ filter: "drop-shadow(0 0 6px #e11d48)" }} />
               </>
             )}
 
-            {/* Plane */}
-            {phase !== "betting" && (
-              <PlaneSVG x={currentPt[0]} y={currentPt[1]} angle={planeAngle}
-                crashed={crashed} cashedOut={cashedOut} propAngle={propAngle} />
+            {/* Aircraft */}
+            {phase === "waiting" && (
+              <AviatorPlaneSVG x={currentPt[0]} y={currentPt[1]} angle={planeAngle} crashed={crashed} propAngle={propAngle} />
             )}
 
-            {/* Starting rocket for idle */}
-            {phase === "betting" && (
-              <text x={ORIGIN_X - 8} y={ORIGIN_Y + 5} fontSize="22">🚀</text>
-            )}
+            <defs>
+              <linearGradient id="trajectoryFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#e11d48" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="#e11d48" stopOpacity="0" />
+              </linearGradient>
+            </defs>
           </svg>
+        </div>
 
-          {/* Multiplier counter overlay */}
-          {(phase === "waiting") && (
-            <div className="absolute top-3 left-0 right-0 flex justify-center pointer-events-none">
-              <div className="px-5 py-2 rounded-2xl text-center"
-                style={{ background: "rgba(0,0,0,0.6)", border: `1px solid ${multColor}40`, backdropFilter: "blur(8px)" }}>
-                <div className="text-3xl font-black tabular-nums" style={{ color: multColor, textShadow: `0 0 20px ${multColor}60` }}>
-                  {displayMult.toFixed(2)}×
-                </div>
-                <div className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>
-                  {result ? "Settling..." : "Flying..."}
-                </div>
-              </div>
-            </div>
-          )}
+        {/* ── SPRIBE AVIATOR BETTING CONTROLS PANEL ── */}
+        <div className="bg-[#141518] rounded-2xl p-3.5 border border-gray-800">
 
-          {/* Idle overlay */}
-          {phase === "betting" && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
-              <div className="text-center">
-                <div className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: "rgba(245,197,66,0.5)" }}>
-                  Crash Game
-                </div>
-                <div className="text-white font-bold text-lg">Bet your cashout · Fly to win</div>
-                <div className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.4)" }}>
-                  Higher multiplier = bigger risk
-                </div>
-              </div>
+          {/* Cashout Target Selector */}
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+              <span>Auto Cash Out Target</span>
+              <span className="text-amber-400">Target: {selectedOpt?.sub ?? "2.00x"}</span>
             </div>
+            <div className="grid grid-cols-3 gap-2">
+              {OPTIONS.map(opt => {
+                const isSel = selection === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    disabled={phase === "waiting"}
+                    onClick={() => setSelection(opt.key)}
+                    className={`py-2.5 px-3 rounded-xl flex items-center justify-between font-bold text-xs transition-all border ${
+                      isSel
+                        ? "border-rose-500 bg-rose-500/15 text-white shadow-lg shadow-rose-500/20"
+                        : "border-gray-800 bg-gray-900/60 text-gray-400 hover:border-gray-700"
+                    }`}
+                  >
+                    <span>{opt.label}</span>
+                    <span className="text-rose-400 font-mono">{opt.sub}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Chip Quick Selectors */}
+          <div className="mb-4">
+            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Bet Amount (PKR)</div>
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              {CHIP_AMOUNTS.map(amt => (
+                <button
+                  key={amt}
+                  disabled={phase === "waiting"}
+                  onClick={() => setStake(amt)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-extrabold font-mono transition-all border ${
+                    stake === amt
+                      ? "border-amber-400 bg-amber-400 text-gray-950"
+                      : "border-gray-800 bg-gray-900 text-gray-300 hover:border-gray-700"
+                  }`}
+                >
+                  {amt >= 1000 ? `${amt / 1000}K` : amt}
+                </button>
+              ))}
+              <button
+                disabled={phase === "waiting"}
+                onClick={() => setStake(s => s * 2)}
+                className="px-2.5 py-1.5 rounded-lg text-xs font-extrabold bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700"
+              >
+                2x
+              </button>
+            </div>
+          </div>
+
+          {/* Main Action Button (BET / CASH OUT) */}
+          {phase === "result" ? (
+            <button
+              onClick={reset}
+              className="w-full py-4 rounded-xl font-black text-base uppercase tracking-wider bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 hover:brightness-110 shadow-lg shadow-amber-500/25 transition-all"
+            >
+              PLAY NEXT ROUND ✈️
+            </button>
+          ) : phase === "waiting" ? (
+            <div className="w-full py-4 rounded-xl font-black text-center text-sm uppercase tracking-wider bg-rose-900/40 border border-rose-500/30 text-rose-300 animate-pulse">
+              ✈️ FLIGHT IN PROGRESS · CASHING OUT AT {selectedOpt?.sub}
+            </div>
+          ) : (
+            <button
+              onClick={placeBet}
+              disabled={isPlacing}
+              className="w-full py-4 rounded-xl font-black text-base uppercase tracking-wider bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:brightness-110 shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50"
+            >
+              {isPlacing ? "BETTING..." : `BET ${formatCurrency(stake)} ✈️`}
+            </button>
           )}
         </div>
 
-        {/* ── CONTROLS ── */}
-        {phase === "result" ? (
-          <button onClick={reset} className="w-full py-4 rounded-2xl font-black text-base tracking-wider transition-all hover:scale-105 active:scale-95"
-            style={{ background: "linear-gradient(135deg,#d4a017,#f5c542)", color: "#040e08", boxShadow: "0 0 24px rgba(245,197,66,0.4)" }}>
-            🚀 Play Again
-          </button>
-        ) : phase === "waiting" ? (
-          <div className="py-4 rounded-2xl text-center text-sm font-bold"
-            style={{ background: "rgba(245,197,66,0.06)", border: "1px solid rgba(245,197,66,0.15)", color: "rgba(255,255,255,0.5)" }}>
-            ✈️ Auto-Decider running — your PKR {stake.toLocaleString()} bet is live on {selectedOpt?.sub}
+        {/* ── LIVE BETS COMMUNITY FEED ── */}
+        <div className="bg-[#141518] rounded-2xl p-3 border border-gray-800">
+          <div className="flex items-center justify-between border-b border-gray-800 pb-2 mb-2 text-xs font-bold">
+            <div className="flex gap-4">
+              <button onClick={() => setActiveTab("all")} className={activeTab === "all" ? "text-rose-500 border-b-2 border-rose-500 pb-0.5" : "text-gray-400"}>All Bets</button>
+              <button onClick={() => setActiveTab("my")} className={activeTab === "my" ? "text-rose-500 border-b-2 border-rose-500 pb-0.5" : "text-gray-400"}>My Bets</button>
+            </div>
+            <span className="text-[10px] text-gray-500 uppercase flex items-center gap-1"><ShieldCheck size={12} className="text-emerald-500" /> Provably Fair</span>
           </div>
-        ) : (
-          <>
-            {/* Cashout target */}
-            <div>
-              <p className="text-xs font-black uppercase tracking-widest mb-3 text-center" style={{ color: "rgba(255,255,255,0.3)" }}>
-                Choose Cashout Target
-              </p>
-              <div className="grid grid-cols-3 gap-3">
-                {OPTIONS.map(opt => {
-                  const isSelected = selection === opt.key;
-                  return (
-                    <button key={opt.key} onClick={() => setSelection(opt.key)}
-                      className="py-4 rounded-2xl flex flex-col items-center gap-1.5 transition-all duration-200 hover:scale-105 active:scale-95"
-                      style={{ background: isSelected ? `${opt.color}20` : "rgba(255,255,255,0.04)",
-                        border: `2px solid ${isSelected ? opt.color : "rgba(255,255,255,0.07)"}`,
-                        boxShadow: isSelected ? `0 0 24px ${opt.color}55, inset 0 0 12px ${opt.color}15` : "none" }}>
-                      <span className="text-3xl">{opt.mult === 2 ? "💚" : opt.mult === 5 ? "🧡" : "🔴"}</span>
-                      <span className="text-sm font-black text-white">{opt.label}</span>
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-                        style={{ background: `${opt.color}22`, color: opt.color }}>{opt.sub}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
 
-            {/* Stake */}
-            <div>
-              <p className="text-xs font-black uppercase tracking-widest mb-2.5 text-center" style={{ color: "rgba(255,255,255,0.3)" }}>Bet Amount</p>
-              <div className="flex gap-2 justify-center flex-wrap">
-                {CHIP_AMOUNTS.map(amt => {
-                  const active = stake === amt;
-                  return (
-                    <button key={amt} onClick={() => setStake(amt)}
-                      className="px-4 py-2 rounded-xl text-sm font-black transition-all hover:scale-105"
-                      style={{ background: active ? "linear-gradient(135deg,#d4a017,#f5c542)" : "rgba(255,255,255,0.05)",
-                        color: active ? "#040e08" : "rgba(255,255,255,0.55)",
-                        border: `1px solid ${active ? "transparent" : "rgba(255,255,255,0.08)"}`,
-                        boxShadow: active ? "0 0 12px rgba(245,197,66,0.4)" : "none" }}>
-                      PKR {amt >= 1000 ? `${amt / 1000}K` : amt}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Place Bet */}
-            {selection ? (
-              <button onClick={placeBet} disabled={isPlacing}
-                className="w-full py-4 rounded-2xl font-black text-base tracking-wider transition-all hover:scale-105 active:scale-95 disabled:opacity-60"
-                style={{ background: "linear-gradient(135deg,#d4a017,#f5c542)", color: "#040e08", boxShadow: "0 0 24px rgba(245,197,66,0.4)" }}>
-                {isPlacing ? "Placing Bet..." : `🚀 Place Bet · ${formatCurrency(stake)}`}
-              </button>
-            ) : (
-              <div className="w-full py-4 rounded-2xl text-center font-bold text-sm"
-                style={{ background: "rgba(255,255,255,0.03)", border: "2px dashed rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.25)" }}>
-                ↑ Pick a cashout target to continue
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Payout guide */}
-        <div className="rounded-2xl p-4 text-center" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-          <div className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.3)" }}>How to Win</div>
-          <p className="text-xs mb-3" style={{ color: "rgba(255,255,255,0.4)" }}>The plane flies up. If it passes your cashout point before crashing, you win!</p>
-          <div className="flex gap-2 justify-center flex-wrap">
-            {OPTIONS.map(opt => (
-              <div key={opt.key} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
-                style={{ background: `${opt.color}15`, border: `1px solid ${opt.color}30` }}>
-                <span className="text-xs font-bold text-white">{opt.label}</span>
-                <span className="text-xs font-black" style={{ color: opt.color }}>{opt.sub}</span>
+          <div className="space-y-1.5 text-xs">
+            {dummyLiveBets.map((b, i) => (
+              <div key={i} className="flex items-center justify-between py-1 px-2 rounded-lg bg-gray-900/40">
+                <span className="text-gray-400 font-mono">{b.user}</span>
+                <span className="font-mono text-gray-300">PKR {b.bet}</span>
+                <span className={`font-mono font-bold ${b.isWin ? "text-emerald-400" : "text-rose-500"}`}>{b.mult}</span>
+                <span className="font-mono font-bold text-amber-400">{b.isWin ? `+${formatCurrency(b.payout)}` : "-"}</span>
               </div>
             ))}
           </div>
         </div>
+
       </div>
+
+      {/* How To Play Modal */}
+      {showHowToPlay && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#141518] border border-gray-800 rounded-2xl p-5 max-w-sm w-full text-center">
+            <h3 className="text-xl font-black text-rose-500 mb-2">How to Play Aviator</h3>
+            <p className="text-xs text-gray-300 mb-4 leading-relaxed">
+              1. Place your bet before the plane takes off.<br />
+              2. Watch the multiplier rise as the plane ascends.<br />
+              3. Cash out before the plane flies away to win your multiplier!
+            </p>
+            <button onClick={() => setShowHowToPlay(false)} className="w-full py-2.5 rounded-xl font-bold bg-rose-500 text-white">Got it!</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
